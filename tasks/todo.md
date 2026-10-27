@@ -9,9 +9,9 @@
 - [x] Task 5: NestJS API и e2e (`feature/api-scaffold`)
 - [x] Task 6: Next.js synthetic shell (`feature/web-synthetic-shell`)
 - [x] Task 7: Prisma Organization/Client/Matter (`feature/prisma-org-matter`)
-- [ ] Task 8: очередь BullMQ `ai-jobs` (`feature/bullmq-ai-jobs-queue`)
+- [x] Task 8: очередь BullMQ `ai-jobs` (`feature/bullmq-ai-jobs-queue`)
 
 ## Checkpoint: Scaffold
-- [ ] `pnpm test`
-- [ ] сборка api и web
-- [ ] `prisma validate`
+- [x] `pnpm test`
+- [x] сборка api и web
+- [x] `prisma validate`

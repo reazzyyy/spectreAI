@@ -33,13 +33,13 @@
 
 ### Phase 4: Confirmed infrastructure
 - [x] Task 7: Prisma-схема Organization/Client/Matter и `prisma validate` (`feature/prisma-org-matter`)
-- [ ] Task 8: модуль очереди BullMQ `ai-jobs` без воркера (`feature/bullmq-ai-jobs-queue`)
+- [x] Task 8: модуль очереди BullMQ `ai-jobs` без воркера (`feature/bullmq-ai-jobs-queue`)
 
 ### Checkpoint: Scaffold
-- [ ] `pnpm test` проходит
-- [ ] `pnpm --filter @spectre/api build` и `pnpm --filter @spectre/web build` проходят
-- [ ] `prisma validate` проходит
-- [ ] В git нет `.env`, секретов и `node_modules`
+- [x] `pnpm test` проходит
+- [x] `pnpm --filter @spectre/api build` и `pnpm --filter @spectre/web build` проходят
+- [x] `prisma validate` проходит
+- [x] В git нет `.env`, секретов и `node_modules`
 
 ## Risks and Mitigations
 
