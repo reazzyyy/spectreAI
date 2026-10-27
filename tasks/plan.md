@@ -24,7 +24,7 @@
 - [x] Task 2: корень pnpm, gitignore, compose Postgres+Redis (pgvector), `.env.example` (`chore/monorepo-workspace`)
 
 ### Phase 2: Policies that do not need a database
-- [ ] Task 3: `SyntheticAIProvider` и запрет несинтетических данных (`feature/synthetic-ai-gateway`)
+- [x] Task 3: `SyntheticAIProvider` и запрет несинтетических данных (`feature/synthetic-ai-gateway`)
 - [ ] Task 4: чтение Matter только внутри организации актёра (`feature/org-matter-isolation`)
 
 ### Phase 3: Applications
