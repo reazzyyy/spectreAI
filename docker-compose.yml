@@ -1,0 +1,18 @@
+# Local development only. Passwords are not for any shared or production environment.
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: spectre
+      POSTGRES_PASSWORD: spectre
+      POSTGRES_DB: spectre
+    ports:
+      - "5432:5432"
+    volumes:
+      - spectre_pg:/var/lib/postgresql/data
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+volumes:
+  spectre_pg:

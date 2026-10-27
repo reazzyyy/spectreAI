@@ -21,7 +21,7 @@
 
 ### Phase 1: Foundation
 - [x] Task 1: план в `tasks/` (`docs/scaffold-plan`)
-- [ ] Task 2: корень pnpm, gitignore, compose Postgres+Redis (pgvector), `.env.example` (`chore/monorepo-workspace`)
+- [x] Task 2: корень pnpm, gitignore, compose Postgres+Redis (pgvector), `.env.example` (`chore/monorepo-workspace`)
 
 ### Phase 2: Policies that do not need a database
 - [ ] Task 3: `SyntheticAIProvider` и запрет несинтетических данных (`feature/synthetic-ai-gateway`)
