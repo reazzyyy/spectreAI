@@ -10,6 +10,7 @@ import { ApiExceptionFilter } from "./http/api-exception.filter.js";
 import { MattersController } from "./matters/matters.controller.js";
 import { MattersService } from "./matters/matters.service.js";
 import { SYNTHETIC_MATTERS } from "./matters/synthetic-matters.js";
+import { AI_JOBS_QUEUE } from "./queue/ai-jobs.queue.js";
 
 @Module({
   controllers: [HealthController, MattersController, AiController],
@@ -27,6 +28,7 @@ import { SYNTHETIC_MATTERS } from "./matters/synthetic-matters.js";
     },
     MattersService,
     { provide: AiGateway, useFactory: () => new AiGateway() },
+    { provide: "AI_JOBS_QUEUE_NAME", useValue: AI_JOBS_QUEUE },
     { provide: APP_FILTER, useClass: ApiExceptionFilter },
   ],
 })
