@@ -28,7 +28,7 @@
 - [x] Task 4: чтение Matter только внутри организации актёра (`feature/org-matter-isolation`)
 
 ### Phase 3: Applications
-- [ ] Task 5: NestJS `/api/v1` — health, статус провайдера, чтение Matter, e2e изоляции (`feature/api-scaffold`)
+- [x] Task 5: NestJS `/api/v1` — health, статус провайдера, чтение Matter, e2e изоляции (`feature/api-scaffold`)
 - [ ] Task 6: Next.js с явной меткой synthetic/test (`feature/web-synthetic-shell`)
 
 ### Phase 4: Confirmed infrastructure
