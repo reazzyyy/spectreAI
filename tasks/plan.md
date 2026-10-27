@@ -32,7 +32,7 @@
 - [x] Task 6: Next.js с явной меткой synthetic/test (`feature/web-synthetic-shell`)
 
 ### Phase 4: Confirmed infrastructure
-- [ ] Task 7: Prisma-схема Organization/Client/Matter и `prisma validate` (`feature/prisma-org-matter`)
+- [x] Task 7: Prisma-схема Organization/Client/Matter и `prisma validate` (`feature/prisma-org-matter`)
 - [ ] Task 8: модуль очереди BullMQ `ai-jobs` без воркера (`feature/bullmq-ai-jobs-queue`)
 
 ### Checkpoint: Scaffold
