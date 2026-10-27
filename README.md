@@ -4,6 +4,20 @@
 
 > **Важно:** подробная спецификация со статусом `PROPOSED` не означает, что решение утверждено. Перед реализацией сверяйтесь с `docs/decisions-log.md` и `docs/DOCUMENTATION-GOVERNANCE.md`.
 
+## Локальный scaffold
+
+Каркас приложений описан в `tasks/plan.md`. Стек: Next.js, NestJS, PostgreSQL, Prisma, Redis, BullMQ (**D-008**). До закрытия **O-002** модель вызывается только через `SyntheticAIProvider`.
+
+```bash
+pnpm install
+docker compose up -d
+pnpm test
+pnpm dev:api   # http://localhost:3000/api/v1/health
+pnpm dev:web   # http://localhost:3001
+```
+
+Образец переменных — `.env.example`. Файл `.env` не коммитится. Пароли в `docker-compose.yml` только для локальной машины.
+
 ## С чего начинать
 
 1. Прочитать `AGENTS.md`.
