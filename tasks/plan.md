@@ -29,7 +29,7 @@
 
 ### Phase 3: Applications
 - [x] Task 5: NestJS `/api/v1` — health, статус провайдера, чтение Matter, e2e изоляции (`feature/api-scaffold`)
-- [ ] Task 6: Next.js с явной меткой synthetic/test (`feature/web-synthetic-shell`)
+- [x] Task 6: Next.js с явной меткой synthetic/test (`feature/web-synthetic-shell`)
 
 ### Phase 4: Confirmed infrastructure
 - [ ] Task 7: Prisma-схема Organization/Client/Matter и `prisma validate` (`feature/prisma-org-matter`)
