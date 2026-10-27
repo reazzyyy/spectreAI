@@ -1,0 +1,12 @@
+---
+description: Trunk-based git, ветки и Conventional Commits
+alwaysApply: true
+---
+- Канонический процесс: `.cursor/skills/git-workflow-and-versioning/SKILL.md`.
+- **Trunk = `main`.** Каждое смысловое продвижение по проекту (фича, фикс, docs-пакет, chore) идёт через **короткоживущую ветку** и вливается в `main`. Не оставлять готовую работу только на боковой ветке.
+- Ветки: `feature/…`, `fix/…`, `docs/…`, `chore/…`. Одна семантическая единица работы ≈ одна ветка ≈ один или несколько атомарных коммитов → merge в `main`.
+- Сообщение: `<type>: <short description>` + опциональное тело (why).
+- Типы: `feat` | `fix` | `refactor` | `test` | `docs` | `chore`.
+- Не использовать как тип/единственный текст: `update`, `misc`, `wip`, `changes`.
+- Не смешивать refactor с feat и форматирование с поведением в одном коммите.
+- Коммит и push — только по явной просьбе пользователя; force-push в `main` не делать.
