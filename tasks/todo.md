@@ -8,7 +8,7 @@
 - [x] Task 4: изоляция Matter по организации (`feature/org-matter-isolation`)
 - [x] Task 5: NestJS API и e2e (`feature/api-scaffold`)
 - [x] Task 6: Next.js synthetic shell (`feature/web-synthetic-shell`)
-- [ ] Task 7: Prisma Organization/Client/Matter (`feature/prisma-org-matter`)
+- [x] Task 7: Prisma Organization/Client/Matter (`feature/prisma-org-matter`)
 - [ ] Task 8: очередь BullMQ `ai-jobs` (`feature/bullmq-ai-jobs-queue`)
 
 ## Checkpoint: Scaffold

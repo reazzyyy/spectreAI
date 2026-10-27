@@ -1,0 +1,63 @@
+// Scaffold subset of docs/06-data-model.md.
+// Organization, Client, and Matter only. User and Workspace are not modeled yet.
+// workspace_id is optional (D-009) and has no foreign key until Workspace exists.
+// A matter can reference a client only inside the same organization.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OrganizationStatus {
+  active
+  suspended
+
+  @@map("organization_status")
+}
+
+model Organization {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  status    OrganizationStatus @default(active)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  clients   Client[]
+  matters   Matter[]
+
+  @@map("organizations")
+}
+
+model Client {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  name           String
+  status         String       @default("active")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  matters        Matter[]
+
+  @@unique([organizationId, id])
+  @@index([organizationId])
+  @@map("clients")
+}
+
+model Matter {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  clientId       String?      @map("client_id") @db.Uuid
+  client         Client?      @relation(fields: [organizationId, clientId], references: [organizationId, id], onDelete: Restrict)
+  workspaceId    String?      @map("workspace_id") @db.Uuid
+  title          String
+  status         String       @default("active")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  @@index([organizationId])
+  @@map("matters")
+}

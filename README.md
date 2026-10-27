@@ -16,7 +16,7 @@ pnpm dev:api   # http://localhost:3000/api/v1/health
 pnpm dev:web   # http://localhost:3001
 ```
 
-Образец переменных — `.env.example`. Файл `.env` не коммитится. Пароли в `docker-compose.yml` только для локальной машины.
+Образец переменных — `.env.example`. Файл `.env` не коммитится. Пароли в `docker-compose.yml` только для локальной машины. Движок Docker должен быть запущен, чтобы поднять Postgres и Redis. Схема БД проверяется командой `pnpm --filter @spectre/db validate`; применение миграции — когда Postgres доступен: `pnpm --filter @spectre/db exec prisma migrate dev`.
 
 ## С чего начинать
 
