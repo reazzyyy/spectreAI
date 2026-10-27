@@ -5,7 +5,7 @@
 - [x] Task 1: план (`docs/scaffold-plan`)
 - [x] Task 2: pnpm workspace + compose (`chore/monorepo-workspace`)
 - [x] Task 3: Synthetic AI Gateway (`feature/synthetic-ai-gateway`)
-- [ ] Task 4: изоляция Matter по организации (`feature/org-matter-isolation`)
+- [x] Task 4: изоляция Matter по организации (`feature/org-matter-isolation`)
 - [ ] Task 5: NestJS API и e2e (`feature/api-scaffold`)
 - [ ] Task 6: Next.js synthetic shell (`feature/web-synthetic-shell`)
 - [ ] Task 7: Prisma Organization/Client/Matter (`feature/prisma-org-matter`)
