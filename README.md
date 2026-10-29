@@ -6,7 +6,7 @@
 
 ## Локальный scaffold
 
-Каркас приложений описан в `tasks/plan.md`. Стек: Next.js, NestJS, PostgreSQL, Prisma, Redis, BullMQ (**D-008**). До закрытия **O-002** модель вызывается только через `SyntheticAIProvider`.
+Каркас приложений описан в `tasks/plan.md`. **Что реально есть в коде сейчас** — только в `docs/26-codebase-current-state.md` (не путать с целевым MVP в остальных `docs/`). Стек: Next.js, NestJS, PostgreSQL, Prisma, Redis, BullMQ (**D-008**). До закрытия **O-002** модель вызывается только через `SyntheticAIProvider`.
 
 ```bash
 pnpm install
@@ -18,14 +18,17 @@ pnpm dev:web   # http://localhost:3001
 
 Образец переменных — `.env.example`. Файл `.env` не коммитится. Пароли в `docker-compose.yml` только для локальной машины. Движок Docker должен быть запущен, чтобы поднять Postgres и Redis. Схема БД проверяется командой `pnpm --filter @spectre/db validate`; применение миграции — когда Postgres доступен: `pnpm --filter @spectre/db exec prisma migrate dev`.
 
+Краткие README модулей: `apps/api`, `apps/web`, `packages/access`, `packages/ai-gateway`, `packages/db`.
+
 ## С чего начинать
 
 1. Прочитать `AGENTS.md`.
 2. Прочитать `docs/decisions-log.md`.
 3. Прочитать `docs/DOCUMENTATION-GOVERNANCE.md`.
-4. Для задачи прочитать соответствующие спецификации из `docs/`.
-5. Если решение по архитектуре, данным, безопасности, провайдерам, удалению или миграциям открыто — остановить затронутую часть и запросить согласование.
-6. Работать небольшими этапами, добавлять тесты и сообщать только о проверках, которые действительно были выполнены.
+4. Прочитать `docs/26-codebase-current-state.md` (AS-IS код) и README нужного `apps/*` или `packages/*`.
+5. Для задачи прочитать соответствующие спецификации из `docs/`.
+6. Если решение по архитектуре, данным, безопасности, провайдерам, удалению или миграциям открыто — остановить затронутую часть и запросить согласование.
+7. Работать небольшими этапами, добавлять тесты, обновлять AS-IS/README при смене публичного поведения (правило `.cursor/rules/07-code-documentation.mdc`) и сообщать только о проверках, которые действительно были выполнены.
 
 ## Статус подтверждённых решений
 
@@ -74,6 +77,7 @@ pnpm dev:web   # http://localhost:3001
 | `docs/23-deployment-and-infrastructure.md` | Развёртывание, инфраструктура и восстановление |
 | `docs/archive/24-security-and-threat-model-legacy.md` | Архив прежней модели угроз; не нормативный источник |
 | `docs/25-logging-monitoring-and-audit.md` | Технические логи, метрики и аудит |
+| `docs/26-codebase-current-state.md` | AS-IS снимок исполняемого scaffold (что есть в коде сейчас) |
 | `docs/decisions-log.md` | Подтверждённые решения, гипотезы и открытые вопросы |
 | `docs/DOCUMENTATION-GOVERNANCE.md` | Канонические источники, статусы и процесс изменения документации |
 | `docs/adr/ADR-0001-data-residency-and-model-provider.md` | ADR по размещению данных и AI-провайдеру; статус проверять в самом ADR |
@@ -87,7 +91,7 @@ pnpm dev:web   # http://localhost:3001
 ## Cursor configuration
 
 - `AGENTS.md` — общие обязательные правила.
-- `.cursor/rules/` — правила по безопасности, архитектуре, UX, AI-обработке и Context7.
+- `.cursor/rules/` — правила по безопасности, архитектуре, UX, AI-обработке, Context7 и обязательной документации кода (`07-code-documentation.mdc`).
 - `.cursor/skills/` — навыки для отдельных рабочих процессов.
 - `.cursor/references/` — чек-листы и справочные материалы.
 

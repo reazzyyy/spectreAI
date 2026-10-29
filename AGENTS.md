@@ -67,6 +67,8 @@
 - Для AI Gateway используй `docs/14-ai-provider-and-model-gateway.md`.
 - Для тестирования используй `docs/22-testing-and-quality-strategy.md`.
 - Для логирования, метрик и аудита используй `docs/25-logging-monitoring-and-audit.md`.
+- Для фактов о текущем коде (AS-IS scaffold) используй `docs/26-codebase-current-state.md` и README в `apps/*` / `packages/*`; не подменяй их целевыми спецификациями MVP.
+- Обязательная документация при изменении кода: `.cursor/rules/07-code-documentation.mdc`.
 - Файлы в `docs/archive/` сохранены для истории и сверки, но не являются нормативными. Если найдено уникальное требование, предложи перенести его в канонический документ и не реализуй его напрямую из архива.
 
 ## Конфликты
