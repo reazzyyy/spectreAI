@@ -5,12 +5,31 @@ import { createPrismaClient } from "@spectre/db";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import { AppModule } from "../src/app.module.js";
-import { ACTOR_CONTEXT, type ActorContext } from "../src/auth/actor-context.js";
-import { MATTER_A, MATTER_B, ORG_A, ORG_B, USER_A } from "./matter-fixtures.js";
+import { hashPassword } from "../src/auth/password.js";
+import { applyHttpMiddleware } from "../src/http/apply-http-middleware.js";
+import {
+  MATTER_A,
+  MATTER_B,
+  MEMBERSHIP_A,
+  ORG_A,
+  ORG_B,
+  USER_A,
+  USER_A_EMAIL,
+  USER_A_PASSWORD,
+} from "./matter-fixtures.js";
 
-async function seedMatterFixtures(): Promise<void> {
+async function seedFixtures(): Promise<void> {
   const prisma = createPrismaClient();
   try {
+    await prisma.session.deleteMany({
+      where: { userId: USER_A },
+    });
+    await prisma.organizationMembership.deleteMany({
+      where: { id: MEMBERSHIP_A },
+    });
+    await prisma.user.deleteMany({
+      where: { id: USER_A },
+    });
     await prisma.matter.deleteMany({
       where: { id: { in: [MATTER_A.id, MATTER_B.id] } },
     });
@@ -42,20 +61,37 @@ async function seedMatterFixtures(): Promise<void> {
         },
       ],
     });
+
+    const passwordHash = await hashPassword(USER_A_PASSWORD);
+    await prisma.user.create({
+      data: {
+        id: USER_A,
+        email: USER_A_EMAIL,
+        passwordHash,
+        status: "active",
+      },
+    });
+    await prisma.organizationMembership.create({
+      data: {
+        id: MEMBERSHIP_A,
+        organizationId: ORG_A,
+        userId: USER_A,
+        role: "member",
+        status: "active",
+      },
+    });
   } finally {
     await prisma.$disconnect();
   }
 }
 
-async function createApp(actor: ActorContext | null): Promise<INestApplication> {
+async function createApp(): Promise<INestApplication> {
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule],
-  })
-    .overrideProvider(ACTOR_CONTEXT)
-    .useValue(actor)
-    .compile();
+  }).compile();
 
   const app = moduleRef.createNestApplication({ logger: false });
+  applyHttpMiddleware(app);
   app.setGlobalPrefix("api/v1");
   await app.init();
   return app;
@@ -63,14 +99,14 @@ async function createApp(actor: ActorContext | null): Promise<INestApplication> 
 
 describe("API scaffold", () => {
   beforeAll(async () => {
-    await seedMatterFixtures();
+    await seedFixtures();
   });
 
-  describe("without an authenticated actor", () => {
+  describe("without an authenticated session", () => {
     let app: INestApplication;
 
     beforeAll(async () => {
-      app = await createApp(null);
+      app = await createApp();
     });
 
     afterAll(async () => {
@@ -94,7 +130,7 @@ describe("API scaffold", () => {
       });
     });
 
-    it("hides matters until the server has an actor", async () => {
+    it("hides matters until the server has a session", async () => {
       const response = await request(app.getHttpServer()).get(
         `/api/v1/matters/${MATTER_A.id}`,
       );
@@ -104,13 +140,47 @@ describe("API scaffold", () => {
       expect(response.body.error.requestId).toEqual(expect.any(String));
       expect(JSON.stringify(response.body)).not.toContain(MATTER_A.title);
     });
+
+    it("rejects login with the same 401 for bad credentials", async () => {
+      const response = await request(app.getHttpServer())
+        .post("/api/v1/auth/login")
+        .send({
+          email: USER_A_EMAIL,
+          password: "wrong-password",
+          organizationId: ORG_A,
+        });
+
+      expect(response.status).toBe(401);
+      expect(response.body.error.code).toBe("UNAUTHENTICATED");
+      expect(response.headers["set-cookie"]).toBeUndefined();
+    });
   });
 
-  describe("actor in organization A", () => {
+  describe("session in organization A", () => {
     let app: INestApplication;
+    let agent: ReturnType<typeof request.agent>;
 
     beforeAll(async () => {
-      app = await createApp({ organizationId: ORG_A, userId: USER_A });
+      app = await createApp();
+      agent = request.agent(app.getHttpServer());
+
+      const login = await agent.post("/api/v1/auth/login").send({
+        email: USER_A_EMAIL,
+        password: USER_A_PASSWORD,
+        organizationId: ORG_A,
+      });
+
+      expect(login.status).toBe(200);
+      expect(login.body).toEqual({
+        user: { id: USER_A, email: USER_A_EMAIL },
+        organization: { id: ORG_A, role: "member" },
+      });
+      expect(JSON.stringify(login.body)).not.toContain(USER_A_PASSWORD);
+      const setCookie = login.headers["set-cookie"];
+      const cookieHeader = Array.isArray(setCookie)
+        ? setCookie.join(";")
+        : (setCookie ?? "");
+      expect(cookieHeader).toContain("spectre_sid=");
     });
 
     afterAll(async () => {
@@ -118,9 +188,7 @@ describe("API scaffold", () => {
     });
 
     it("reads a matter from the same organization", async () => {
-      const response = await request(app.getHttpServer()).get(
-        `/api/v1/matters/${MATTER_A.id}`,
-      );
+      const response = await agent.get(`/api/v1/matters/${MATTER_A.id}`);
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
@@ -133,12 +201,10 @@ describe("API scaffold", () => {
     });
 
     it("does not reveal a matter from another organization", async () => {
-      const missing = await request(app.getHttpServer()).get(
+      const missing = await agent.get(
         "/api/v1/matters/00000000-0000-4000-8000-000000000099",
       );
-      const foreign = await request(app.getHttpServer()).get(
-        `/api/v1/matters/${MATTER_B.id}`,
-      );
+      const foreign = await agent.get(`/api/v1/matters/${MATTER_B.id}`);
 
       expect(foreign.status).toBe(404);
       expect(foreign.body.error.code).toBe("NOT_FOUND");
@@ -146,13 +212,32 @@ describe("API scaffold", () => {
       expect(JSON.stringify(foreign.body)).not.toContain(MATTER_B.title);
       expect(JSON.stringify(foreign.body)).not.toContain(MATTER_B.organizationId);
     });
+
+    it("returns the session actor from GET /auth/me", async () => {
+      const response = await agent.get("/api/v1/auth/me");
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        user: { id: USER_A, email: USER_A_EMAIL },
+        organization: { id: ORG_A, role: "member" },
+      });
+    });
+
+    it("ignores a client-supplied organizationId header for matters", async () => {
+      const response = await agent
+        .get(`/api/v1/matters/${MATTER_B.id}`)
+        .set("x-organization-id", ORG_B);
+
+      expect(response.status).toBe(404);
+      expect(response.body.error.code).toBe("NOT_FOUND");
+    });
   });
 
   describe("synthetic generation", () => {
     let app: INestApplication;
 
     beforeAll(async () => {
-      app = await createApp(null);
+      app = await createApp();
     });
 
     afterAll(async () => {

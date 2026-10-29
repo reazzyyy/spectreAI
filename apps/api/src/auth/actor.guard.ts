@@ -2,11 +2,16 @@ import {
   CanActivate,
   Inject,
   Injectable,
+  Scope,
   UnauthorizedException,
 } from "@nestjs/common";
 import { ACTOR_CONTEXT, type ActorContext } from "./actor-context.js";
 
-@Injectable()
+/**
+ * Requires a request-scoped ACTOR_CONTEXT resolved from the server session.
+ * Missing/invalid session → 401 UNAUTHENTICATED (via exception filter).
+ */
+@Injectable({ scope: Scope.REQUEST })
 export class ActorGuard implements CanActivate {
   constructor(
     @Inject(ACTOR_CONTEXT) private readonly actor: ActorContext | null,

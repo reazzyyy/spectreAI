@@ -16,12 +16,16 @@
     "@spectre/access": "workspace:*",
     "@spectre/ai-gateway": "workspace:*",
     "@spectre/db": "workspace:*",
+    "argon2": "^0.45.1",
     "bullmq": "^6.5.0",
+    "cookie-parser": "^1.4.7",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
     "@nestjs/testing": "^12.0.0",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.6",
     "@types/node": "^24.0.0",
     "@types/supertest": "^6.0.3",
     "supertest": "^7.1.4",
