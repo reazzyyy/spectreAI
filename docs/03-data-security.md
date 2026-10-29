@@ -27,7 +27,7 @@
 - **D2:** метаданные клиентов и дел.
 - **D3:** содержимое договоров, исков, переписки, вложений и OCR.
 - **D4:** секреты безопасности — пароли, токены, ключи.
-Это внутренняя классификация проекта, не официальная юридическая классификация.
+Это внутренняя классификация проекта, не официальная юридическая классификация. **D0–D4 — единственная нормативная шкала.** Черновые коды C0–C4 из `docs/security/data-classification.md` не нормативны; там только таблица соответствия.
 
 ## Кандидаты на сущности
 User, Organization, OrganizationMembership, Team, Workspace, Client/Matter, Document, DocumentVersion, DocumentProcessingJob, DocumentChunk/SearchIndexReference, Conversation, Message, Draft/DraftVersion, AIJob, ProviderUsageRecord, AuditEvent, Invitation, Session. Не создавать автоматически: сначала утвердить ER-модель, связи и удаление.
