@@ -1,6 +1,6 @@
 import { Module, Scope } from "@nestjs/common";
 import { APP_FILTER, REQUEST } from "@nestjs/core";
-import { MatterAccess } from "@spectre/access";
+import { ClientAccess, MatterAccess } from "@spectre/access";
 import { AiGateway } from "@spectre/ai-gateway";
 import type { Request } from "express";
 import { AiController } from "./ai/ai.controller.js";
@@ -8,6 +8,9 @@ import { AuthController } from "./auth/auth.controller.js";
 import { ACTOR_CONTEXT } from "./auth/actor-context.js";
 import { ActorGuard } from "./auth/actor.guard.js";
 import { SessionService } from "./auth/session.service.js";
+import { ClientsController } from "./clients/clients.controller.js";
+import { ClientsService } from "./clients/clients.service.js";
+import { createPrismaClientStore } from "./clients/prisma-client-store.js";
 import { PrismaService } from "./db/prisma.service.js";
 import { HealthController } from "./health/health.controller.js";
 import { ApiExceptionFilter } from "./http/api-exception.filter.js";
@@ -20,6 +23,7 @@ import { AI_JOBS_QUEUE } from "./queue/ai-jobs.queue.js";
   controllers: [
     HealthController,
     AuthController,
+    ClientsController,
     MattersController,
     AiController,
   ],
@@ -35,11 +39,18 @@ import { AI_JOBS_QUEUE } from "./queue/ai-jobs.queue.js";
     },
     ActorGuard,
     {
+      provide: ClientAccess,
+      inject: [PrismaService],
+      useFactory: (prisma: PrismaService) =>
+        new ClientAccess(createPrismaClientStore(prisma.client)),
+    },
+    {
       provide: MatterAccess,
       inject: [PrismaService],
       useFactory: (prisma: PrismaService) =>
         new MatterAccess(createPrismaMatterStore(prisma.client)),
     },
+    ClientsService,
     MattersService,
     { provide: AiGateway, useFactory: () => new AiGateway() },
     { provide: "AI_JOBS_QUEUE_NAME", useValue: AI_JOBS_QUEUE },

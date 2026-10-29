@@ -8,12 +8,20 @@ export const USER_A_EMAIL = "lawyer-a@example.com";
 /** Synthetic fixture password for e2e only — not a production secret. */
 export const USER_A_PASSWORD = "synthetic-test-password-a";
 
+export const CLIENT_B = {
+  id: "00000000-0000-4000-8000-0000000000cb",
+  organizationId: ORG_B,
+  name: "synthetic-client-b",
+  status: "active",
+};
+
 export const MATTER_A = {
   id: "00000000-0000-4000-8000-0000000000a1",
   organizationId: ORG_A,
   title: "synthetic-matter-a",
   clientId: null as string | null,
   workspaceId: null as string | null,
+  status: "active",
 };
 
 export const MATTER_B = {
@@ -22,4 +30,5 @@ export const MATTER_B = {
   title: "synthetic-matter-b",
   clientId: null as string | null,
   workspaceId: null as string | null,
+  status: "active",
 };
