@@ -16,7 +16,7 @@ pnpm --filter @spectre/api test
 pnpm --filter @spectre/api build
 ```
 
-E2e seeds organizations, matters, a user + membership, logs in via cookie, and asserts cross-org `GET /matters/:id` → `404`.
+E2e seeds organizations, clients, matters, a user + membership, logs in via cookie, and asserts cross-org Client/Matter → `404` and foreign `clientId` on Matter → `422`.
 
 ## Modules (AS-IS)
 
@@ -27,7 +27,8 @@ E2e seeds organizations, matters, a user + membership, logs in via cookie, and a
 | `src/db/` | `PrismaService` from `@spectre/db` |
 | `src/health/` | Liveness |
 | `src/auth/` | Login/logout/me, SessionService, REQUEST-scoped `ACTOR_CONTEXT`, `ActorGuard` |
-| `src/matters/` | Read Matter via Prisma + `@spectre/access` |
+| `src/clients/` | Client list/create/get/patch via Prisma + `ClientAccess` |
+| `src/matters/` | Matter list/create/get/patch via Prisma + `MatterAccess` |
 | `src/ai/` | Provider status + synthetic generate |
 | `src/http/` | Uniform error JSON + shared middleware helper |
 | `src/queue/` | BullMQ queue name/helpers; **no worker** |
@@ -39,10 +40,19 @@ E2e seeds organizations, matters, a user + membership, logs in via cookie, and a
 - Password hashing: argon2id.
 - **OUT OF SCOPE:** MFA/SSO (**O-008**), invitations, register, recovery, CSRF token, web login UI.
 
+## Client / Matter scaffold
+
+- Endpoints (session required): `GET/POST /clients`, `GET/PATCH /clients/:id`, `GET/POST /matters`, `GET/PATCH /matters/:id`.
+- `organizationId` is stamped from the actor only; body/header org is ignored.
+- Matter `clientId` must belong to the same org (missing/foreign → identical `422 VALIDATION_ERROR`).
+- `workspaceId` accepted without Workspace FK validation (**D-009**).
+- Status values: `active` | `archived` (no hard delete in this slice).
+- Access model: org-membership isolation via `@spectre/access` — **not** full `docs/07` ACL.
+
 ## Hard boundaries
 
-- No valid session → Matters / `/auth/me` return `401`.
-- Matter reads use Postgres through `@spectre/db`; organization isolation is enforced by `MatterAccess` (foreign/missing → identical `NOT_FOUND`).
+- No valid session → Clients / Matters / `/auth/me` return `401`.
+- Foreign or missing Client/Matter → identical `404 NOT_FOUND`.
 - AI path uses only `@spectre/ai-gateway` Synthetic provider.
 
 Full inventory: `docs/26-codebase-current-state.md`.

@@ -8,6 +8,7 @@ import { AppModule } from "../src/app.module.js";
 import { hashPassword } from "../src/auth/password.js";
 import { applyHttpMiddleware } from "../src/http/apply-http-middleware.js";
 import {
+  CLIENT_B,
   MATTER_A,
   MATTER_B,
   MEMBERSHIP_A,
@@ -31,7 +32,10 @@ async function seedFixtures(): Promise<void> {
       where: { id: USER_A },
     });
     await prisma.matter.deleteMany({
-      where: { id: { in: [MATTER_A.id, MATTER_B.id] } },
+      where: { organizationId: { in: [ORG_A, ORG_B] } },
+    });
+    await prisma.client.deleteMany({
+      where: { organizationId: { in: [ORG_A, ORG_B] } },
     });
     await prisma.organization.deleteMany({
       where: { id: { in: [ORG_A, ORG_B] } },
@@ -43,6 +47,14 @@ async function seedFixtures(): Promise<void> {
         { id: ORG_B, name: "org-b" },
       ],
     });
+    await prisma.client.create({
+      data: {
+        id: CLIENT_B.id,
+        organizationId: CLIENT_B.organizationId,
+        name: CLIENT_B.name,
+        status: CLIENT_B.status,
+      },
+    });
     await prisma.matter.createMany({
       data: [
         {
@@ -51,6 +63,7 @@ async function seedFixtures(): Promise<void> {
           title: MATTER_A.title,
           clientId: MATTER_A.clientId,
           workspaceId: MATTER_A.workspaceId,
+          status: MATTER_A.status,
         },
         {
           id: MATTER_B.id,
@@ -58,6 +71,7 @@ async function seedFixtures(): Promise<void> {
           title: MATTER_B.title,
           clientId: MATTER_B.clientId,
           workspaceId: MATTER_B.workspaceId,
+          status: MATTER_B.status,
         },
       ],
     });
@@ -141,6 +155,13 @@ describe("API scaffold", () => {
       expect(JSON.stringify(response.body)).not.toContain(MATTER_A.title);
     });
 
+    it("hides clients until the server has a session", async () => {
+      const response = await request(app.getHttpServer()).get("/api/v1/clients");
+
+      expect(response.status).toBe(401);
+      expect(response.body.error.code).toBe("UNAUTHENTICATED");
+    });
+
     it("rejects login with the same 401 for bad credentials", async () => {
       const response = await request(app.getHttpServer())
         .post("/api/v1/auth/login")
@@ -197,6 +218,7 @@ describe("API scaffold", () => {
         title: MATTER_A.title,
         clientId: null,
         workspaceId: null,
+        status: "active",
       });
     });
 
@@ -230,6 +252,127 @@ describe("API scaffold", () => {
 
       expect(response.status).toBe(404);
       expect(response.body.error.code).toBe("NOT_FOUND");
+    });
+
+    it("creates, lists, reads, and patches a client in the actor organization", async () => {
+      const created = await agent.post("/api/v1/clients").send({ name: " Client Acme " });
+
+      expect(created.status).toBe(201);
+      expect(created.body).toMatchObject({
+        organizationId: ORG_A,
+        name: "Client Acme",
+        status: "active",
+      });
+      expect(created.body.id).toEqual(expect.any(String));
+
+      const listed = await agent.get("/api/v1/clients");
+      expect(listed.status).toBe(200);
+      expect(listed.body.items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: created.body.id, name: "Client Acme" }),
+        ]),
+      );
+      expect(listed.body.items.every((row: { organizationId: string }) => row.organizationId === ORG_A)).toBe(
+        true,
+      );
+      expect(JSON.stringify(listed.body)).not.toContain(CLIENT_B.name);
+
+      const read = await agent.get(`/api/v1/clients/${created.body.id}`);
+      expect(read.status).toBe(200);
+      expect(read.body).toEqual(created.body);
+
+      const patched = await agent
+        .patch(`/api/v1/clients/${created.body.id}`)
+        .send({ name: "Client Acme Renamed", status: "archived" });
+      expect(patched.status).toBe(200);
+      expect(patched.body).toMatchObject({
+        id: created.body.id,
+        name: "Client Acme Renamed",
+        status: "archived",
+      });
+    });
+
+    it("does not reveal a client from another organization", async () => {
+      const missing = await agent.get(
+        "/api/v1/clients/00000000-0000-4000-8000-000000000099",
+      );
+      const foreign = await agent.get(`/api/v1/clients/${CLIENT_B.id}`);
+
+      expect(foreign.status).toBe(404);
+      expect(foreign.body.error.code).toBe("NOT_FOUND");
+      expect(foreign.body.error.message).toBe(missing.body.error.message);
+      expect(JSON.stringify(foreign.body)).not.toContain(CLIENT_B.name);
+    });
+
+    it("rejects patch of a foreign client and ignores body organizationId", async () => {
+      const foreign = await agent
+        .patch(`/api/v1/clients/${CLIENT_B.id}`)
+        .send({ name: "hijack", organizationId: ORG_B });
+
+      expect(foreign.status).toBe(404);
+      expect(foreign.body.error.code).toBe("NOT_FOUND");
+    });
+
+    it("creates and patches a matter; rejects foreign clientId", async () => {
+      const client = await agent.post("/api/v1/clients").send({ name: "Matter Client" });
+      expect(client.status).toBe(201);
+
+      const created = await agent.post("/api/v1/matters").send({
+        title: " New Matter ",
+        clientId: client.body.id,
+      });
+      expect(created.status).toBe(201);
+      expect(created.body).toMatchObject({
+        organizationId: ORG_A,
+        title: "New Matter",
+        clientId: client.body.id,
+        workspaceId: null,
+        status: "active",
+      });
+
+      const listed = await agent.get("/api/v1/matters");
+      expect(listed.status).toBe(200);
+      expect(listed.body.items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: created.body.id, title: "New Matter" }),
+          expect.objectContaining({ id: MATTER_A.id }),
+        ]),
+      );
+      expect(JSON.stringify(listed.body)).not.toContain(MATTER_B.title);
+
+      const patched = await agent
+        .patch(`/api/v1/matters/${created.body.id}`)
+        .send({ title: "Renamed Matter", status: "archived" });
+      expect(patched.status).toBe(200);
+      expect(patched.body).toMatchObject({
+        id: created.body.id,
+        title: "Renamed Matter",
+        status: "archived",
+      });
+
+      const foreignClient = await agent.post("/api/v1/matters").send({
+        title: "Should fail",
+        clientId: CLIENT_B.id,
+      });
+      expect(foreignClient.status).toBe(422);
+      expect(foreignClient.body.error.code).toBe("VALIDATION_ERROR");
+
+      const foreignPatch = await agent
+        .patch(`/api/v1/matters/${MATTER_B.id}`)
+        .send({ title: "hijack" });
+      expect(foreignPatch.status).toBe(404);
+      expect(foreignPatch.body.error.code).toBe("NOT_FOUND");
+    });
+
+    it("rejects invalid client and matter bodies", async () => {
+      const badClient = await agent.post("/api/v1/clients").send({ name: "" });
+      expect(badClient.status).toBe(422);
+
+      const badMatter = await agent.post("/api/v1/matters").send({ title: "" });
+      expect(badMatter.status).toBe(422);
+
+      const emptyPatch = await agent.patch(`/api/v1/matters/${MATTER_A.id}`).send({});
+      expect(emptyPatch.status).toBe(422);
     });
   });
 

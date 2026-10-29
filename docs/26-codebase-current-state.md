@@ -15,7 +15,7 @@
 |---|---|
 | Стек D-008 (Next.js, NestJS, PostgreSQL, Prisma, Redis/BullMQ) | Каркас есть; API и web поднимаются локально |
 | SyntheticAIProvider (D-012) | Реализован; внешнего OpenAI SDK нет |
-| Client / Matter (D-009) | Prisma-модели есть; `GET /matters/:matterId` читает Matter из Postgres через `@spectre/db` |
+| Client / Matter (D-009) | Prisma-модели есть; HTTP CRU+list для Client/Matter через `@spectre/access` + Prisma (hard delete нет) |
 | Сессии / User / Membership | Scaffold: email+password login, HttpOnly cookie, `ACTOR_CONTEXT` из Session |
 | MFA / SSO (O-008) | **Не реализовано** (OUT OF SCOPE этой итерации) |
 | Workspace как сущность | Не реализована; у Matter есть опциональный `workspaceId` без FK |
@@ -31,7 +31,7 @@ spectreAI/
 │   ├── api/          @spectre/api    NestJS, префикс /api/v1, порт 3000
 │   └── web/          @spectre/web    Next.js shell, порт 3001
 ├── packages/
-│   ├── access/       @spectre/access Политика чтения Matter по organizationId
+│   ├── access/       @spectre/access Политика Client/Matter (org-isolation scaffold)
 │   ├── ai-gateway/   @spectre/ai-gateway SyntheticAIProvider + AiGateway
 │   └── db/           @spectre/db     Prisma 7 schema + migrations
 ├── docs/             Канонические спецификации и этот AS-IS снимок
@@ -66,13 +66,14 @@ spectreAI/
 |---|---|---|
 | Health | `src/health/health.controller.ts` | `GET /api/v1/health` → `{ status: "ok" }` |
 | Auth | `src/auth/*` | login / logout / me; SessionService; REQUEST-scoped `ACTOR_CONTEXT` |
-| Matters | `src/matters/*` | `GET /api/v1/matters/:matterId` под `ActorGuard`; store → Prisma |
+| Clients | `src/clients/*` | list/create/get/patch под `ActorGuard`; Prisma store + `ClientAccess` |
+| Matters | `src/matters/*` | list/create/get/patch под `ActorGuard`; Prisma store + `MatterAccess` |
 | AI | `src/ai/*` | `GET /api/v1/ai/provider`, `POST /api/v1/ai/generate` |
 | Ошибки | `src/http/api-exception.filter.ts` | Единый JSON `{ error: { code, message, requestId } }` |
 | Prisma | `src/db/prisma.service.ts` | `createPrismaClient` из `@spectre/db`; `$disconnect` на destroy |
 | Очередь | `src/queue/*` | Имя `ai-jobs`, фабрика `createAiJobsQueue`; **воркер не стартует**; в AppModule только имя очереди |
 
-**Хранилище Matter в API:** `createPrismaMatterStore` + `MatterAccess` (изоляция по `organizationId` актёра). E2e сидирует org/matter/user/membership в Postgres и логинится через cookie.
+**Хранилище Client/Matter в API:** `createPrismaClientStore` / `createPrismaMatterStore` + `ClientAccess` / `MatterAccess` (изоляция по `organizationId` актёра; не матрица `docs/07`). E2e сидирует org/client/matter/user/membership и проверяет cross-org `404` / чужой `clientId` → `422`.
 
 **Аутентификация (scaffold subset `docs/12`, не полный MVP):**
 
@@ -93,10 +94,12 @@ Next.js App Router: `src/app/layout.tsx`, `src/app/page.tsx`.
 
 ### 4.1 `@spectre/access`
 
-Публичный API: `MatterRecord`, `MatterStore`, `MatterAccess.readForOrganization(actorOrganizationId, matterId)`.
+Публичный API: `ClientRecord` / `ClientStore` / `ClientAccess` и `MatterRecord` / `MatterStore` / `MatterAccess` — read, list, create, update по `actorOrganizationId`.
 
-- Чужой или отсутствующий Matter → `null` (вызывающий слой отдаёт одинаковый `NOT_FOUND`).
-- Пустой `actorOrganizationId` → `null`.
+- Чужой или отсутствующий id → `null` (HTTP → одинаковый `NOT_FOUND`).
+- Create штампует `organizationId` актёра; пустой actor org → `null` / пустой list.
+- Hard delete **нет** (OUT OF SCOPE первого slice).
+- Это org-membership isolation scaffold, **не** полный ACL/`docs/07` / Workspace.
 
 ### 4.2 `@spectre/ai-gateway`
 
@@ -115,7 +118,8 @@ Next.js App Router: `src/app/layout.tsx`, `src/app/page.tsx`.
 - Composite FK: Matter → Client только в той же организации.
 - Миграции: `20261027200000_init_organization_client_matter`, `20261029120000_auth_user_membership_session`.
 - Document / AIJob / Audit / Invitation — **в схеме нет**.
-- Runtime consumer: `@spectre/api` (Matter + sessions).
+- Runtime consumer: `@spectre/api` (Client/Matter CRU + sessions).
+- Поле `created_by` из `docs/06` в Prisma **ещё нет** (OPEN / отложено).
 
 ## 5. HTTP-контракт scaffold (фактический)
 
@@ -129,7 +133,18 @@ Next.js App Router: `src/app/layout.tsx`, `src/app/page.tsx`.
 | GET | `/auth/me` | сессия | `{ user, organization }` | `401 UNAUTHENTICATED` |
 | GET | `/ai/provider` | нет | `{ providerId: "synthetic", externalTransferEnabled: false }` | — |
 | POST | `/ai/generate` | нет | `{ providerId, modelId, synthetic, text }` | `422 VALIDATION_ERROR`; `403 AI_DATA_POLICY_BLOCKED` |
-| GET | `/matters/:matterId` | сессия | поля Matter | `401 UNAUTHENTICATED`; `404 NOT_FOUND` |
+| GET | `/clients` | сессия | `{ items: Client[] }` | `401 UNAUTHENTICATED` |
+| POST | `/clients` | сессия | Client (`201`) | `401`; `422 VALIDATION_ERROR` |
+| GET | `/clients/:clientId` | сессия | Client | `401`; `404 NOT_FOUND` |
+| PATCH | `/clients/:clientId` | сессия | Client | `401`; `404`; `422` |
+| GET | `/matters` | сессия | `{ items: Matter[] }` | `401 UNAUTHENTICATED` |
+| POST | `/matters` | сессия | Matter (`201`) | `401`; `422` (в т.ч. чужой/неизвестный `clientId`) |
+| GET | `/matters/:matterId` | сессия | Matter | `401`; `404 NOT_FOUND` |
+| PATCH | `/matters/:matterId` | сессия | Matter | `401`; `404`; `422` |
+
+Тело Client: `{ id, organizationId, name, status }` (`status`: `active` \| `archived`).  
+Тело Matter: `{ id, organizationId, title, clientId, workspaceId, status }` (`status`: `active` \| `archived`).  
+`organizationId` в теле запроса игнорируется / не принимается парсером — только из сессии. Hard `DELETE` Client/Matter **нет**.
 
 Тело `POST /auth/login`:
 
@@ -172,6 +187,9 @@ Next.js App Router: `src/app/layout.tsx`, `src/app/page.tsx`.
 | `docs/12` §6.5 logout-all | PROPOSED | Нет | OUT OF SCOPE |
 | `docs/12` §7 CSRF | PROPOSED | Только SameSite=Lax | **OPEN** (см. также `docs/11` CSRF); до browser mutating forms |
 | `docs/11` префикс `/api/v1`, коды ошибок | — | `/api/v1`, `UNAUTHENTICATED` / `NOT_FOUND` / `VALIDATION_ERROR` | Согласовано |
+| `docs/11` карта `clients`/`matters` | PROPOSED GET/POST (+ GET by id) | Есть также PATCH; DELETE нет | PATCH — scaffold extension; DELETE OUT OF SCOPE |
+| `docs/06` `created_by` на Client/Matter | PROPOSED | Поля в Prisma нет | OPEN / отложено |
+| `docs/07` ACL / Workspace для содержимого | PROPOSED | Любой active membership org видит/меняет Client/Matter своей org | Scaffold org-isolation; **не** закрывает матрицу §6 |
 | `docs/11` API-002 механизм auth | OPEN | Cookie-сессии scaffold есть | API-002 **не закрыт**: CSRF/продуктовое утверждение метода входа ещё нужны |
 
 ## 6. Инфраструктура локальной разработки
@@ -187,9 +205,9 @@ Next.js App Router: `src/app/layout.tsx`, `src/app/page.tsx`.
 
 | Место | Что проверяет |
 |---|---|
-| `packages/access` | Изоляция Matter по organizationId |
+| `packages/access` | Изоляция Client/Matter read/list/create/update по organizationId |
 | `packages/ai-gateway` | Synthetic OK; блок несинтетики; статусы AIJob; нет `fetch` |
-| `apps/api` e2e | health, provider; 401 без cookie; login → Matter свой 200 / чужой 404; header org игнорируется; generate/block/validation |
+| `apps/api` e2e | health, provider; 401 без cookie; Client/Matter CRU+list; чужой id → 404; чужой clientId → 422; header org игнорируется; generate/block/validation |
 | `apps/api` queue unit | имя `ai-jobs`, разбор Redis URL |
 | `@spectre/db` | `prisma validate` как скрипт `test` |
 
@@ -202,7 +220,7 @@ E2e требуют поднятый Postgres (`docker compose`) и примен�
 - MFA/SSO (**O-008**), invitations, self-registration, email verify, recovery, logout-all, session list.
 - CSRF token / Origin gate; UI логина в `@spectre/web`.
 - Полный `docs/12` (audit events, password policy product confirmation, idle timeout).
-- CRUD Client/Matter через БД (есть только чтение Matter); Workspace; ACL матрица; admin grant.
+- Hard delete Client/Matter; `created_by`; Workspace entity; ACL матрица `docs/07`; admin grant.
 - Загрузка файлов, хранилище, OCR, парсинг (D-010/D-017, H-002).
 - BullMQ worker, сущность/жизненный цикл AIJob в БД.
 - RAG / pgvector индексы в приложении (D-018 — решение есть, кода поиска нет).
