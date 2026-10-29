@@ -5,11 +5,12 @@ import { AiGateway } from "@spectre/ai-gateway";
 import { AiController } from "./ai/ai.controller.js";
 import { ACTOR_CONTEXT } from "./auth/actor-context.js";
 import { ActorGuard } from "./auth/actor.guard.js";
+import { PrismaService } from "./db/prisma.service.js";
 import { HealthController } from "./health/health.controller.js";
 import { ApiExceptionFilter } from "./http/api-exception.filter.js";
 import { MattersController } from "./matters/matters.controller.js";
 import { MattersService } from "./matters/matters.service.js";
-import { SYNTHETIC_MATTERS } from "./matters/synthetic-matters.js";
+import { createPrismaMatterStore } from "./matters/prisma-matter-store.js";
 import { AI_JOBS_QUEUE } from "./queue/ai-jobs.queue.js";
 
 @Module({
@@ -17,14 +18,12 @@ import { AI_JOBS_QUEUE } from "./queue/ai-jobs.queue.js";
   providers: [
     { provide: ACTOR_CONTEXT, useValue: null },
     ActorGuard,
+    PrismaService,
     {
       provide: MatterAccess,
-      useFactory: () =>
-        new MatterAccess({
-          async findById(id: string) {
-            return SYNTHETIC_MATTERS.find((matter) => matter.id === id) ?? null;
-          },
-        }),
+      inject: [PrismaService],
+      useFactory: (prisma: PrismaService) =>
+        new MatterAccess(createPrismaMatterStore(prisma.client)),
     },
     MattersService,
     { provide: AiGateway, useFactory: () => new AiGateway() },

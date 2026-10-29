@@ -25,6 +25,9 @@ importers:
       '@spectre/ai-gateway':
         specifier: workspace:*
         version: link:../../packages/ai-gateway
+      '@spectre/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       bullmq:
         specifier: ^6.5.0
         version: 6.5.0(pg@8.23.1)

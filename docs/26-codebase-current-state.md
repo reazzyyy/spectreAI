@@ -15,7 +15,7 @@
 |---|---|
 | Стек D-008 (Next.js, NestJS, PostgreSQL, Prisma, Redis/BullMQ) | Каркас есть; API и web поднимаются локально |
 | SyntheticAIProvider (D-012) | Реализован; внешнего OpenAI SDK нет |
-| Client / Matter (D-009) | Prisma-модели есть; HTTP Matter читает **in-memory** синтетические записи, не Prisma |
+| Client / Matter (D-009) | Prisma-модели есть; `GET /matters/:matterId` читает Matter из Postgres через `@spectre/db` |
 | Сессии / User / Membership | Не реализованы |
 | Workspace как сущность | Не реализована; у Matter есть опциональный `workspaceId` без FK |
 | Загрузка документов / OCR / RAG | Не реализованы |
@@ -64,13 +64,14 @@ spectreAI/
 | Компонент | Путь | Поведение |
 |---|---|---|
 | Health | `src/health/health.controller.ts` | `GET /api/v1/health` → `{ status: "ok" }` |
-| Matters | `src/matters/*` | `GET /api/v1/matters/:matterId` под `ActorGuard` |
+| Matters | `src/matters/*` | `GET /api/v1/matters/:matterId` под `ActorGuard`; store → Prisma |
 | AI | `src/ai/*` | `GET /api/v1/ai/provider`, `POST /api/v1/ai/generate` |
 | Ошибки | `src/http/api-exception.filter.ts` | Единый JSON `{ error: { code, message, requestId } }` |
 | Актёр | `src/auth/*` | DI-токен `ACTOR_CONTEXT`; в runtime по умолчанию `null` → 401 на Matters |
+| Prisma | `src/db/prisma.service.ts` | `createPrismaClient` из `@spectre/db`; `$disconnect` на destroy |
 | Очередь | `src/queue/*` | Имя `ai-jobs`, фабрика `createAiJobsQueue`; **воркер не стартует**; в AppModule только имя очереди |
 
-**Хранилище Matter в API:** константа `SYNTHETIC_MATTERS` в `src/matters/synthetic-matters.ts`. `MatterAccess` получает factory-store по этому массиву. **Prisma/`@spectre/db` в runtime API не подключены.**
+**Хранилище Matter в API:** `createPrismaMatterStore` + `MatterAccess` (изоляция по `organizationId` актёра). In-memory `SYNTHETIC_MATTERS` удалён. E2e сидирует две org/matter в Postgres.
 
 **Аутентификация:** сессий нет. Без подмены `ACTOR_CONTEXT` через DI (как в e2e) защищённые маршруты отвечают `401` / `UNAUTHENTICATED`. Клиентский `organizationId` в запросе не принимается как доказательство доступа.
 
@@ -100,11 +101,13 @@ Next.js App Router: `src/app/layout.tsx`, `src/app/page.tsx`.
 ### 4.3 `@spectre/db`
 
 - Prisma 7, URL в `prisma.config.ts`, клиент генерируется в `src/generated`.
+- Публичный API: `createPrismaClient` (+ re-export `PrismaClient` / типов) через `@prisma/adapter-pg`.
 - Модели: `Organization`, `Client`, `Matter`.
 - `Matter.workspaceId` опционален, **без FK** (Workspace ещё нет).
 - Composite FK: Matter → Client только в той же организации.
 - Миграция: `prisma/migrations/20261027200000_init_organization_client_matter`.
 - User / Membership / Document / AIJob / Audit — **в схеме нет**.
+- Runtime consumer: `@spectre/api` (`PrismaService` → чтение Matter).
 
 ## 5. HTTP-контракт scaffold (фактический)
 
@@ -152,19 +155,18 @@ Next.js App Router: `src/app/layout.tsx`, `src/app/page.tsx`.
 |---|---|
 | `packages/access` | Изоляция Matter по organizationId |
 | `packages/ai-gateway` | Synthetic OK; блок несинтетики; статусы AIJob; нет `fetch` |
-| `apps/api` e2e | health, provider, 401 без актёра, свой Matter 200, чужой 404 без утечки, generate/block/validation |
+| `apps/api` e2e | health, provider, 401 без актёра; Matter из Postgres: свой 200, чужой 404 без утечки; generate/block/validation |
 | `apps/api` queue unit | имя `ai-jobs`, разбор Redis URL |
 | `@spectre/db` | `prisma validate` как скрипт `test` |
 
-Интеграция NestJS ↔ живой Prisma/Postgres в обязательный барьер scaffold **не входит** (см. `tasks/plan.md`).
+E2e Matters требуют поднятый Postgres (`docker compose`) и применённые миграции (`pnpm --filter @spectre/db migrate:deploy`).
 
 ## 8. Явно не реализовано (ожидаемо по спецификациям, отсутствует в коде)
 
 Не считать сделанным, пока нет кода и тестов:
 
 - Аутентификация, сессии, MFA/SSO (см. `docs/12`, O-008).
-- Подключение `@spectre/db` к NestJS-сервисам.
-- CRUD Client/Matter через БД; Workspace; ACL матрица; admin grant.
+- CRUD Client/Matter через БД (есть только чтение Matter); Workspace; ACL матрица; admin grant.
 - Загрузка файлов, хранилище, OCR, парсинг (D-010/D-017, H-002).
 - BullMQ worker, сущность/жизненный цикл AIJob в БД.
 - RAG / pgvector индексы в приложении (D-018 — решение есть, кода поиска нет).
@@ -177,7 +179,7 @@ Next.js App Router: `src/app/layout.tsx`, `src/app/page.tsx`.
 1. Прочитать `AGENTS.md` → `docs/decisions-log.md` → `docs/DOCUMENTATION-GOVERNANCE.md`.
 2. Прочитать этот файл и `tasks/plan.md`.
 3. `pnpm install` → `docker compose up -d` → скопировать `.env.example` в `.env`.
-4. `pnpm test` → `pnpm dev:api` / `pnpm dev:web`.
+4. `pnpm --filter @spectre/db migrate:deploy` → `pnpm test` → `pnpm dev:api` / `pnpm dev:web`.
 5. Перед фичей — канонический `docs/NN-*.md` области + правило документации кода (`.cursor/rules/07-code-documentation.mdc`).
 6. Git: короткоживущая ветка → merge в `main` (`.cursor/rules/06-git-commits.mdc`).
 

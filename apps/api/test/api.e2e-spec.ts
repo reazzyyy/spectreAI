@@ -1,17 +1,50 @@
 import "reflect-metadata";
 import { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
+import { createPrismaClient } from "@spectre/db";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import { AppModule } from "../src/app.module.js";
 import { ACTOR_CONTEXT, type ActorContext } from "../src/auth/actor-context.js";
-import { ORG_A, SYNTHETIC_MATTERS, USER_A } from "../src/matters/synthetic-matters.js";
+import { MATTER_A, MATTER_B, ORG_A, ORG_B, USER_A } from "./matter-fixtures.js";
 
-const matterA = SYNTHETIC_MATTERS[0];
-const matterB = SYNTHETIC_MATTERS[1];
+async function seedMatterFixtures(): Promise<void> {
+  const prisma = createPrismaClient();
+  try {
+    await prisma.matter.deleteMany({
+      where: { id: { in: [MATTER_A.id, MATTER_B.id] } },
+    });
+    await prisma.organization.deleteMany({
+      where: { id: { in: [ORG_A, ORG_B] } },
+    });
 
-if (!matterA || !matterB) {
-  throw new Error("Synthetic matter fixtures are missing");
+    await prisma.organization.createMany({
+      data: [
+        { id: ORG_A, name: "org-a" },
+        { id: ORG_B, name: "org-b" },
+      ],
+    });
+    await prisma.matter.createMany({
+      data: [
+        {
+          id: MATTER_A.id,
+          organizationId: MATTER_A.organizationId,
+          title: MATTER_A.title,
+          clientId: MATTER_A.clientId,
+          workspaceId: MATTER_A.workspaceId,
+        },
+        {
+          id: MATTER_B.id,
+          organizationId: MATTER_B.organizationId,
+          title: MATTER_B.title,
+          clientId: MATTER_B.clientId,
+          workspaceId: MATTER_B.workspaceId,
+        },
+      ],
+    });
+  } finally {
+    await prisma.$disconnect();
+  }
 }
 
 async function createApp(actor: ActorContext | null): Promise<INestApplication> {
@@ -29,6 +62,10 @@ async function createApp(actor: ActorContext | null): Promise<INestApplication> 
 }
 
 describe("API scaffold", () => {
+  beforeAll(async () => {
+    await seedMatterFixtures();
+  });
+
   describe("without an authenticated actor", () => {
     let app: INestApplication;
 
@@ -59,13 +96,13 @@ describe("API scaffold", () => {
 
     it("hides matters until the server has an actor", async () => {
       const response = await request(app.getHttpServer()).get(
-        `/api/v1/matters/${matterA.id}`,
+        `/api/v1/matters/${MATTER_A.id}`,
       );
 
       expect(response.status).toBe(401);
       expect(response.body.error.code).toBe("UNAUTHENTICATED");
       expect(response.body.error.requestId).toEqual(expect.any(String));
-      expect(JSON.stringify(response.body)).not.toContain(matterA.title);
+      expect(JSON.stringify(response.body)).not.toContain(MATTER_A.title);
     });
   });
 
@@ -82,14 +119,14 @@ describe("API scaffold", () => {
 
     it("reads a matter from the same organization", async () => {
       const response = await request(app.getHttpServer()).get(
-        `/api/v1/matters/${matterA.id}`,
+        `/api/v1/matters/${MATTER_A.id}`,
       );
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
-        id: matterA.id,
+        id: MATTER_A.id,
         organizationId: ORG_A,
-        title: matterA.title,
+        title: MATTER_A.title,
         clientId: null,
         workspaceId: null,
       });
@@ -100,14 +137,14 @@ describe("API scaffold", () => {
         "/api/v1/matters/00000000-0000-4000-8000-000000000099",
       );
       const foreign = await request(app.getHttpServer()).get(
-        `/api/v1/matters/${matterB.id}`,
+        `/api/v1/matters/${MATTER_B.id}`,
       );
 
       expect(foreign.status).toBe(404);
       expect(foreign.body.error.code).toBe("NOT_FOUND");
       expect(foreign.body.error.message).toBe(missing.body.error.message);
-      expect(JSON.stringify(foreign.body)).not.toContain(matterB.title);
-      expect(JSON.stringify(foreign.body)).not.toContain(matterB.organizationId);
+      expect(JSON.stringify(foreign.body)).not.toContain(MATTER_B.title);
+      expect(JSON.stringify(foreign.body)).not.toContain(MATTER_B.organizationId);
     });
   });
 
