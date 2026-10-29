@@ -2,7 +2,15 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "./generated/client.js";
 
 export { PrismaClient, Prisma } from "./generated/client.js";
-export type { Organization, Client, Matter } from "./generated/client.js";
+export type {
+  Organization,
+  Client,
+  Matter,
+  User,
+  OrganizationMembership,
+  Session,
+} from "./generated/client.js";
+
 
 const DEFAULT_DATABASE_URL = "postgresql://spectre:spectre@localhost:5432/spectre";
 

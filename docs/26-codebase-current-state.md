@@ -3,20 +3,21 @@
 **Статус:** CONFIRMED как снимок scaffold на дату ниже; не заменяет продуктовые спецификации и не утверждает MVP.  
 **Дата снимка:** 2026-10-29  
 **Источник истины по решениям:** `docs/decisions-log.md`  
-**План scaffold:** `tasks/plan.md` / `tasks/todo.md` (все задачи scaffold отмечены выполненными)
+**План:** `tasks/plan.md` / `tasks/todo.md` (Auth scaffold)
 
 Этот документ описывает **только то, что реально есть в репозитории**. Спецификации в `docs/00–25` могут описывать целевое MVP шире; если код ещё не реализован — ниже явно указано «не реализовано».
 
 ## 1. Что это за репозиторий сейчас
 
-Исполняемый **scaffold монорепо** (не готовый MVP): pnpm workspace, NestJS API, Next.js shell, пакеты доступа и AI Gateway, Prisma-схема Organization/Client/Matter, регистрация имени очереди BullMQ `ai-jobs`.
+Исполняемый **scaffold монорепо** (не готовый MVP): pnpm workspace, NestJS API, Next.js shell, пакеты доступа и AI Gateway, Prisma-схема Organization/Client/Matter/User/OrganizationMembership/Session, серверные сессии (cookie), регистрация имени очереди BullMQ `ai-jobs`.
 
 | Утверждение | Статус в коде |
 |---|---|
 | Стек D-008 (Next.js, NestJS, PostgreSQL, Prisma, Redis/BullMQ) | Каркас есть; API и web поднимаются локально |
 | SyntheticAIProvider (D-012) | Реализован; внешнего OpenAI SDK нет |
 | Client / Matter (D-009) | Prisma-модели есть; `GET /matters/:matterId` читает Matter из Postgres через `@spectre/db` |
-| Сессии / User / Membership | Не реализованы |
+| Сессии / User / Membership | Scaffold: email+password login, HttpOnly cookie, `ACTOR_CONTEXT` из Session |
+| MFA / SSO (O-008) | **Не реализовано** (OUT OF SCOPE этой итерации) |
 | Workspace как сущность | Не реализована; у Matter есть опциональный `workspaceId` без FK |
 | Загрузка документов / OCR / RAG | Не реализованы |
 | Воркер очереди AI / обработка документов | Не реализованы |
@@ -32,9 +33,9 @@ spectreAI/
 ├── packages/
 │   ├── access/       @spectre/access Политика чтения Matter по organizationId
 │   ├── ai-gateway/   @spectre/ai-gateway SyntheticAIProvider + AiGateway
-│   └── db/           @spectre/db     Prisma 7 schema + migration
+│   └── db/           @spectre/db     Prisma 7 schema + migrations
 ├── docs/             Канонические спецификации и этот AS-IS снимок
-├── tasks/            План и чеклист scaffold
+├── tasks/            План и чеклист текущей итерации
 ├── docker-compose.yml  Postgres (pgvector/pg16) + Redis 7 (только local)
 ├── .env.example
 ├── AGENTS.md
@@ -57,23 +58,29 @@ spectreAI/
 
 ### 3.1 `@spectre/api` (`apps/api`)
 
-**Точка входа:** `src/main.ts` — NestFactory, глобальный префикс `api/v1`, порт из `PORT` (по умолчанию 3000).
+**Точка входа:** `src/main.ts` — NestFactory, `cookie-parser`, глобальный префикс `api/v1`, порт из `PORT` (по умолчанию 3000).
 
 **Модуль:** `src/app.module.ts`
 
 | Компонент | Путь | Поведение |
 |---|---|---|
 | Health | `src/health/health.controller.ts` | `GET /api/v1/health` → `{ status: "ok" }` |
+| Auth | `src/auth/*` | login / logout / me; SessionService; REQUEST-scoped `ACTOR_CONTEXT` |
 | Matters | `src/matters/*` | `GET /api/v1/matters/:matterId` под `ActorGuard`; store → Prisma |
 | AI | `src/ai/*` | `GET /api/v1/ai/provider`, `POST /api/v1/ai/generate` |
 | Ошибки | `src/http/api-exception.filter.ts` | Единый JSON `{ error: { code, message, requestId } }` |
-| Актёр | `src/auth/*` | DI-токен `ACTOR_CONTEXT`; в runtime по умолчанию `null` → 401 на Matters |
 | Prisma | `src/db/prisma.service.ts` | `createPrismaClient` из `@spectre/db`; `$disconnect` на destroy |
 | Очередь | `src/queue/*` | Имя `ai-jobs`, фабрика `createAiJobsQueue`; **воркер не стартует**; в AppModule только имя очереди |
 
-**Хранилище Matter в API:** `createPrismaMatterStore` + `MatterAccess` (изоляция по `organizationId` актёра). In-memory `SYNTHETIC_MATTERS` удалён. E2e сидирует две org/matter в Postgres.
+**Хранилище Matter в API:** `createPrismaMatterStore` + `MatterAccess` (изоляция по `organizationId` актёра). E2e сидирует org/matter/user/membership в Postgres и логинится через cookie.
 
-**Аутентификация:** сессий нет. Без подмены `ACTOR_CONTEXT` через DI (как в e2e) защищённые маршруты отвечают `401` / `UNAUTHENTICATED`. Клиентский `organizationId` в запросе не принимается как доказательство доступа.
+**Аутентификация (scaffold subset `docs/12`, не полный MVP):**
+
+- `POST /auth/login` — email + password + `organizationId`; argon2id; cookie `spectre_sid` (HttpOnly, SameSite=Lax); в БД только SHA-256 хеш токена.
+- `organizationId` актёра берётся из `Session` (+ повторная проверка активного membership), не из заголовков/тела клиента.
+- Без валидной сессии защищённые маршруты → `401` / `UNAUTHENTICATED`.
+- TTL сессии scaffold: 7 суток абсолютных (не CONFIRMED в journal).
+- MFA/SSO, invitations, register, recovery, CSRF token, web login UI — **не реализованы**.
 
 ### 3.2 `@spectre/web` (`apps/web`)
 
@@ -102,12 +109,13 @@ Next.js App Router: `src/app/layout.tsx`, `src/app/page.tsx`.
 
 - Prisma 7, URL в `prisma.config.ts`, клиент генерируется в `src/generated`.
 - Публичный API: `createPrismaClient` (+ re-export `PrismaClient` / типов) через `@prisma/adapter-pg`.
-- Модели: `Organization`, `Client`, `Matter`.
+- Модели: `Organization`, `Client`, `Matter`, `User`, `OrganizationMembership`, `Session`.
+- `Session` соответствует `AuthSession` в `docs/12` (урезанный subset) и хранит `organizationId`, привязанный при login.
 - `Matter.workspaceId` опционален, **без FK** (Workspace ещё нет).
 - Composite FK: Matter → Client только в той же организации.
-- Миграция: `prisma/migrations/20261027200000_init_organization_client_matter`.
-- User / Membership / Document / AIJob / Audit — **в схеме нет**.
-- Runtime consumer: `@spectre/api` (`PrismaService` → чтение Matter).
+- Миграции: `20261027200000_init_organization_client_matter`, `20261029120000_auth_user_membership_session`.
+- Document / AIJob / Audit / Invitation — **в схеме нет**.
+- Runtime consumer: `@spectre/api` (Matter + sessions).
 
 ## 5. HTTP-контракт scaffold (фактический)
 
@@ -116,9 +124,18 @@ Next.js App Router: `src/app/layout.tsx`, `src/app/page.tsx`.
 | Метод | Путь | Auth | Успех | Ошибки |
 |---|---|---|---|---|
 | GET | `/health` | нет | `{ status: "ok" }` | — |
+| POST | `/auth/login` | нет | `{ user, organization }` + Set-Cookie | `401 UNAUTHENTICATED`; `422 VALIDATION_ERROR` |
+| POST | `/auth/logout` | cookie optional | `{ ok: true }` + clear cookie | — |
+| GET | `/auth/me` | сессия | `{ user, organization }` | `401 UNAUTHENTICATED` |
 | GET | `/ai/provider` | нет | `{ providerId: "synthetic", externalTransferEnabled: false }` | — |
 | POST | `/ai/generate` | нет | `{ providerId, modelId, synthetic, text }` | `422 VALIDATION_ERROR`; `403 AI_DATA_POLICY_BLOCKED` |
-| GET | `/matters/:matterId` | требуется актёр | поля Matter | `401 UNAUTHENTICATED`; `404 NOT_FOUND` |
+| GET | `/matters/:matterId` | сессия | поля Matter | `401 UNAUTHENTICATED`; `404 NOT_FOUND` |
+
+Тело `POST /auth/login`:
+
+- Обязательные: `email`, `password`, `organizationId` (UUID).
+- Одинаковый `401` при неверных credentials / неактивном аккаунте / отсутствии membership (без enumeration).
+- Ответ не содержит пароль, хеш или сырой session token.
 
 Тело `POST /ai/generate`:
 
@@ -140,6 +157,23 @@ Next.js App Router: `src/app/layout.tsx`, `src/app/page.tsx`.
 
 Сообщения 5xx не раскрывают внутренности (`INTERNAL_ERROR`).
 
+### Сверка с каноном (не молчать о расхождениях)
+
+| Канон | Статус канона | Факт в коде | Вердикт |
+|---|---|---|---|
+| `docs/decisions-log.md` O-008 MFA/SSO | OPEN | Нет MFA/SSO | Соответствует OUT OF SCOPE |
+| `docs/12` §5.1 способ входа | PROPOSED | Scaffold: email+password (без email verify) | Не CONFIRMED; выбор scaffold, не закрывает O-008 |
+| `docs/12` §5.2 алгоритм login | PROPOSED | Шаги 1–7 есть; §8 audit event — нет | Audit OUT OF SCOPE |
+| `docs/12` §5.3 `GET /auth/me` | PROPOSED иллюстрация `organizations[]` + `emailVerified` | Фактически: одна `organization` (из Session) без `emailVerified` | **OPEN** форма DTO до утверждения полного `docs/12` |
+| `docs/12` §5.4 актёр из сессии | принцип | Cookie→Session→membership; клиентский org игнорируется | Соответствует |
+| `docs/12` §6.1 cookie | PROPOSED | HttpOnly, SameSite=Lax, Secure в production, Path=/ | Соответствует scaffold |
+| `docs/12` §6.2 TTL 7d + idle 24h | PROPOSED | Только абсолютные 7d; idle timeout нет | Idle — OPEN / не реализован |
+| `docs/12` §6.4 logout | PROPOSED | Revoke + clear cookie, идемпотентно | Соответствует (без audit event) |
+| `docs/12` §6.5 logout-all | PROPOSED | Нет | OUT OF SCOPE |
+| `docs/12` §7 CSRF | PROPOSED | Только SameSite=Lax | **OPEN** (см. также `docs/11` CSRF); до browser mutating forms |
+| `docs/11` префикс `/api/v1`, коды ошибок | — | `/api/v1`, `UNAUTHENTICATED` / `NOT_FOUND` / `VALIDATION_ERROR` | Согласовано |
+| `docs/11` API-002 механизм auth | OPEN | Cookie-сессии scaffold есть | API-002 **не закрыт**: CSRF/продуктовое утверждение метода входа ещё нужны |
+
 ## 6. Инфраструктура локальной разработки
 
 `docker-compose.yml` (только local):
@@ -147,7 +181,7 @@ Next.js App Router: `src/app/layout.tsx`, `src/app/page.tsx`.
 - Postgres: образ `pgvector/pgvector:pg16`, user/password/db `spectre`, порт `5432`.
 - Redis: `redis:7-alpine`, порт `6379`.
 
-`.env.example`: `DATABASE_URL`, `REDIS_URL`, `PORT`. Файл `.env` не коммитится. Пароли compose — не для shared/production.
+`.env.example`: `DATABASE_URL`, `REDIS_URL`, `PORT`. Файл `.env` не коммитится. Пароли compose — не для shared/production. Отдельный session signing secret не используется (opaque DB sessions).
 
 ## 7. Тесты (что покрыто)
 
@@ -155,17 +189,19 @@ Next.js App Router: `src/app/layout.tsx`, `src/app/page.tsx`.
 |---|---|
 | `packages/access` | Изоляция Matter по organizationId |
 | `packages/ai-gateway` | Synthetic OK; блок несинтетики; статусы AIJob; нет `fetch` |
-| `apps/api` e2e | health, provider, 401 без актёра; Matter из Postgres: свой 200, чужой 404 без утечки; generate/block/validation |
+| `apps/api` e2e | health, provider; 401 без cookie; login → Matter свой 200 / чужой 404; header org игнорируется; generate/block/validation |
 | `apps/api` queue unit | имя `ai-jobs`, разбор Redis URL |
 | `@spectre/db` | `prisma validate` как скрипт `test` |
 
-E2e Matters требуют поднятый Postgres (`docker compose`) и применённые миграции (`pnpm --filter @spectre/db migrate:deploy`).
+E2e требуют поднятый Postgres (`docker compose`) и применённые миграции (`pnpm --filter @spectre/db migrate:deploy`).
 
 ## 8. Явно не реализовано (ожидаемо по спецификациям, отсутствует в коде)
 
 Не считать сделанным, пока нет кода и тестов:
 
-- Аутентификация, сессии, MFA/SSO (см. `docs/12`, O-008).
+- MFA/SSO (**O-008**), invitations, self-registration, email verify, recovery, logout-all, session list.
+- CSRF token / Origin gate; UI логина в `@spectre/web`.
+- Полный `docs/12` (audit events, password policy product confirmation, idle timeout).
 - CRUD Client/Matter через БД (есть только чтение Matter); Workspace; ACL матрица; admin grant.
 - Загрузка файлов, хранилище, OCR, парсинг (D-010/D-017, H-002).
 - BullMQ worker, сущность/жизненный цикл AIJob в БД.

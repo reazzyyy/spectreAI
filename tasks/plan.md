@@ -1,57 +1,51 @@
-# Implementation Plan: Scaffold монорепо (D-008)
+# Implementation Plan: Auth scaffold (sessions)
 
 ## Overview
 
-Первый исполняемый каркас платформы: pnpm-монорепо, Next.js, NestJS, PostgreSQL/Prisma, Redis/BullMQ, внутренний AI Gateway только с `SyntheticAIProvider`, и тесты, что дело одной организации не читается из контекста другой. Это scaffold, не MVP.
+Минимальный Auth scaffold поверх текущего монорепо: Prisma `User`, `OrganizationMembership`, `Session`; login создаёт серверную сессию (HttpOnly cookie); `ACTOR_CONTEXT` берётся только из сессии с повторной проверкой membership. E2e: без сессии `401`; чужой Matter → `404`. Это не полный MVP из `docs/12`.
 
-Подтверждено журналом: стек **D-008**, `Client`/`Matter` **D-009**, статусы AIJob **D-011**, Synthetic до **O-002** **D-012**, префикс `/api/v1`. Мультиарендность как архитектура остаётся **H-001**; тесты изоляции делаются по явному запросу и `docs/22-testing-and-quality-strategy.md`, без перевода H-001 в CONFIRMED.
+**Подтверждено запросом / каноном:** isolation Matter; серверный актёр; e2e 401/404; MFA/SSO **OUT OF SCOPE** (**O-008** остаётся OPEN).
+
+**Scaffold-defaults (не CONFIRMED в journal):** email+password; TTL сессии 7 дней; `organizationId` фиксируется в `Session` при login.
 
 ## Architecture Decisions
 
-- Trunk — `main`. Каждая строка ниже — короткоживущая ветка и merge в `main`.
-- Общие пакеты: `@spectre/ai-gateway`, `@spectre/access`, `@spectre/db`. Приложения: `@spectre/api` (порт 3000), `@spectre/web` (порт 3001).
-- До закрытия O-002 в репозитории нет SDK OpenAI и нет сетевого вызова модели. Gateway принимает только `dataClass: "synthetic"`.
-- Организация актёра задаётся сервером. Клиентский `organizationId` не является доказательством доступа. Пока нет сессий (O-008), HTTP без серверного актёра отвечает `401`. В тестах актёр подменяется через DI.
-- Чужой или неизвестный Matter отвечает `404` с кодом `NOT_FOUND` и без полей ресурса.
-- Prisma 7 (не 8 RC): схема в `packages/db`, URL в `prisma.config.ts`, клиент через `@prisma/adapter-pg`. В этой итерации модели только `Organization`, `Client`, `Matter`. `workspaceId` у Matter необязателен и без FK, пока нет сущности Workspace. User/Membership не создаём до задачи аутентификации.
-- BullMQ: очередь `ai-jobs` регистрируется только при `REDIS_URL`. Воркер документов не запускается.
-- Локальные пароли в `docker-compose.yml` только для dev. `.env` не коммитится.
+- Trunk — `main`. Ветка: `feature/auth-session-scaffold`.
+- `POST /auth/login` `{ email, password, organizationId }` → opaque cookie `spectre_sid` + `Session.tokenHash` (SHA-256). JSON без токена/пароля.
+- REQUEST-scoped `ACTOR_CONTEXT`: cookie → Session → User `active` → Membership `active`. Клиентский org/userId не доверять.
+- Prisma модель `Session` соответствует `AuthSession` в `docs/12` (урезанный subset + `organizationId` для binding актёра).
+- OUT OF SCOPE: MFA/SSO (O-008), invitations, register, recovery, CSRF token, web login UI, logout-all, audit store.
 
 ## Task List
 
-### Phase 1: Foundation
-- [x] Task 1: план в `tasks/` (`docs/scaffold-plan`)
-- [x] Task 2: корень pnpm, gitignore, compose Postgres+Redis (pgvector), `.env.example` (`chore/monorepo-workspace`)
+### Phase 1: Plan and schema
+- [x] Task 1: план в `tasks/` (`docs/auth-session-plan`)
+- [x] Task 2: Prisma User / OrganizationMembership / Session + миграция (`feature/auth-session-scaffold`)
 
-### Phase 2: Policies that do not need a database
-- [x] Task 3: `SyntheticAIProvider` и запрет несинтетических данных (`feature/synthetic-ai-gateway`)
-- [x] Task 4: чтение Matter только внутри организации актёра (`feature/org-matter-isolation`)
+### Phase 2: Session API and actor
+- [x] Task 3: login / logout / me + SessionService (argon2, cookie)
+- [x] Task 4: ACTOR_CONTEXT из сессии; ActorGuard; membership re-check
 
-### Phase 3: Applications
-- [x] Task 5: NestJS `/api/v1` — health, статус провайдера, чтение Matter, e2e изоляции (`feature/api-scaffold`)
-- [x] Task 6: Next.js с явной меткой synthetic/test (`feature/web-synthetic-shell`)
+### Phase 3: Proof and docs
+- [x] Task 5: e2e без cookie 401; login org A → Matter A 200 / Matter B 404
+- [x] Task 6: AS-IS + README; зафиксировать OUT OF SCOPE O-008
 
-### Phase 4: Confirmed infrastructure
-- [x] Task 7: Prisma-схема Organization/Client/Matter и `prisma validate` (`feature/prisma-org-matter`)
-- [x] Task 8: модуль очереди BullMQ `ai-jobs` без воркера (`feature/bullmq-ai-jobs-queue`)
-
-### Checkpoint: Scaffold
-- [x] `pnpm test` проходит
-- [x] `pnpm --filter @spectre/api build` и `pnpm --filter @spectre/web build` проходят
-- [x] `prisma validate` проходит
-- [x] В git нет `.env`, секретов и `node_modules`
+### Checkpoint: Auth scaffold
+- [x] `pnpm --filter @spectre/db validate` + migrate deploy
+- [x] `pnpm --filter @spectre/api test`
+- [x] `pnpm --filter @spectre/api build`
+- [x] Docs/README обновлены в том же изменении
 
 ## Risks and Mitigations
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Prisma 8 ещё RC | Средний | Фиксируем линейку 7 |
-| Тест примет клиентский organization id за доступ | Высокий | Актёр только из DI; без актёра 401 |
-| Случайный вызов внешнего AI | Высокий | Нет OpenAI SDK; runtime-отказ для любого `dataClass`, кроме `synthetic`; тест, что `fetch` не вызывается |
-| H-001 будет воспринят как утверждённая архитектура | Средний | В коде и плане явно H-001, не CONFIRMED |
+| Клиент подменит org | Высокий | org только из Session; membership на каждый request |
+| Утечка существования email | Средний | единый 401 на login fail |
+| Docs/12 шире кода | Средний | AS-IS: scaffold subset, не MVP auth |
 
-## Open Questions
+## Open Questions / OUT OF SCOPE
 
-- Сессии и членство — отдельная задача после `docs/12-authentication-and-sessions.md` (O-008 открыт).
-- Полная модель Workspace, ACL и admin grant не входят в этот scaffold.
-- Интеграционный тест Prisma против живого Postgres запускается только если поднят compose и задан `DATABASE_URL`; без этого обязательный барьер — unit/e2e на in-memory store и `prisma validate`.
+- **O-008 MFA/SSO** — не трогать в этой итерации.
+- CSRF double-submit / Origin gate — до browser mutating forms с web.
+- UI логина в `@spectre/web` — отдельная задача.

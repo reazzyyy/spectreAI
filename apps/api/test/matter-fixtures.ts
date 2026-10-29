@@ -2,6 +2,11 @@
 export const ORG_A = "00000000-0000-4000-8000-00000000000a";
 export const ORG_B = "00000000-0000-4000-8000-00000000000b";
 export const USER_A = "00000000-0000-4000-8000-0000000000aa";
+export const MEMBERSHIP_A = "00000000-0000-4000-8000-0000000000c1";
+
+export const USER_A_EMAIL = "lawyer-a@example.com";
+/** Synthetic fixture password for e2e only — not a production secret. */
+export const USER_A_PASSWORD = "synthetic-test-password-a";
 
 export const MATTER_A = {
   id: "00000000-0000-4000-8000-0000000000a1",

@@ -1,10 +1,13 @@
-import { Module } from "@nestjs/common";
-import { APP_FILTER } from "@nestjs/core";
+import { Module, Scope } from "@nestjs/common";
+import { APP_FILTER, REQUEST } from "@nestjs/core";
 import { MatterAccess } from "@spectre/access";
 import { AiGateway } from "@spectre/ai-gateway";
+import type { Request } from "express";
 import { AiController } from "./ai/ai.controller.js";
+import { AuthController } from "./auth/auth.controller.js";
 import { ACTOR_CONTEXT } from "./auth/actor-context.js";
 import { ActorGuard } from "./auth/actor.guard.js";
+import { SessionService } from "./auth/session.service.js";
 import { PrismaService } from "./db/prisma.service.js";
 import { HealthController } from "./health/health.controller.js";
 import { ApiExceptionFilter } from "./http/api-exception.filter.js";
@@ -14,11 +17,23 @@ import { createPrismaMatterStore } from "./matters/prisma-matter-store.js";
 import { AI_JOBS_QUEUE } from "./queue/ai-jobs.queue.js";
 
 @Module({
-  controllers: [HealthController, MattersController, AiController],
+  controllers: [
+    HealthController,
+    AuthController,
+    MattersController,
+    AiController,
+  ],
   providers: [
-    { provide: ACTOR_CONTEXT, useValue: null },
-    ActorGuard,
     PrismaService,
+    SessionService,
+    {
+      provide: ACTOR_CONTEXT,
+      scope: Scope.REQUEST,
+      inject: [REQUEST, SessionService],
+      useFactory: async (req: Request, sessions: SessionService) =>
+        sessions.resolveActor(req),
+    },
+    ActorGuard,
     {
       provide: MatterAccess,
       inject: [PrismaService],
