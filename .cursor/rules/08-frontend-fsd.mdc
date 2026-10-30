@@ -1,0 +1,12 @@
+---
+description: Feature-Sliced Design для apps/web (D-023)
+alwaysApply: false
+globs:
+  - apps/web/**
+---
+- Обязателен FSD (**D-023**, ADR-0002, `docs/21` §4). Слои и импорты: `app → widgets → features → entities → shared`.
+- Новый код только в слайсах/сегментах этих слоёв. Не заводить плоский `src/components/` или «utils на всё» вне `shared`.
+- Импорты между слайсами — только через public API (`index.ts` слайса). Не импортировать `@/entities/foo/ui/...` снаружи слайса.
+- `shared` не знает про entities/features/widgets/app. `entities` не импортирует features/widgets. `features` не импортирует widgets.
+- Next.js `src/app/**` — композиция маршрутов; бизнес-логика и интерактивные сценарии уходят в features/widgets/entities.
+- Перед сдачей UI-среза: `pnpm --filter @spectre/web lint` и `pnpm --filter @spectre/web lint:fsd` (Steiger). Не отключать FSD-правила ради удобства без записи в `steiger.config.ts` и AS-IS.

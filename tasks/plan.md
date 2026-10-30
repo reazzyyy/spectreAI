@@ -1,51 +1,40 @@
-# Implementation Plan: Auth scaffold (sessions)
+# Implementation Plan: Phase 1 — web login
+
+> Текущий срез. Глобальный живой план — `tasks/roadmap.md`. Предыдущий закрытый срез (Auth API scaffold) остаётся в истории git; этот файл описывает только активную фазу.
 
 ## Overview
 
-Минимальный Auth scaffold поверх текущего монорепо: Prisma `User`, `OrganizationMembership`, `Session`; login создаёт серверную сессию (HttpOnly cookie); `ACTOR_CONTEXT` берётся только из сессии с повторной проверкой membership. E2e: без сессии `401`; чужой Matter → `404`. Это не полный MVP из `docs/12`.
+Подключить `@spectre/web` к уже существующим `POST /auth/login`, `GET /auth/me`, `POST /auth/logout`: страница `/login`, метка synthetic/test, просмотр сессии и выход. Способ входа — scaffold email+password+organizationId (не CONFIRMED в journal). MFA/SSO, invitations, register, recovery — OUT OF SCOPE. CSRF double-submit / Origin gate остаются OPEN (SameSite=Lax).
 
-**Подтверждено запросом / каноном:** isolation Matter; серверный актёр; e2e 401/404; MFA/SSO **OUT OF SCOPE** (**O-008** остаётся OPEN).
-
-**Scaffold-defaults (не CONFIRMED в journal):** email+password; TTL сессии 7 дней; `organizationId` фиксируется в `Session` при login.
+**Опора:** `tasks/roadmap.md` Фаза 1; API уже в AS-IS; `docs/21` same-origin `/api/v1`.
 
 ## Architecture Decisions
 
-- Trunk — `main`. Ветка: `feature/auth-session-scaffold`.
-- `POST /auth/login` `{ email, password, organizationId }` → opaque cookie `spectre_sid` + `Session.tokenHash` (SHA-256). JSON без токена/пароля.
-- REQUEST-scoped `ACTOR_CONTEXT`: cookie → Session → User `active` → Membership `active`. Клиентский org/userId не доверять.
-- Prisma модель `Session` соответствует `AuthSession` в `docs/12` (урезанный subset + `organizationId` для binding актёра).
-- OUT OF SCOPE: MFA/SSO (O-008), invitations, register, recovery, CSRF token, web login UI, logout-all, audit store.
+- Trunk — `main`. Ветка: `feature/web-login-phase-1`.
+- Next rewrite `/api/v1/:path*` → `API_ORIGIN` (default `http://localhost:3000`) — cookie same-origin, `credentials: "same-origin"`.
+- Клиентский API-слой в `apps/web/src/shared/api` (без Prisma-типов).
+- `/` без сессии → redirect `/login`; после login → `/` с user/org; logout гасит сессию.
+- Frontend: **D-023** FSD; login выровнен по слоям; Steiger + ESLint (`lint` / `lint:fsd`).
+- OUT OF SCOPE: CSRF token, MFA/SSO (O-008), seed/invite UI, Workspace, Client/Matter UI.
 
 ## Task List
 
-### Phase 1: Plan and schema
-- [x] Task 1: план в `tasks/` (`docs/auth-session-plan`)
-- [x] Task 2: Prisma User / OrganizationMembership / Session + миграция (`feature/auth-session-scaffold`)
-
-### Phase 2: Session API and actor
-- [x] Task 3: login / logout / me + SessionService (argon2, cookie)
-- [x] Task 4: ACTOR_CONTEXT из сессии; ActorGuard; membership re-check
-
-### Phase 3: Proof and docs
-- [x] Task 5: e2e без cookie 401; login org A → Matter A 200 / Matter B 404
-- [x] Task 6: AS-IS + README; зафиксировать OUT OF SCOPE O-008
-
-### Checkpoint: Auth scaffold
-- [x] `pnpm --filter @spectre/db validate` + migrate deploy
-- [x] `pnpm --filter @spectre/api test`
-- [x] `pnpm --filter @spectre/api build`
-- [x] Docs/README обновлены в том же изменении
+### Phase 1: Web session UI
+- [x] Task 1: API client + auth endpoints (login / me / logout)
+- [x] Task 2: `/login` + home session panel + synthetic banner + rewrite
+- [x] Task 3: AS-IS + README + plan/todo; checkpoint build
+- [x] Task 4: FSD layers + Steiger/ESLint
 
 ## Risks and Mitigations
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Клиент подменит org | Высокий | org только из Session; membership на каждый request |
-| Утечка существования email | Средний | единый 401 на login fail |
-| Docs/12 шире кода | Средний | AS-IS: scaffold subset, не MVP auth |
+| CORS / cookie cross-port | Высокий | Rewrite same-origin, не CORS `*` |
+| CSRF на mutating forms | Средний | SameSite=Lax; CSRF/Origin — OPEN до отдельного среза |
+| Нет seed пользователей | Средний | Документировать; Gate A2 |
 
 ## Open Questions / OUT OF SCOPE
 
-- **O-008 MFA/SSO** — не трогать в этой итерации.
-- CSRF double-submit / Origin gate — до browser mutating forms с web.
-- UI логина в `@spectre/web` — отдельная задача.
+- CSRF / Origin gate перед следующими mutating forms.
+- Gate A2: способ входа CONFIRMED, кто создаёт первых пользователей.
+- **O-008** MFA/SSO.

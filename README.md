@@ -6,7 +6,7 @@
 
 ## Локальный scaffold
 
-Каркас приложений описан в `tasks/plan.md`. **Что реально есть в коде сейчас** — только в `docs/26-codebase-current-state.md` (не путать с целевым MVP в остальных `docs/`). Стек: Next.js, NestJS, PostgreSQL, Prisma, Redis, BullMQ (**D-008**). До закрытия **O-002** модель вызывается только через `SyntheticAIProvider`.
+Глобальный порядок работ — живой план `tasks/roadmap.md` (его можно менять; это не канон требований). Закрытый срез Auth scaffold — `tasks/plan.md`. **Что реально есть в коде сейчас** — только в `docs/26-codebase-current-state.md` (не путать с целевым MVP в остальных `docs/`). Стек: Next.js, NestJS, PostgreSQL, Prisma, Redis, BullMQ (**D-008**). До закрытия **O-002** модель вызывается только через `SyntheticAIProvider`.
 
 ```bash
 pnpm install
@@ -25,17 +25,18 @@ pnpm dev:web   # http://localhost:3001
 1. Прочитать `AGENTS.md`.
 2. Прочитать `docs/decisions-log.md`.
 3. Прочитать `docs/DOCUMENTATION-GOVERNANCE.md`.
-4. Прочитать `docs/26-codebase-current-state.md` (AS-IS код) и README нужного `apps/*` или `packages/*`.
+4. Прочитать `docs/26-codebase-current-state.md` (AS-IS код), `tasks/roadmap.md` (живой план) и README нужного `apps/*` или `packages/*`.
 5. Для задачи прочитать соответствующие спецификации из `docs/`.
 6. Если решение по архитектуре, данным, безопасности, провайдерам, удалению или миграциям открыто — остановить затронутую часть и запросить согласование.
 7. Работать небольшими этапами, добавлять тесты, обновлять AS-IS/README при смене публичного поведения (правило `.cursor/rules/07-code-documentation.mdc`) и сообщать только о проверках, которые действительно были выполнены.
 
 ## Статус подтверждённых решений
 
-Сводка **D-001–D-007** и пакета 2 (**D-008–D-022**, 2026-10-27). Полный текст — только в `docs/decisions-log.md`.
+Сводка **D-001–D-007** и пакета 2+ (**D-008–D-023**). Полный текст — только в `docs/decisions-log.md`.
 
 - Рынок запуска — Россия; аудитория — юридические фирмы и команды.
 - Базовый стек MVP (**D-008**): Next.js, NestJS, PostgreSQL, Prisma, Redis/BullMQ.
+- Frontend-организация кода — Feature-Sliced Design (**D-023**); канон `docs/21`, ADR-0002.
 - Сущности `Client` и `Matter` в MVP (**D-009**); связь с Workspace может быть необязательной.
 - Файлы (**D-010**, **D-017**): PDF, DOCX, TXT; max 25 МБ на файл; max 10 файлов за операцию; архивы/исполняемые/макросы/пароль — отклонять.
 - Статусы AIJob (**D-011**): `queued`, `running`, `succeeded`, `failed`, `cancelled`, `timed_out` (не `retry_wait`, не `completed` как статус job).
@@ -73,15 +74,17 @@ pnpm dev:web   # http://localhost:3001
 | `docs/18-legal-research-and-external-sources.md` | Юридическое исследование и внешние источники |
 | `docs/19-conversation-and-workspace-context.md` | Контекст бесед и рабочих пространств |
 | `docs/20-ai-product-workflows.md` | Сквозные продуктовые сценарии |
-| `docs/21-frontend-architecture.md` | Frontend-архитектура |
+| `docs/21-frontend-architecture.md` | Frontend-архитектура; FSD **CONFIRMED (D-023)** |
 | `docs/22-testing-and-quality-strategy.md` | Стратегия тестирования и качества |
 | `docs/23-deployment-and-infrastructure.md` | Развёртывание, инфраструктура и восстановление |
 | `docs/archive/24-security-and-threat-model-legacy.md` | Архив прежней модели угроз; не нормативный источник |
 | `docs/25-logging-monitoring-and-audit.md` | Технические логи, метрики и аудит |
 | `docs/26-codebase-current-state.md` | AS-IS снимок исполняемого scaffold (что есть в коде сейчас) |
+| `tasks/roadmap.md` | Живой план реализации и ворота недостающих вводных; не канон и не описание кода |
 | `docs/decisions-log.md` | Подтверждённые решения, гипотезы и открытые вопросы |
 | `docs/DOCUMENTATION-GOVERNANCE.md` | Канонические источники, статусы и процесс изменения документации |
 | `docs/adr/ADR-0001-data-residency-and-model-provider.md` | ADR по размещению данных и AI-провайдеру; статус проверять в самом ADR |
+| `docs/adr/ADR-0002-frontend-fsd.md` | ADR: обязательный FSD для `apps/web` (**D-023**) |
 
 В `docs/archive/` находятся сохранённые устаревшие спецификации. Они оставлены для сверки, но не являются нормативными источниками.
 

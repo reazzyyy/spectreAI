@@ -1,15 +1,13 @@
-# Auth scaffold (sessions)
+# Phase 1 — web login
 
-План: `tasks/plan.md`. MFA/SSO (**O-008**) — OUT OF SCOPE.
+Текущий срез. Глобальный план: `tasks/roadmap.md`. Детали: `tasks/plan.md`. MFA/SSO (**O-008**), CSRF token, invitations — OUT OF SCOPE.
 
-- [x] Task 1: план (`docs/auth-session-plan`)
-- [x] Task 2: Prisma User / OrganizationMembership / Session + миграция
-- [x] Task 3: login / logout / me + SessionService
-- [x] Task 4: ACTOR_CONTEXT из сессии + ActorGuard
-- [x] Task 5: e2e 401 без сессии; чужой Matter 404
-- [x] Task 6: AS-IS + README (не объявлять полный docs/12)
+- [x] Task 1: API client + login / me / logout
+- [x] Task 2: `/login`, home session + logout, synthetic banner, Next rewrite
+- [x] Task 3: AS-IS + README web; checkpoint `pnpm --filter @spectre/web build`
+- [x] Task 4: FSD раскладка login/session + Steiger/ESLint (`lint` / `lint:fsd`)
 
-## Checkpoint: Auth scaffold
-- [x] db validate + migrate deploy
-- [x] api test
-- [x] api build
+## Checkpoint: Phase 1
+- [x] web build
+- [x] web lint + lint:fsd
+- [x] Docs/README обновлены в том же изменении

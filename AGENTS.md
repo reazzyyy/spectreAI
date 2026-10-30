@@ -8,9 +8,10 @@
 5. При неопределённости по безопасности, доступу, передаче документов внешнему ИИ, удалению, архитектуре или миграции данных останови затронутую часть и запроси решение.
 6. Для крупной задачи сначала предложи проверяемый поэтапный план.
 
-## Приоритет решений D-008–D-022
+## Приоритет решений D-008–D-023
 При расхождении спецификаций и журнала решений **приоритет у `docs/decisions-log.md`**:
 - **D-008:** стек — Next.js + NestJS + PostgreSQL + Prisma + Redis/BullMQ.
+- **D-023:** frontend (`apps/web`) — Feature-Sliced Design (FSD); слои `app → widgets → features → entities → shared`; канон `docs/21`, ADR-0002.
 - **D-009:** Client и Matter в MVP; связь с Workspace может быть необязательной.
 - **D-010 / D-017:** max файл 25 МБ; форматы PDF, DOCX, TXT; max 10 файлов за операцию; архивы/исполняемые/макросы/пароль — отклонять.
 - **D-011:** статусы AIJob только `queued|running|succeeded|failed|cancelled|timed_out` (не `retry_wait`, не `completed` как статус job).
@@ -67,6 +68,7 @@
 - Для AI Gateway используй `docs/14-ai-provider-and-model-gateway.md`.
 - Для тестирования используй `docs/22-testing-and-quality-strategy.md`.
 - Для логирования, метрик и аудита используй `docs/25-logging-monitoring-and-audit.md`.
+- Для frontend-структуры следуй FSD (**D-023**) и `docs/21-frontend-architecture.md`; не вводи параллельную раскладку вне слоёв.
 - Для фактов о текущем коде (AS-IS scaffold) используй `docs/26-codebase-current-state.md` и README в `apps/*` / `packages/*`; не подменяй их целевыми спецификациями MVP.
 - Обязательная документация при изменении кода: `.cursor/rules/07-code-documentation.mdc`.
 - Для security governance (IR, vuln, BCDR, evidence, inventory; **PROPOSED**) смотри `docs/security/` — дополнение, не замена канонов; приоритет: `docs/decisions-log.md` → канон области → `docs/security/`. Классификация данных нормативна как **D0–D4** в `docs/03-data-security.md` (C0–C4 только mapping).
