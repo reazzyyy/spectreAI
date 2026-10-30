@@ -1,15 +1,15 @@
 # Текущее состояние кодовой базы (AS-IS)
 
 **Статус:** CONFIRMED как снимок scaffold на дату ниже; не заменяет продуктовые спецификации и не утверждает MVP.  
-**Дата снимка:** 2026-10-29  
+**Дата снимка:** 2026-10-30  
 **Источник истины по решениям:** `docs/decisions-log.md`  
-**План:** `tasks/plan.md` / `tasks/todo.md` (Auth scaffold)
+**План:** живой глобальный план — `tasks/roadmap.md` (может меняться; не описание этого снимка). Текущий срез (Фаза 1 web login) — `tasks/plan.md` / `tasks/todo.md`.
 
 Этот документ описывает **только то, что реально есть в репозитории**. Спецификации в `docs/00–25` могут описывать целевое MVP шире; если код ещё не реализован — ниже явно указано «не реализовано».
 
 ## 1. Что это за репозиторий сейчас
 
-Исполняемый **scaffold монорепо** (не готовый MVP): pnpm workspace, NestJS API, Next.js shell, пакеты доступа и AI Gateway, Prisma-схема Organization/Client/Matter/User/OrganizationMembership/Session, серверные сессии (cookie), регистрация имени очереди BullMQ `ai-jobs`.
+Исполняемый **scaffold монорепо** (не готовый MVP): pnpm workspace, NestJS API, Next.js web (login UI + rewrite к API), пакеты доступа и AI Gateway, Prisma-схема Organization/Client/Matter/User/OrganizationMembership/Session, серверные сессии (cookie), регистрация имени очереди BullMQ `ai-jobs`.
 
 | Утверждение | Статус в коде |
 |---|---|
@@ -81,14 +81,19 @@ spectreAI/
 - `organizationId` актёра берётся из `Session` (+ повторная проверка активного membership), не из заголовков/тела клиента.
 - Без валидной сессии защищённые маршруты → `401` / `UNAUTHENTICATED`.
 - TTL сессии scaffold: 7 суток абсолютных (не CONFIRMED в journal).
-- MFA/SSO, invitations, register, recovery, CSRF token, web login UI — **не реализованы**.
+- MFA/SSO, invitations, register, recovery, CSRF token — **не реализованы**.
 
 ### 3.2 `@spectre/web` (`apps/web`)
 
-Next.js App Router: `src/app/layout.tsx`, `src/app/page.tsx`.
+Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities` / `shared`.
 
-- Явная метка синтетического/тестового режима в UI.
-- Нет вызовов API, сессий, рабочих пространств, загрузки файлов.
+- Явная метка synthetic/test: `shared/ui` на `/` и `/login` (D-012).
+- `/login` — `features/login` → `POST /auth/login` (email, password, organizationId).
+- `/` — `widgets/session-panel` → `GET /auth/me`; без сессии → `/login`; `features/logout` → `POST /auth/logout`.
+- Сессия: `entities/session` (типы, API, `SessionMeta`).
+- Browser `fetch` на `/api/v1/*` с `credentials: "same-origin"`; rewrite в `next.config.ts` на `API_ORIGIN` (по умолчанию `http://localhost:3000`).
+- Линтеры: ESLint (`eslint.config.mjs`, deep-import ban) + Steiger FSD (`steiger.config.mjs`, `lint:fsd`).
+- Нет регистрации, recovery, MFA, CSRF token, Workspace UI, загрузки файлов.
 
 ## 4. Пакеты
 
@@ -185,7 +190,9 @@ Next.js App Router: `src/app/layout.tsx`, `src/app/page.tsx`.
 | `docs/12` §6.2 TTL 7d + idle 24h | PROPOSED | Только абсолютные 7d; idle timeout нет | Idle — OPEN / не реализован |
 | `docs/12` §6.4 logout | PROPOSED | Revoke + clear cookie, идемпотентно | Соответствует (без audit event) |
 | `docs/12` §6.5 logout-all | PROPOSED | Нет | OUT OF SCOPE |
-| `docs/12` §7 CSRF | PROPOSED | Только SameSite=Lax | **OPEN** (см. также `docs/11` CSRF); до browser mutating forms |
+| `docs/12` §7 CSRF | PROPOSED | Только SameSite=Lax; web login/logout уже mutating | **OPEN** (см. также `docs/11` CSRF); double-submit / Origin — отдельный срез |
+| `docs/21` same-origin API | PROPOSED detail | Next rewrite `/api/v1` → Nest | Соответствует локальному scaffold |
+| `docs/21` / **D-023** FSD | CONFIRMED | Слои app/widgets/features/entities/shared + Steiger/ESLint | Соответствует scaffold login |
 | `docs/11` префикс `/api/v1`, коды ошибок | — | `/api/v1`, `UNAUTHENTICATED` / `NOT_FOUND` / `VALIDATION_ERROR` | Согласовано |
 | `docs/11` карта `clients`/`matters` | PROPOSED GET/POST (+ GET by id) | Есть также PATCH; DELETE нет | PATCH — scaffold extension; DELETE OUT OF SCOPE |
 | `docs/06` `created_by` на Client/Matter | PROPOSED | Поля в Prisma нет | OPEN / отложено |
@@ -199,7 +206,7 @@ Next.js App Router: `src/app/layout.tsx`, `src/app/page.tsx`.
 - Postgres: образ `pgvector/pgvector:pg16`, user/password/db `spectre`, порт `5432`.
 - Redis: `redis:7-alpine`, порт `6379`.
 
-`.env.example`: `DATABASE_URL`, `REDIS_URL`, `PORT`. Файл `.env` не коммитится. Пароли compose — не для shared/production. Отдельный session signing secret не используется (opaque DB sessions).
+`.env.example`: `DATABASE_URL`, `REDIS_URL`, `PORT`, `API_ORIGIN` (rewrite target для `@spectre/web`). Файл `.env` не коммитится. Пароли compose — не для shared/production. Отдельный session signing secret не используется (opaque DB sessions).
 
 ## 7. Тесты (что покрыто)
 
@@ -218,7 +225,8 @@ E2e требуют поднятый Postgres (`docker compose`) и примен�
 Не считать сделанным, пока нет кода и тестов:
 
 - MFA/SSO (**O-008**), invitations, self-registration, email verify, recovery, logout-all, session list.
-- CSRF token / Origin gate; UI логина в `@spectre/web`.
+- CSRF token / Origin gate (web login уже есть; SameSite=Lax only).
+- Продуктовый seed / invite первых пользователей (Gate A2).
 - Полный `docs/12` (audit events, password policy product confirmation, idle timeout).
 - Hard delete Client/Matter; `created_by`; Workspace entity; ACL матрица `docs/07`; admin grant.
 - Загрузка файлов, хранилище, OCR, парсинг (D-010/D-017, H-002).
@@ -231,7 +239,7 @@ E2e требуют поднятый Postgres (`docker compose`) и примен�
 ## 9. Онбординг разработчика (минимальный путь)
 
 1. Прочитать `AGENTS.md` → `docs/decisions-log.md` → `docs/DOCUMENTATION-GOVERNANCE.md`.
-2. Прочитать этот файл и `tasks/plan.md`.
+2. Прочитать `tasks/roadmap.md` (порядок работ и ворота вводных), затем этот файл и текущий `tasks/plan.md`.
 3. `pnpm install` → `docker compose up -d` → скопировать `.env.example` в `.env`.
 4. `pnpm --filter @spectre/db migrate:deploy` → `pnpm test` → `pnpm dev:api` / `pnpm dev:web`.
 5. Перед фичей — канонический `docs/NN-*.md` области + правило документации кода (`.cursor/rules/07-code-documentation.mdc`).

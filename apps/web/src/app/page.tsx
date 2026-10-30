@@ -1,12 +1,16 @@
+import { SyntheticModeBanner } from "@/shared/ui";
+import { SessionPanel } from "@/widgets/session-panel";
+
 export default function HomePage() {
   return (
     <main>
-      <p role="status">
-        Синтетический режим: AI не отправляет данные во внешний провайдер. Используются
-        только тестовые данные.
-      </p>
+      <SyntheticModeBanner />
       <h1>НейроЮрист Спектр</h1>
-      <p>Каркас интерфейса. Сессии и рабочие пространства появятся следующими шагами.</p>
+      <p className="lead">
+        Каркас интерфейса: вход по cookie-сессии. Рабочие пространства появятся после
+        ворот A.
+      </p>
+      <SessionPanel />
     </main>
   );
 }

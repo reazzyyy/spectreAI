@@ -38,7 +38,7 @@ E2e seeds organizations, clients, matters, a user + membership, logs in via cook
 - Cookie `spectre_sid` (HttpOnly, SameSite=Lax); DB stores SHA-256 of the opaque token only.
 - `ACTOR_CONTEXT` comes from Session + live User/Membership checks — never from client `organizationId` / `userId`.
 - Password hashing: argon2id.
-- **OUT OF SCOPE:** MFA/SSO (**O-008**), invitations, register, recovery, CSRF token, web login UI.
+- **OUT OF SCOPE:** MFA/SSO (**O-008**), invitations, register, recovery, CSRF token. Web login UI lives in `@spectre/web` (Фаза 1).
 
 ## Client / Matter scaffold
 
