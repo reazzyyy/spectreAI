@@ -16,6 +16,19 @@ pnpm --filter @spectre/api test
 pnpm --filter @spectre/api build
 ```
 
+### Dev bootstrap (W-012)
+
+Creates the first Organization + Owner for local login. Refused when `NODE_ENV=production` or without `BOOTSTRAP_DEV=1`. Password comes from env only (never logged).
+
+```bash
+# in root .env (see .env.example): BOOTSTRAP_DEV=1, BOOTSTRAP_ORG_NAME, BOOTSTRAP_OWNER_EMAIL, BOOTSTRAP_OWNER_PASSWORD
+pnpm --filter @spectre/db migrate:deploy
+pnpm --filter @spectre/api bootstrap:dev
+# → prints organizationId / email; login via POST /auth/login or apps/web /login
+```
+
+Idempotent for the same org name + owner email; refuses replacing an existing different owner on that org; refuses creating another org when that email already owns a different one.
+
 E2e seeds organizations, clients, matters, users + memberships, a TEAM Workspace fixture, logs in via cookie, and asserts cross-org Client/Matter/Workspace → `404`, foreign `clientId`/`matterId` → `422`, and TEAM create → `422`.
 
 On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` against a service Postgres (`pgvector/pgvector:pg16`) after `migrate:deploy`.
@@ -35,6 +48,7 @@ On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` 
 | `src/ai/` | Provider status + synthetic generate |
 | `src/http/` | Uniform error JSON + shared middleware helper |
 | `src/queue/` | BullMQ queue name/helpers; **no worker** |
+| `src/scripts/` | Dev bootstrap CLI (`bootstrap:dev`) — not an HTTP API |
 
 ## Auth scaffold
 

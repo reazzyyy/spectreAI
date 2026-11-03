@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx src/main.ts",
     "start": "tsx src/main.ts",
+    "bootstrap:dev": "tsx --env-file=../../.env src/scripts/run-dev-bootstrap.ts",
     "build": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
