@@ -1,8 +1,8 @@
 # 12. Аутентификация, сессии и управление аккаунтами
 
 **Файл:** `docs/12-authentication-and-sessions.md`  
-**Статус:** PROPOSED для метода входа, TTL сессий, приглашений и MFA (**O-008**).  
-**CONFIRMED острова:** стек Next.js/NestJS/PostgreSQL (**D-008**); сессия ≠ content ACL; admin grant TTL ≤ 60 мин (**D-013**); одобрение только через `admin_grant:approve` (**D-016**). Сверять с `docs/decisions-log.md`.  
+**Статус:** детали TTL сессий, payload invitation и CSRF-механизм — PROPOSED до реализации; продуктовые решения входа Phase 2 — **CONFIRMED (W-011–W-014)**.  
+**CONFIRMED острова:** стек Next.js/NestJS/PostgreSQL (**D-008**); Email + Password + Organization ID (**W-011**); bootstrap + invite-only, без публичной регистрации (**W-012**); MFA/SSO не в MVP (**W-013** / **O-008**); CSRF-срез до следующих mutating forms (**W-014**); сессия ≠ content ACL; admin grant TTL ≤ 60 мин (**D-013**); `admin_grant:approve` (**D-016**/W-015/W-016). Детали: `docs/workspace-phase2/03-api-auth-and-invitations.md`. Срок invite token — **O-011**. Сверять с `docs/decisions-log.md`.  
 **Приоритет:** высокий.  
 **Связанные документы:**
 - `docs/06-data-model.md`
