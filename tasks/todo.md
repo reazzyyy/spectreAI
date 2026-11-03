@@ -9,7 +9,7 @@ S0 note: `docs/workspace-phase2/S0-rls-foundation-and-inventory.md`.
 ## Slices
 - [x] S0 Foundation / RLS inventory + role topology (working note)
 - [x] S1 Schema Workspace* + RLS + runtime role + harness (verified: migrate + `pnpm test` with Docker)
-- [ ] S2 `@spectre/access` Workspace policies + tx GUC
+- [x] S2 `@spectre/access` Workspace policies + tx GUC (branch `feature/workspace-phase2-s2-access`)
 - [ ] S3 Workspace HTTP API + e2e negatives (PERSONAL create only until TEAM decision)
 - [ ] S4a CSRF (**W-014**)
 - [ ] S4b Dev bootstrap (**W-012**)

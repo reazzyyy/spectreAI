@@ -8,7 +8,6 @@ import { SESSION_COOKIE_NAME, SESSION_TTL_MS } from "./session-cookie.js";
 
 export interface SessionProfile extends ActorContext {
   email: string;
-  role: "owner" | "admin" | "member";
 }
 
 const ACTOR_PROFILE_KEY = "spectre.actorProfile";
@@ -84,8 +83,8 @@ export class SessionService {
       profile: {
         userId: user.id,
         organizationId,
+        orgRole: membership.role,
         email: user.email,
-        role: membership.role,
       },
     };
   }
@@ -129,6 +128,7 @@ export class SessionService {
     return {
       userId: profile.userId,
       organizationId: profile.organizationId,
+      orgRole: profile.orgRole,
     };
   }
 
@@ -167,8 +167,8 @@ export class SessionService {
     return {
       userId: user.id,
       organizationId: session.organizationId,
+      orgRole: membership.role,
       email: user.email,
-      role: membership.role,
     };
   }
 }

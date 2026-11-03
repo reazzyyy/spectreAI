@@ -26,7 +26,8 @@ On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` 
 |---|---|
 | `src/main.ts` | Bootstrap + `cookie-parser` |
 | `src/app.module.ts` | Controllers + DI wiring |
-| `src/db/` | Dual Prisma (`migrator` auth/seed, `runtime` + GUC for tenant); actor-scoped stores |
+| `src/db/` | Dual Prisma (`migrator` auth/seed, `runtime` + GUC); actor-scoped Client/Matter/Workspace stores |
+| `src/workspaces/` | Prisma WorkspaceStore (S2); HTTP controllers — S3 |
 | `src/health/` | Liveness |
 | `src/auth/` | Login/logout/me, SessionService, REQUEST-scoped `ACTOR_CONTEXT`, `ActorGuard` |
 | `src/clients/` | Client list/create/get/patch via Prisma + `ClientAccess` |

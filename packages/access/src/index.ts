@@ -1,8 +1,26 @@
 /**
- * Organization-scoped Client/Matter access policy (scaffold).
- * Isolation is by membership organization only — not full docs/07 ACL / Workspace.
+ * Organization-scoped Client/Matter access policy (scaffold) + Workspace ACL (S2).
+ * Client/Matter: isolation by actor organizationId.
+ * Workspace: content roles vs member-management (W-005/W-008); Org Admin ≠ content.
  * Wrong org or missing id → null so HTTP can map to identical NOT_FOUND.
  */
+
+export {
+  WorkspaceAccess,
+  type WorkspaceActor,
+  type WorkspaceRecord,
+  type WorkspaceMemberRecord,
+  type WorkspaceStore,
+  type WorkspaceCreatePersonalInput,
+  type WorkspaceUpdateInput,
+  type WorkspaceMemberUpsertInput,
+  type WorkspaceVisibility,
+  type WorkspaceStatus,
+  type WorkspaceMemberRole,
+  type WorkspaceMemberStatus,
+  type WorkspaceEffectiveRole,
+  type OrganizationActorRole,
+} from "./workspace.js";
 
 export interface ClientRecord {
   id: string;
