@@ -2,7 +2,7 @@
 
 **Проект:** AI-сервис для юридических команд  
 **Версия:** 0.2.2  
-**Статус:** PROPOSED для деталей схемы; острова **CONFIRMED** по журналу: PostgreSQL + Prisma (**D-008**), Client/Matter (**D-009**), статусы AIJob (**D-011**), лимиты файлов (**D-010/D-017**), `pgvector` (**D-018**), TTL/`admin_grant:approve` (**D-013/D-016**), удаление/бэкапы (**D-019/D-020**), цель хранения аудита 1 год (**D-021**). Сверять с `docs/decisions-log.md`.  
+**Статус:** PROPOSED для деталей схемы; острова **CONFIRMED** по журналу: PostgreSQL + Prisma (**D-008**), Client/Matter (**D-009**), Workspace Phase 2 (**W-001–W-010**, **W-020** RLS), статусы AIJob (**D-011**), лимиты файлов (**D-010/D-017**), `pgvector` (**D-018**), TTL/`admin_grant:approve` (**D-013/D-016**), удаление/бэкапы (**D-019/D-020**), цель хранения аудита 1 год (**D-021**). Детали Workspace/RLS: `docs/workspace-phase2/`. Сверять с `docs/decisions-log.md`.  
 **Назначение:** определить основные сущности системы, связи между ними, правила хранения данных и ограничения целостности.
 
 ## 1. Цель документа
@@ -126,24 +126,30 @@ Backend обязан проверять принадлежность объек�
 
 ### 4.1. Workspace
 
+**CONFIRMED (W-001, W-002):** самостоятельная сущность (не замена Matter); типы `PERSONAL` | `TEAM`.
+
 Рабочее пространство объединяет документы, чаты и другие материалы, относящиеся к определённой задаче, клиенту или делу.
 
-Поля:
+Поля (логическая модель; физика — `docs/workspace-phase2/02`):
 - `id`;
-- `organization_id`;
+- `organization_id` — обязательный tenant;
+- `owner_user_id` — владелец (**W-006**);
 - `name`;
 - `description`;
+- `visibility` — `PERSONAL` | `TEAM`;
 - `status`;
-- `created_by`;
-- `created_at`;
-- `updated_at`.
+- `client_id` — необязательно, MVP **0..1** (**W-004**, **D-009**);
+- `created_at`, `updated_at`;
+- `archived_at`, `deletion_requested_at`, `deletion_confirmed_at`, `deleted_at` — по необходимости lifecycle.
 
-Возможные состояния:
-- `active`;
-- `archived`;
-- `deleted`.
+Возможные состояния (целевые, **W-010** / phase2):
+- `ACTIVE`;
+- `ARCHIVED`;
+- `PENDING_DELETION`;
+- `DELETING`;
+- `DELETED` (tombstone/аудит — без нарушения D-019/D-020).
 
-Связь Workspace с сущностями `Client` и `Matter` в MVP **может быть необязательной** (**D-009**): рабочее пространство не обязано всегда представлять одно дело или одного клиента.
+Связь с `Client` и `Matter` **может отсутствовать** (**D-009**). Связь с Matter — **M:N** через `WorkspaceMatter` (**W-003**), не одиночный FK как единственный источник истины.
 
 ### 4.2. Client
 
@@ -171,39 +177,43 @@ Backend обязан проверять принадлежность объек�
 - `id`;
 - `organization_id`;
 - `client_id` — необязательная ссылка на `Client`;
-- `workspace_id` — необязательная ссылка на `Workspace` (**D-009**);
 - `name` / `title`;
 - `status`;
 - `created_by`;
 - `created_at`;
 - `updated_at`.
 
+**Legacy scaffold:** в текущем коде может существовать nullable `Matter.workspaceId` без FK. **Целевая связь — M:N** через `WorkspaceMatter` (**W-003**). Удаление legacy-поля — только после backfill и contract-migration (`docs/workspace-phase2/02` §5.1).
+
 Правила:
 - принадлежит организации;
 - связь с `Workspace` и `Client` может отсутствовать;
-- права на содержимое дела не выводятся только из факта наличия идентификатора Matter.
+- права на содержимое дела не выводятся только из факта наличия идентификатора Matter;
+- cross-org связь Workspace↔Matter запрещена (DB constraints + NestJS).
 
-### 4.4. WorkspaceMembership
+### 4.4. WorkspaceMember (ранее WorkspaceMembership)
 
-Связывает пользователя с рабочим пространством.
+**CONFIRMED (W-006, W-008):** связывает пользователя с TEAM Workspace; роли участника — `EDITOR` | `VIEWER`. OWNER хранится в `Workspace.owner_user_id`, не дублируется конфликтующей member-ролью.
 
 Поля:
 - `id`;
+- `organization_id`;
 - `workspace_id`;
 - `user_id`;
-- `role`;
-- `created_at`;
-- `updated_at`.
+- `role` — `EDITOR` | `VIEWER`;
+- `added_by_user_id`;
+- `created_at`, `updated_at`;
+- `revoked_at` или эквивалентный статус.
 
-Возможные права:
-- просмотр;
-- создание и редактирование содержимого;
-- управление участниками;
-- архивирование.
+Матрица полномочий — `docs/07-access-control-matrix.md` и `docs/workspace-phase2/01-product-and-access-model.md`.
 
-Точная матрица прав должна быть согласована отдельно.
+Участие в организации не означает автоматического доступа ко всем рабочим пространствам и их содержимому (**W-005**).
 
-Участие в организации не означает автоматического доступа ко всем рабочим пространствам и их содержимому.
+### 4.4.1. WorkspaceMatter
+
+**CONFIRMED (W-003):** join table Workspace ↔ Matter (M:N).
+
+Поля минимум: `organization_id`, `workspace_id`, `matter_id`, `created_at`, `created_by_user_id`. Уникальность `(workspace_id, matter_id)`; tenant-safe FK/constraints.
 
 ## 5. Документы
 
@@ -719,7 +729,7 @@ Backend обязан проверять принадлежность объек�
 
 ## 16. Открытые решения
 
-Подтверждено журналом (**D-008–D-022**), в т.ч.: PostgreSQL + Prisma; `Client`/`Matter` (связь с Workspace необязательна); статусы AIJob по D-011; лимиты файлов D-010/D-017; хранилище векторов `pgvector` (D-018); TTL admin grant ≤ 60 мин и `admin_grant:approve` (D-013/D-016); удаление ≤ 24 ч / бэкапы 35 дней (D-019/D-020); техническая цель хранения аудита 1 год (D-021).
+Подтверждено журналом (**D-008–D-023**, **W-001–W-020**), в т.ч.: PostgreSQL + Prisma; `Client`/`Matter` (связь с Workspace необязательна; Matter↔Workspace M:N); Workspace PERSONAL/TEAM и RLS в MVP; статусы AIJob по D-011; лимиты файлов D-010/D-017; хранилище векторов `pgvector` (D-018); TTL admin grant ≤ 60 мин, без renewal, `admin_grant:approve` (D-013/D-016/W-015/W-016); удаление ≤ 24 ч / бэкапы 35 дней (D-019/D-020); техническая цель хранения аудита 1 год (D-021).
 
 Дополнительно согласовать (не CONFIRMED):
 - детальную структуру ролей и ACL (многие ячейки в `07` OPEN);
