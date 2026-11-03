@@ -27,7 +27,7 @@ pnpm --filter @spectre/api bootstrap:dev
 # → prints organizationId / email; login via POST /auth/login or apps/web /login
 ```
 
-Idempotent for the same org name + owner email; refuses replacing an existing different owner on that org.
+Idempotent for the same org name + owner email; refuses replacing an existing different owner on that org; refuses creating another org when that email already owns a different one.
 
 E2e seeds organizations, clients, matters, users + memberships, a TEAM Workspace fixture, logs in via cookie, and asserts cross-org Client/Matter/Workspace → `404`, foreign `clientId`/`matterId` → `422`, and TEAM create → `422`.
 

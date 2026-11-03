@@ -1,5 +1,5 @@
 import { createPrismaClient } from "@spectre/db";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import {
   assertDevBootstrapAllowed,
@@ -43,20 +43,21 @@ describe("dev bootstrap guards", () => {
 describe("runDevBootstrap (migrator DB)", () => {
   const prisma = createPrismaClient({ purpose: "migrator" });
   const orgName = `bootstrap-org-${randomUUID()}`;
+  const otherOrgName = `bootstrap-org-other-${randomUUID()}`;
   const email = `owner-${randomUUID()}@localhost`;
   const password = "synthetic-bootstrap-password";
-
-  beforeAll(async () => {
-    // Ensure clean slate for this unique org/email.
-  });
+  const createdOrgIds: string[] = [];
 
   afterAll(async () => {
-    const org = await prisma.organization.findFirst({ where: { name: orgName } });
-    if (org) {
-      await prisma.organizationMembership.deleteMany({
-        where: { organizationId: org.id },
-      });
-      await prisma.organization.delete({ where: { id: org.id } });
+    for (const name of [orgName, otherOrgName]) {
+      const org = await prisma.organization.findFirst({ where: { name } });
+      if (org) {
+        createdOrgIds.push(org.id);
+        await prisma.organizationMembership.deleteMany({
+          where: { organizationId: org.id },
+        });
+        await prisma.organization.delete({ where: { id: org.id } });
+      }
     }
     await prisma.user.deleteMany({ where: { email } });
     await prisma.$disconnect();
@@ -89,5 +90,15 @@ describe("runDevBootstrap (migrator DB)", () => {
         ownerPassword: password,
       }),
     ).rejects.toThrow(/already has owner/);
+  });
+
+  it("refuses creating a second org when the email already owns another", async () => {
+    await expect(
+      runDevBootstrap(prisma, {
+        orgName: otherOrgName,
+        ownerEmail: email,
+        ownerPassword: password,
+      }),
+    ).rejects.toThrow(/already owns organization/);
   });
 });

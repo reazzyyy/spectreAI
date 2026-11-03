@@ -1,4 +1,8 @@
-import { createPrismaClient, type PrismaClient } from "@spectre/db";
+import {
+  createPrismaClient,
+  type PrismaClient,
+  type PrismaTxClient,
+} from "@spectre/db";
 import { hashPassword } from "../auth/password.js";
 
 /** Accepts typical emails and local-dev forms like `owner@localhost`. */
@@ -65,83 +69,76 @@ export async function runDevBootstrap(
   prisma: PrismaClient,
   input: DevBootstrapInput,
 ): Promise<DevBootstrapResult> {
-  const existingOrg = await prisma.organization.findFirst({
-    where: { name: input.orgName },
-  });
+  return prisma.$transaction(async (tx: PrismaTxClient) => {
+    const existingOrg = await tx.organization.findFirst({
+      where: { name: input.orgName },
+    });
 
-  if (existingOrg) {
-    return ensureOwnerOnOrganization(prisma, existingOrg.id, existingOrg.name, input);
-  }
+    if (existingOrg) {
+      return ensureOwnerOnOrganization(tx, existingOrg.id, existingOrg.name, input);
+    }
 
-  const passwordHash = await hashPassword(input.ownerPassword);
-  const user =
-    (await prisma.user.findUnique({ where: { email: input.ownerEmail } })) ??
-    (await prisma.user.create({
+    const passwordHash = await hashPassword(input.ownerPassword);
+    let user = await tx.user.findUnique({ where: { email: input.ownerEmail } });
+    if (!user) {
+      user = await tx.user.create({
+        data: {
+          email: input.ownerEmail,
+          passwordHash,
+          status: "active",
+        },
+      });
+    }
+
+    const ownerElsewhere = await tx.organizationMembership.findFirst({
+      where: { userId: user.id, role: "owner", status: "active" },
+      include: { organization: true },
+    });
+    if (ownerElsewhere) {
+      // Requested org name is new, but this email already owns another org — do not silently retarget.
+      throw new Error(
+        `email ${input.ownerEmail} already owns organization "${ownerElsewhere.organization.name}"; refuse creating "${input.orgName}"`,
+      );
+    }
+
+    await tx.user.update({
+      where: { id: user.id },
+      data: { passwordHash, status: "active" },
+    });
+
+    const organization = await tx.organization.create({
+      data: { name: input.orgName, status: "active" },
+    });
+
+    await tx.organizationMembership.create({
       data: {
-        email: input.ownerEmail,
-        passwordHash,
+        organizationId: organization.id,
+        userId: user.id,
+        role: "owner",
         status: "active",
       },
-    }));
-
-  if (user.email !== input.ownerEmail) {
-    throw new Error("bootstrap user email mismatch");
-  }
-
-  // Existing user: refresh hash only when creating a brand-new org membership below.
-  const existingMembership = await prisma.organizationMembership.findFirst({
-    where: { userId: user.id, role: "owner", status: "active" },
-  });
-  if (existingMembership) {
-    const org = await prisma.organization.findUniqueOrThrow({
-      where: { id: existingMembership.organizationId },
     });
+
     return {
-      created: false,
-      organizationId: org.id,
-      organizationName: org.name,
+      created: true,
+      organizationId: organization.id,
+      organizationName: organization.name,
       userId: user.id,
       email: user.email,
       role: "owner",
     };
-  }
-
-  // If user already existed, refresh hash so the operator-supplied secret works for login.
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { passwordHash, status: "active" },
   });
-
-  const organization = await prisma.organization.create({
-    data: { name: input.orgName, status: "active" },
-  });
-
-  await prisma.organizationMembership.create({
-    data: {
-      organizationId: organization.id,
-      userId: user.id,
-      role: "owner",
-      status: "active",
-    },
-  });
-
-  return {
-    created: true,
-    organizationId: organization.id,
-    organizationName: organization.name,
-    userId: user.id,
-    email: user.email,
-    role: "owner",
-  };
 }
 
+type BootstrapDb = PrismaClient | PrismaTxClient;
+
 async function ensureOwnerOnOrganization(
-  prisma: PrismaClient,
+  db: BootstrapDb,
   organizationId: string,
   organizationName: string,
   input: DevBootstrapInput,
 ): Promise<DevBootstrapResult> {
-  const owners = await prisma.organizationMembership.findMany({
+  const owners = await db.organizationMembership.findMany({
     where: { organizationId, role: "owner", status: "active" },
     include: { user: true },
   });
@@ -170,9 +167,9 @@ async function ensureOwnerOnOrganization(
   }
 
   const passwordHash = await hashPassword(input.ownerPassword);
-  let user = await prisma.user.findUnique({ where: { email: input.ownerEmail } });
+  let user = await db.user.findUnique({ where: { email: input.ownerEmail } });
   if (!user) {
-    user = await prisma.user.create({
+    user = await db.user.create({
       data: {
         email: input.ownerEmail,
         passwordHash,
@@ -180,13 +177,22 @@ async function ensureOwnerOnOrganization(
       },
     });
   } else {
-    await prisma.user.update({
+    const ownerElsewhere = await db.organizationMembership.findFirst({
+      where: { userId: user.id, role: "owner", status: "active" },
+      include: { organization: true },
+    });
+    if (ownerElsewhere && ownerElsewhere.organizationId !== organizationId) {
+      throw new Error(
+        `email ${input.ownerEmail} already owns organization "${ownerElsewhere.organization.name}"; refuse attaching to "${organizationName}"`,
+      );
+    }
+    await db.user.update({
       where: { id: user.id },
       data: { passwordHash, status: "active" },
     });
   }
 
-  await prisma.organizationMembership.create({
+  await db.organizationMembership.create({
     data: {
       organizationId,
       userId: user.id,
