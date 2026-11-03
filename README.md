@@ -6,7 +6,7 @@
 
 ## Локальный scaffold
 
-Глобальный порядок работ — живой план `tasks/roadmap.md` (его можно менять; это не канон требований). Закрытый срез Auth scaffold — `tasks/plan.md`. **Что реально есть в коде сейчас** — только в `docs/26-codebase-current-state.md` (не путать с целевым MVP в остальных `docs/`). Стек: Next.js, NestJS, PostgreSQL, Prisma, Redis, BullMQ (**D-008**). До закрытия **O-002** модель вызывается только через `SyntheticAIProvider`.
+Глобальный порядок работ — живой план `tasks/roadmap.md` (его можно менять; это не канон требований). Закрытая Фаза 1 (web login) — `tasks/plan.md` / `tasks/todo.md`. Следующий код — Фаза 2 (Workspace/RLS) после плана по `docs/CURSOR-INSTRUCTIONS-WORKSPACE-PHASE2.md`. **Что реально есть в коде сейчас** — только в `docs/26-codebase-current-state.md` (не путать с целевым MVP). Стек: Next.js, NestJS, PostgreSQL, Prisma, Redis, BullMQ (**D-008**). До закрытия **O-002** модель вызывается только через `SyntheticAIProvider`.
 
 ```bash
 pnpm install
@@ -45,10 +45,11 @@ pnpm dev:web   # http://localhost:3001
 - Инфраструктура/БД/файлы и остальные копии данных должны размещаться в России (**D-014**); конкретный российский хостинг-провайдер остаётся открытым. Векторный поиск — PostgreSQL FTS + `pgvector` (**D-018**).
 - Целевой внешний AI — OpenAI API (**D-015**, модель OPEN). До разрешения передачи (**O-002**) — только `SyntheticAIProvider` (**D-012**).
 - MVP-области: chat, docs, research, drafts, workspace; Harvey AI — UX-референс, не копирование.
-- Админ без автодоступа к содержимому; грант: `admin_grant:approve`, независимый согласующий, TTL ≤ 60 мин (**D-013**, **D-016**).
+- Админ без автодоступа к содержимому; грант: `admin_grant:approve`, независимый согласующий, TTL ≤ 60 мин (**D-013**, **D-016**, **W-015**/**W-016** без renewal).
+- Workspace Phase 2 (**W-001–W-020**): PERSONAL/TEAM; Matter M:N; роли OWNER/EDITOR/VIEWER; вход Email+Password+Organization ID; RLS обязателен (ADR-0003). Детали: `docs/workspace-phase2/`.
 - Удаление активных/производных ≤ 24 ч (**D-019**); бэкапы 35 дней + journal of deletions при restore (**D-020**); аудит ~1 год как цель (**D-021**); RPO ≤ 24 ч, RTO ≤ 8 ч (**D-022**).
 
-Полный журнал и открытые вопросы (O-001–O-010, H-001–H-005): `docs/decisions-log.md`.
+Полный журнал и открытые вопросы (O-001–O-013, H-001–H-005): `docs/decisions-log.md`.
 
 ## Индекс документов
 
@@ -82,11 +83,15 @@ pnpm dev:web   # http://localhost:3001
 | `docs/archive/24-security-and-threat-model-legacy.md` | Архив прежней модели угроз; не нормативный источник |
 | `docs/25-logging-monitoring-and-audit.md` | Технические логи, метрики и аудит |
 | `docs/26-codebase-current-state.md` | AS-IS снимок исполняемого scaffold (что есть в коде сейчас) |
+| `docs/workspace-phase2/README.md` | Workspace Phase 2: продукт, RLS, auth/invite, lifecycle, тесты (**W-001–W-020**) |
+| `docs/PACKAGE-README.md` | Указатель путей пакета Workspace Phase 2 после интеграции |
+| `docs/CURSOR-INSTRUCTIONS-WORKSPACE-PHASE2.md` | Инструкция агенту перед кодом Фазы 2 |
 | `tasks/roadmap.md` | Живой план реализации и ворота недостающих вводных; не канон и не описание кода |
 | `docs/decisions-log.md` | Подтверждённые решения, гипотезы и открытые вопросы |
 | `docs/DOCUMENTATION-GOVERNANCE.md` | Канонические источники, статусы и процесс изменения документации |
 | `docs/adr/ADR-0001-data-residency-and-model-provider.md` | ADR по размещению данных и AI-провайдеру; статус проверять в самом ADR |
 | `docs/adr/ADR-0002-frontend-fsd.md` | ADR: обязательный FSD для `apps/web` (**D-023**) |
+| `docs/adr/ADR-0003-postgresql-rls.md` | ADR: PostgreSQL RLS в MVP (**W-020**) |
 
 В `docs/archive/` находятся сохранённые устаревшие спецификации. Они оставлены для сверки, но не являются нормативными источниками.
 

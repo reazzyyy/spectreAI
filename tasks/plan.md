@@ -1,21 +1,22 @@
-# Implementation Plan: Phase 1 — web login
+# Implementation Plan: Phase 1 — web login (**CLOSED**)
 
-> Текущий срез. Глобальный живой план — `tasks/roadmap.md`. Предыдущий закрытый срез (Auth API scaffold) остаётся в истории git; этот файл описывает только активную фазу.
+> **Статус среза:** закрыт (2026-10-30). Глобальный план — `tasks/roadmap.md`.  
+> **Следующий код-срез:** Фаза 2 (Workspace + membership + RLS) — только после утверждённого плана slices по `docs/CURSOR-INSTRUCTIONS-WORKSPACE-PHASE2.md`. Этот файл не заменяется, пока Фаза 2 не стартует.
 
-## Overview
+## Overview (что было сделано)
 
-Подключить `@spectre/web` к уже существующим `POST /auth/login`, `GET /auth/me`, `POST /auth/logout`: страница `/login`, метка synthetic/test, просмотр сессии и выход. Способ входа — scaffold email+password+organizationId (не CONFIRMED в journal). MFA/SSO, invitations, register, recovery — OUT OF SCOPE. CSRF double-submit / Origin gate остаются OPEN (SameSite=Lax).
+Подключён `@spectre/web` к `POST /auth/login`, `GET /auth/me`, `POST /auth/logout`: `/login`, метка synthetic/test, session panel, logout.
 
-**Опора:** `tasks/roadmap.md` Фаза 1; API уже в AS-IS; `docs/21` same-origin `/api/v1`.
+**Способ входа:** Email + Password + Organization ID — **CONFIRMED (W-011)**; scaffold совпадает. MFA/SSO не в MVP (**W-013** / **O-008**). Invitations / register / recovery — OUT OF SCOPE этого среза. CSRF (**W-014**) — отдельный срез до следующих mutating forms (сейчас SameSite=Lax).
+
+**Опора:** `tasks/roadmap.md` Фаза 1; AS-IS `docs/26`; `docs/21` same-origin `/api/v1`.
 
 ## Architecture Decisions
 
-- Trunk — `main`. Ветка: `feature/web-login-phase-1`.
-- Next rewrite `/api/v1/:path*` → `API_ORIGIN` (default `http://localhost:3000`) — cookie same-origin, `credentials: "same-origin"`.
-- Клиентский API-слой в `apps/web/src/shared/api` (без Prisma-типов).
-- `/` без сессии → redirect `/login`; после login → `/` с user/org; logout гасит сессию.
-- Frontend: **D-023** FSD; login выровнен по слоям; Steiger + ESLint (`lint` / `lint:fsd`).
-- OUT OF SCOPE: CSRF token, MFA/SSO (O-008), seed/invite UI, Workspace, Client/Matter UI.
+- Trunk — `main`. Ветка среза: `feature/web-login-phase-1` (влита).
+- Next rewrite `/api/v1/:path*` → `API_ORIGIN` — cookie same-origin.
+- Frontend: **D-023** FSD; Steiger + ESLint.
+- OUT OF SCOPE среза: CSRF token, MFA/SSO, seed/invite UI, Workspace, Client/Matter UI.
 
 ## Task List
 
@@ -25,16 +26,17 @@
 - [x] Task 3: AS-IS + README + plan/todo; checkpoint build
 - [x] Task 4: FSD layers + Steiger/ESLint
 
-## Risks and Mitigations
+## Risks (актуально после закрытия)
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| CORS / cookie cross-port | Высокий | Rewrite same-origin, не CORS `*` |
-| CSRF на mutating forms | Средний | SameSite=Lax; CSRF/Origin — OPEN до отдельного среза |
-| Нет seed пользователей | Средний | Документировать; Gate A2 |
+| Risk | Status |
+|------|--------|
+| CORS / cookie cross-port | Снят rewrite same-origin |
+| CSRF на следующих mutating forms | **W-014** — отдельный срез обязателен |
+| Нет seed/invite в коде | Ворота A2 закрыты продуктово; bootstrap/invite — следующий технический долг (**W-012**, **O-011**) |
 
-## Open Questions / OUT OF SCOPE
+## Open / next (не этот срез)
 
-- CSRF / Origin gate перед следующими mutating forms.
-- Gate A2: способ входа CONFIRMED, кто создаёт первых пользователей.
-- **O-008** MFA/SSO.
+- CSRF / Origin gate (**W-014**) перед новыми mutating forms.
+- Seed/bootstrap + invitations (**W-012**, TTL — **O-011**).
+- Фаза 2: Workspace / RLS (**W-001–W-020**, ADR-0003).
+- **O-008** MFA/SSO — пост-MVP.

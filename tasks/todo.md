@@ -1,6 +1,8 @@
-# Phase 1 — web login
+# Phase 1 — web login (**CLOSED**)
 
-Текущий срез. Глобальный план: `tasks/roadmap.md`. Детали: `tasks/plan.md`. MFA/SSO (**O-008**), CSRF token, invitations — OUT OF SCOPE.
+Глобальный план: `tasks/roadmap.md`. Архив среза: `tasks/plan.md`.
+
+Следующий активный код-срез ещё не открыт: Фаза 2 (Workspace) ждёт утверждённого плана по `docs/CURSOR-INSTRUCTIONS-WORKSPACE-PHASE2.md`.
 
 - [x] Task 1: API client + login / me / logout
 - [x] Task 2: `/login`, home session + logout, synthetic banner, Next rewrite

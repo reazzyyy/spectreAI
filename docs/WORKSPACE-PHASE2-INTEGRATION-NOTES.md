@@ -32,11 +32,21 @@
 
 Пакет `docs/workspace-phase2/` остаётся детальной спецификацией (PROPOSED там, где явно помечено: SQL, endpoint names, confirmer matrix proposal).
 
-## Не менялось намеренно
+## Не менялось намеренно (на момент интеграции W-*)
 
-- `docs/26-codebase-current-state.md` — код не менялся; Workspace/RLS по-прежнему отсутствуют.
+- Код Workspace/RLS по-прежнему отсутствует (AS-IS честен).
 - Реализация export / MFA / guest — по W-017/W-013/W-018 не стартует.
 - Физический SQL RLS и CSRF mechanism — PROPOSED до audit/реализации.
+
+## Follow-up docs sync (2026-11-03)
+
+После merge в `main` выровнены отстающие формулировки «вход / Gate A2 не CONFIRMED»:
+
+- `docs/12` §5.1 и таблица AUTH-*;
+- `docs/26` сверка статусов + формулировка seed/invite;
+- `tasks/plan.md` / `todo.md` / шапка `tasks/roadmap.md`;
+- `.cursor/rules/02-architecture.mdc` (W-020/RLS);
+- индекс `README.md` (`workspace-phase2/`, ADR-0003).
 
 ## Конфликты, проверенные при интеграции
 
