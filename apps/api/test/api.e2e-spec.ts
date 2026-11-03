@@ -12,11 +12,19 @@ import {
   MATTER_A,
   MATTER_B,
   MEMBERSHIP_A,
+  MEMBERSHIP_B,
   ORG_A,
   ORG_B,
+  TEAM_WORKSPACE_A,
+  TEAM_WORKSPACE_B,
   USER_A,
   USER_A_EMAIL,
   USER_A_PASSWORD,
+  USER_B,
+  USER_B_EMAIL,
+  USER_B_PASSWORD,
+  USER_ORG_B,
+  USER_ORG_B_EMAIL,
 } from "./matter-fixtures.js";
 
 async function seedFixtures(): Promise<void> {
@@ -24,13 +32,22 @@ async function seedFixtures(): Promise<void> {
   const prisma = createPrismaClient({ purpose: "migrator" });
   try {
     await prisma.session.deleteMany({
-      where: { userId: USER_A },
+      where: { userId: { in: [USER_A, USER_B, USER_ORG_B] } },
+    });
+    await prisma.workspaceMember.deleteMany({
+      where: { organizationId: { in: [ORG_A, ORG_B] } },
+    });
+    await prisma.workspaceMatter.deleteMany({
+      where: { organizationId: { in: [ORG_A, ORG_B] } },
+    });
+    await prisma.workspace.deleteMany({
+      where: { organizationId: { in: [ORG_A, ORG_B] } },
     });
     await prisma.organizationMembership.deleteMany({
-      where: { id: MEMBERSHIP_A },
+      where: { id: { in: [MEMBERSHIP_A, MEMBERSHIP_B] } },
     });
     await prisma.user.deleteMany({
-      where: { id: USER_A },
+      where: { id: { in: [USER_A, USER_B, USER_ORG_B] } },
     });
     await prisma.matter.deleteMany({
       where: { organizationId: { in: [ORG_A, ORG_B] } },
@@ -77,23 +94,67 @@ async function seedFixtures(): Promise<void> {
       ],
     });
 
-    const passwordHash = await hashPassword(USER_A_PASSWORD);
-    await prisma.user.create({
-      data: {
-        id: USER_A,
-        email: USER_A_EMAIL,
-        passwordHash,
-        status: "active",
-      },
+    const passwordHashA = await hashPassword(USER_A_PASSWORD);
+    const passwordHashB = await hashPassword(USER_B_PASSWORD);
+    await prisma.user.createMany({
+      data: [
+        {
+          id: USER_A,
+          email: USER_A_EMAIL,
+          passwordHash: passwordHashA,
+          status: "active",
+        },
+        {
+          id: USER_B,
+          email: USER_B_EMAIL,
+          passwordHash: passwordHashB,
+          status: "active",
+        },
+        {
+          id: USER_ORG_B,
+          email: USER_ORG_B_EMAIL,
+          passwordHash: passwordHashA,
+          status: "active",
+        },
+      ],
     });
-    await prisma.organizationMembership.create({
-      data: {
-        id: MEMBERSHIP_A,
-        organizationId: ORG_A,
-        userId: USER_A,
-        role: "member",
-        status: "active",
-      },
+    await prisma.organizationMembership.createMany({
+      data: [
+        {
+          id: MEMBERSHIP_A,
+          organizationId: ORG_A,
+          userId: USER_A,
+          role: "member",
+          status: "active",
+        },
+        {
+          id: MEMBERSHIP_B,
+          organizationId: ORG_A,
+          userId: USER_B,
+          role: "member",
+          status: "active",
+        },
+      ],
+    });
+    await prisma.workspace.createMany({
+      data: [
+        {
+          id: TEAM_WORKSPACE_A,
+          organizationId: ORG_A,
+          ownerUserId: USER_A,
+          name: "seed-team-a",
+          visibility: "TEAM",
+          status: "ACTIVE",
+        },
+        {
+          id: TEAM_WORKSPACE_B,
+          organizationId: ORG_B,
+          ownerUserId: USER_ORG_B,
+          name: "seed-team-b",
+          visibility: "TEAM",
+          status: "ACTIVE",
+        },
+      ],
     });
   } finally {
     await prisma.$disconnect();
@@ -158,6 +219,13 @@ describe("API scaffold", () => {
 
     it("hides clients until the server has a session", async () => {
       const response = await request(app.getHttpServer()).get("/api/v1/clients");
+
+      expect(response.status).toBe(401);
+      expect(response.body.error.code).toBe("UNAUTHENTICATED");
+    });
+
+    it("hides workspaces until the server has a session", async () => {
+      const response = await request(app.getHttpServer()).get("/api/v1/workspaces");
 
       expect(response.status).toBe(401);
       expect(response.body.error.code).toBe("UNAUTHENTICATED");
@@ -374,6 +442,153 @@ describe("API scaffold", () => {
 
       const emptyPatch = await agent.patch(`/api/v1/matters/${MATTER_A.id}`).send({});
       expect(emptyPatch.status).toBe(422);
+    });
+
+    it("creates PERSONAL workspace, lists owned, patches; rejects TEAM create and foreign id", async () => {
+      const created = await agent.post("/api/v1/workspaces").send({
+        name: " My Desk ",
+        description: "personal notes",
+      });
+      expect(created.status).toBe(201);
+      expect(created.body).toMatchObject({
+        organizationId: ORG_A,
+        ownerUserId: USER_A,
+        name: "My Desk",
+        description: "personal notes",
+        visibility: "PERSONAL",
+        status: "ACTIVE",
+        clientId: null,
+      });
+      expect(created.body.id).toEqual(expect.any(String));
+
+      const teamCreate = await agent.post("/api/v1/workspaces").send({
+        name: "Should fail",
+        visibility: "TEAM",
+      });
+      expect(teamCreate.status).toBe(422);
+      expect(teamCreate.body.error.code).toBe("VALIDATION_ERROR");
+
+      const listed = await agent.get("/api/v1/workspaces");
+      expect(listed.status).toBe(200);
+      expect(listed.body.items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: created.body.id, name: "My Desk" }),
+          expect.objectContaining({ id: TEAM_WORKSPACE_A, visibility: "TEAM" }),
+        ]),
+      );
+      expect(JSON.stringify(listed.body)).not.toContain("seed-team-b");
+      expect(JSON.stringify(listed.body)).not.toContain(TEAM_WORKSPACE_B);
+
+      const read = await agent.get(`/api/v1/workspaces/${created.body.id}`);
+      expect(read.status).toBe(200);
+      expect(read.body).toEqual(created.body);
+
+      const patched = await agent
+        .patch(`/api/v1/workspaces/${created.body.id}`)
+        .send({ name: "Desk Renamed" });
+      expect(patched.status).toBe(200);
+      expect(patched.body).toMatchObject({
+        id: created.body.id,
+        name: "Desk Renamed",
+      });
+
+      const missing = await agent.get(
+        "/api/v1/workspaces/00000000-0000-4000-8000-000000000099",
+      );
+      const foreign = await agent.get(`/api/v1/workspaces/${TEAM_WORKSPACE_B}`);
+      expect(foreign.status).toBe(404);
+      expect(foreign.body.error.code).toBe("NOT_FOUND");
+      expect(foreign.body.error.message).toBe(missing.body.error.message);
+      expect(JSON.stringify(foreign.body)).not.toContain("seed-team-b");
+
+      const foreignPatch = await agent
+        .patch(`/api/v1/workspaces/${TEAM_WORKSPACE_B}`)
+        .send({ name: "hijack" });
+      expect(foreignPatch.status).toBe(404);
+
+      const foreignClient = await agent.post("/api/v1/workspaces").send({
+        name: "Bad client",
+        clientId: CLIENT_B.id,
+      });
+      expect(foreignClient.status).toBe(422);
+      expect(foreignClient.body.error.code).toBe("VALIDATION_ERROR");
+    });
+
+    it("manages TEAM members and matter links; denies foreign matter and PERSONAL members", async () => {
+      const membersBefore = await agent.get(
+        `/api/v1/workspaces/${TEAM_WORKSPACE_A}/members`,
+      );
+      expect(membersBefore.status).toBe(200);
+      expect(membersBefore.body.items).toEqual([]);
+
+      const added = await agent
+        .post(`/api/v1/workspaces/${TEAM_WORKSPACE_A}/members`)
+        .send({ userId: USER_B, role: "EDITOR" });
+      expect(added.status).toBe(201);
+      expect(added.body).toMatchObject({
+        organizationId: ORG_A,
+        workspaceId: TEAM_WORKSPACE_A,
+        userId: USER_B,
+        role: "EDITOR",
+        status: "ACTIVE",
+      });
+
+      const listed = await agent.get(`/api/v1/workspaces/${TEAM_WORKSPACE_A}/members`);
+      expect(listed.status).toBe(200);
+      expect(listed.body.items).toEqual(
+        expect.arrayContaining([expect.objectContaining({ userId: USER_B, role: "EDITOR" })]),
+      );
+
+      const rolePatch = await agent
+        .patch(`/api/v1/workspaces/${TEAM_WORKSPACE_A}/members/${USER_B}`)
+        .send({ role: "VIEWER" });
+      expect(rolePatch.status).toBe(200);
+      expect(rolePatch.body).toMatchObject({ userId: USER_B, role: "VIEWER" });
+
+      const ownerAsMember = await agent
+        .post(`/api/v1/workspaces/${TEAM_WORKSPACE_A}/members`)
+        .send({ userId: USER_A, role: "EDITOR" });
+      expect(ownerAsMember.status).toBe(404);
+
+      const personal = await agent.post("/api/v1/workspaces").send({ name: "No members" });
+      expect(personal.status).toBe(201);
+      const personalMember = await agent
+        .post(`/api/v1/workspaces/${personal.body.id}/members`)
+        .send({ userId: USER_B, role: "VIEWER" });
+      expect(personalMember.status).toBe(404);
+
+      const foreignMembers = await agent.get(
+        `/api/v1/workspaces/${TEAM_WORKSPACE_B}/members`,
+      );
+      expect(foreignMembers.status).toBe(404);
+
+      const linked = await agent
+        .post(`/api/v1/workspaces/${TEAM_WORKSPACE_A}/matters`)
+        .send({ matterId: MATTER_A.id });
+      expect(linked.status).toBe(201);
+      expect(linked.body).toEqual({ matterId: MATTER_A.id });
+
+      const matters = await agent.get(`/api/v1/workspaces/${TEAM_WORKSPACE_A}/matters`);
+      expect(matters.status).toBe(200);
+      expect(matters.body.items).toEqual([{ matterId: MATTER_A.id }]);
+
+      const foreignMatter = await agent
+        .post(`/api/v1/workspaces/${TEAM_WORKSPACE_A}/matters`)
+        .send({ matterId: MATTER_B.id });
+      expect(foreignMatter.status).toBe(422);
+      expect(foreignMatter.body.error.code).toBe("VALIDATION_ERROR");
+
+      const unlinked = await agent.delete(
+        `/api/v1/workspaces/${TEAM_WORKSPACE_A}/matters/${MATTER_A.id}`,
+      );
+      expect(unlinked.status).toBe(200);
+      expect(unlinked.body).toEqual({ ok: true });
+
+      const revoked = await agent.delete(
+        `/api/v1/workspaces/${TEAM_WORKSPACE_A}/members/${USER_B}`,
+      );
+      expect(revoked.status).toBe(200);
+      expect(revoked.body).toMatchObject({ userId: USER_B, status: "REVOKED" });
     });
   });
 

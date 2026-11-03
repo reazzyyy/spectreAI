@@ -21,6 +21,8 @@ import { ApiExceptionFilter } from "./http/api-exception.filter.js";
 import { MattersController } from "./matters/matters.controller.js";
 import { MattersService } from "./matters/matters.service.js";
 import { AI_JOBS_QUEUE } from "./queue/ai-jobs.queue.js";
+import { WorkspacesController } from "./workspaces/workspaces.controller.js";
+import { WorkspacesService } from "./workspaces/workspaces.service.js";
 
 @Module({
   controllers: [
@@ -28,6 +30,7 @@ import { AI_JOBS_QUEUE } from "./queue/ai-jobs.queue.js";
     AuthController,
     ClientsController,
     MattersController,
+    WorkspacesController,
     AiController,
   ],
   providers: [
@@ -64,6 +67,7 @@ import { AI_JOBS_QUEUE } from "./queue/ai-jobs.queue.js";
     },
     ClientsService,
     MattersService,
+    WorkspacesService,
     { provide: AiGateway, useFactory: () => new AiGateway() },
     { provide: "AI_JOBS_QUEUE_NAME", useValue: AI_JOBS_QUEUE },
     { provide: APP_FILTER, useClass: ApiExceptionFilter },

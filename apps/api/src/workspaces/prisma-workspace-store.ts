@@ -1,5 +1,6 @@
 import type {
   WorkspaceCreatePersonalInput,
+  WorkspaceMatterLink,
   WorkspaceMemberRecord,
   WorkspaceMemberUpsertInput,
   WorkspaceRecord,
@@ -163,6 +164,66 @@ export function createPrismaWorkspaceStore(prisma: Db): WorkspaceStore {
         data: { status: "REVOKED", revokedAt: new Date() },
       });
       return toMember(row);
+    },
+
+    async listMatterLinks(workspaceId) {
+      const rows = await prisma.workspaceMatter.findMany({
+        where: { workspaceId },
+        orderBy: { createdAt: "asc" },
+      });
+      return rows.map(
+        (row: {
+          organizationId: string;
+          workspaceId: string;
+          matterId: string;
+        }): WorkspaceMatterLink => ({
+          organizationId: row.organizationId,
+          workspaceId: row.workspaceId,
+          matterId: row.matterId,
+        }),
+      );
+    },
+
+    async linkMatter(organizationId, workspaceId, matterId, createdByUserId) {
+      try {
+        const existing = await prisma.workspaceMatter.findUnique({
+          where: { workspaceId_matterId: { workspaceId, matterId } },
+        });
+        if (existing) {
+          return {
+            organizationId: existing.organizationId,
+            workspaceId: existing.workspaceId,
+            matterId: existing.matterId,
+          };
+        }
+        const row = await prisma.workspaceMatter.create({
+          data: {
+            id: randomUUID(),
+            organizationId,
+            workspaceId,
+            matterId,
+            createdByUserId,
+          },
+        });
+        return {
+          organizationId: row.organizationId,
+          workspaceId: row.workspaceId,
+          matterId: row.matterId,
+        };
+      } catch {
+        return null;
+      }
+    },
+
+    async unlinkMatter(workspaceId, matterId) {
+      try {
+        await prisma.workspaceMatter.delete({
+          where: { workspaceId_matterId: { workspaceId, matterId } },
+        });
+        return true;
+      } catch {
+        return false;
+      }
     },
   };
 }

@@ -129,6 +129,15 @@ function memoryWorkspaceStore(
       mem.set(key, revoked);
       return revoked;
     },
+    async listMatterLinks(workspaceId) {
+      return [];
+    },
+    async linkMatter(organizationId, workspaceId, matterId, _createdBy) {
+      return { organizationId, workspaceId, matterId };
+    },
+    async unlinkMatter() {
+      return true;
+    },
   };
 }
 
