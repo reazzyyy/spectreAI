@@ -27,6 +27,7 @@
 
 ```
 spectreAI/
+├── .github/workflows/ci.yml  PR/main: migrate + pnpm test (Postgres service)
 ├── apps/
 │   ├── api/          @spectre/api    NestJS, префикс /api/v1, порт 3000
 │   └── web/          @spectre/web    Next.js shell, порт 3001
@@ -219,6 +220,17 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 | `@spectre/db` | `prisma validate` как скрипт `test` |
 
 E2e требуют поднятый Postgres (`docker compose`) и применённые миграции (`pnpm --filter @spectre/db migrate:deploy`).
+
+## 7.1. CI (GitHub Actions)
+
+Workflow: `.github/workflows/ci.yml`.
+
+| Триггер | Поведение |
+|---|---|
+| `pull_request` (любой) | job `test`: pnpm install → `migrate:deploy` → `pnpm test` |
+| `push` в `main` | то же |
+
+Сервис: `pgvector/pgvector:pg16` с теми же local-only credentials, что в `docker-compose.yml` (`spectre`/`spectre`/`spectre`). Live Redis в CI **не** поднимается (текущий suite его не требует). Lint / typecheck / build как отдельные обязательные gates **ещё не** подключены (см. целевой порядок в `docs/22`, TEST-005 частично: Postgres есть, очередь Redis — нет).
 
 ## 8. Явно не реализовано (ожидаемо по спецификациям, отсутствует в коде)
 

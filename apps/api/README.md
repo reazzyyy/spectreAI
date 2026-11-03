@@ -18,6 +18,8 @@ pnpm --filter @spectre/api build
 
 E2e seeds organizations, clients, matters, a user + membership, logs in via cookie, and asserts cross-org Client/Matter → `404` and foreign `clientId` on Matter → `422`.
 
+On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` against a service Postgres (`pgvector/pgvector:pg16`) after `migrate:deploy`.
+
 ## Modules (AS-IS)
 
 | Path | Role |

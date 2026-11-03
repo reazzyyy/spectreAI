@@ -20,6 +20,8 @@ pnpm dev:web   # http://localhost:3001
 
 Краткие README модулей: `apps/api`, `apps/web`, `packages/access`, `packages/ai-gateway`, `packages/db`.
 
+**CI:** на каждый pull request и на push в `main` GitHub Actions запускает `.github/workflows/ci.yml`: Postgres `pgvector/pgvector:pg16`, `pnpm --filter @spectre/db migrate:deploy`, затем `pnpm test`. Live Redis в этом workflow нет. Lint, typecheck и build отдельными gates пока не стоят.
+
 ## С чего начинать
 
 1. Прочитать `AGENTS.md`.
