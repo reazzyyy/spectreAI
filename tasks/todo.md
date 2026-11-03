@@ -1,15 +1,27 @@
-# Phase 1 — web login (**CLOSED**)
+# Phase 2 — Workspace + membership
 
-Глобальный план: `tasks/roadmap.md`. Архив среза: `tasks/plan.md`.
+Глобальный план: `tasks/roadmap.md`. Детали: `tasks/plan.md` (**утверждён** 2026-11-03).  
+S0 note: `docs/workspace-phase2/S0-rls-foundation-and-inventory.md`.
 
-Следующий активный код-срез ещё не открыт: Фаза 2 (Workspace) ждёт утверждённого плана по `docs/CURSOR-INSTRUCTIONS-WORKSPACE-PHASE2.md`.
+## Gate
+- [x] План Phase 2 утверждён
 
-- [x] Task 1: API client + login / me / logout
-- [x] Task 2: `/login`, home session + logout, synthetic banner, Next rewrite
-- [x] Task 3: AS-IS + README web; checkpoint `pnpm --filter @spectre/web build`
-- [x] Task 4: FSD раскладка login/session + Steiger/ESLint (`lint` / `lint:fsd`)
+## Slices
+- [x] S0 Foundation / RLS inventory + role topology (working note)
+- [ ] S1 Schema Workspace* + RLS + runtime role + harness
+- [ ] S2 `@spectre/access` Workspace policies + tx GUC
+- [ ] S3 Workspace HTTP API + e2e negatives (PERSONAL create only until TEAM decision)
+- [ ] S4a CSRF (**W-014**)
+- [ ] S4b Dev bootstrap (**W-012**)
+- [ ] S4c Invitations (TTL **O-011** config)
 
-## Checkpoint: Phase 1
-- [x] web build
-- [x] web lint + lint:fsd
-- [x] Docs/README обновлены в том же изменении
+## Checkpoint: Phase 2 (roadmap)
+- [ ] S0–S3 merged to `main`, CI green
+- [ ] Runtime-role RLS tests green
+- [ ] AS-IS / package README updated
+- [ ] No export / grant / chat / purge quietly shipped
+
+## Later (не этот checkpoint)
+- [ ] S5 Chat · S6 Admin grant · S7 Lifecycle · S8 Hardening
+- [ ] Optional: ActorGuard on `/ai/*`
+- [ ] Decision: who may create TEAM Workspace

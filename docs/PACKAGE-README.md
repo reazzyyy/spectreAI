@@ -11,6 +11,7 @@
 - `docs/workspace-phase2/03-api-auth-and-invitations.md`
 - `docs/workspace-phase2/04-lifecycle-admin-grants-and-export.md`
 - `docs/workspace-phase2/05-testing-and-acceptance.md`
+- `docs/workspace-phase2/S0-rls-foundation-and-inventory.md` (WORKING Slice 0)
 - `docs/CURSOR-INSTRUCTIONS-WORKSPACE-PHASE2.md`
 
 Решения **W-001–W-020** перенесены в `docs/decisions-log.md`. Сводка интеграции: `docs/WORKSPACE-PHASE2-INTEGRATION-NOTES.md`.
