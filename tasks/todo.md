@@ -13,12 +13,12 @@ S0 note: `docs/workspace-phase2/S0-rls-foundation-and-inventory.md`.
 - [x] S3 Workspace HTTP API + e2e negatives (PERSONAL create only until TEAM decision)
 - [x] S4a CSRF (**W-014** / **W-014a** Origin + double-submit)
 - [x] S4b Dev bootstrap (**W-012**)
-- [ ] S4c Invitations (TTL **O-011** config)
+- [x] S4c Invitations (TTL **O-011** config)
 
 ## Checkpoint: Phase 2 (roadmap)
 - [x] S0–S3 merged to `main`, CI green
 - [ ] Runtime-role RLS tests green
-- [x] AS-IS / package README updated (through S4b)
+- [x] AS-IS / package README updated (through S4c)
 - [ ] No export / grant / chat / purge quietly shipped
 
 ## Later (не этот checkpoint)

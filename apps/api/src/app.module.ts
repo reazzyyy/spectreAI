@@ -22,6 +22,11 @@ import { CsrfGuard } from "./http/csrf.guard.js";
 import { MattersController } from "./matters/matters.controller.js";
 import { MattersService } from "./matters/matters.service.js";
 import { AI_JOBS_QUEUE } from "./queue/ai-jobs.queue.js";
+import {
+  InvitationAcceptController,
+  OrganizationInvitationsController,
+} from "./invitations/invitations.controller.js";
+import { InvitationsService } from "./invitations/invitations.service.js";
 import { WorkspacesController } from "./workspaces/workspaces.controller.js";
 import { WorkspacesService } from "./workspaces/workspaces.service.js";
 
@@ -32,6 +37,8 @@ import { WorkspacesService } from "./workspaces/workspaces.service.js";
     ClientsController,
     MattersController,
     WorkspacesController,
+    OrganizationInvitationsController,
+    InvitationAcceptController,
     AiController,
   ],
   providers: [
@@ -70,6 +77,7 @@ import { WorkspacesService } from "./workspaces/workspaces.service.js";
     ClientsService,
     MattersService,
     WorkspacesService,
+    InvitationsService,
     { provide: AiGateway, useFactory: () => new AiGateway() },
     { provide: "AI_JOBS_QUEUE_NAME", useValue: AI_JOBS_QUEUE },
     { provide: APP_FILTER, useClass: ApiExceptionFilter },

@@ -2,7 +2,7 @@
 // Organization, Client, Matter, User, OrganizationMembership, Session,
 // Workspace, WorkspaceMember, WorkspaceMatter.
 // Matter.workspaceId remains legacy nullable without FK until a later contract drop (W-003).
-// MFA/SSO (O-008) / invitations / chat / grant — out of this schema slice.
+// MFA/SSO (O-008) / chat / grant — out of this schema slice.
 
 generator client {
   provider = "prisma-client"
@@ -74,16 +74,17 @@ enum WorkspaceMemberStatus {
 }
 
 model Organization {
-  id           String                   @id @default(uuid()) @db.Uuid
+  id           String                     @id @default(uuid()) @db.Uuid
   name         String
-  status       OrganizationStatus       @default(active)
-  createdAt    DateTime                 @default(now()) @map("created_at")
-  updatedAt    DateTime                 @updatedAt @map("updated_at")
+  status       OrganizationStatus         @default(active)
+  createdAt    DateTime                   @default(now()) @map("created_at")
+  updatedAt    DateTime                   @updatedAt @map("updated_at")
   clients      Client[]
   matters      Matter[]
   memberships  OrganizationMembership[]
   sessions     Session[]
   workspaces   Workspace[]
+  invitations  OrganizationInvitation[]
 
   @@map("organizations")
 }
@@ -137,6 +138,7 @@ model User {
   workspaceMembers   WorkspaceMember[]
   workspaceMatters   WorkspaceMatter[]        @relation("WorkspaceMatterCreator")
   addedMembers       WorkspaceMember[]        @relation("WorkspaceMemberAdder")
+  invitationsSent    OrganizationInvitation[]  @relation("InvitationInviter")
 
   @@map("users")
 }
@@ -155,6 +157,31 @@ model OrganizationMembership {
   @@unique([organizationId, userId])
   @@index([userId])
   @@map("organization_memberships")
+}
+
+/// Org invitation (W-012). Owner role cannot be granted via invite. TTL from config (O-011).
+/// Raw token never stored — only SHA-256 hash.
+model OrganizationInvitation {
+  id              String         @id @default(uuid()) @db.Uuid
+  organizationId  String         @map("organization_id") @db.Uuid
+  organization    Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  emailNormalized String         @map("email_normalized")
+  /// Invitable roles only: admin | member (not owner).
+  role            MembershipRole
+  tokenHash       String         @unique @map("token_hash")
+  invitedByUserId String         @map("invited_by_user_id") @db.Uuid
+  invitedBy       User           @relation("InvitationInviter", fields: [invitedByUserId], references: [id], onDelete: Restrict)
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  expiresAt       DateTime       @map("expires_at")
+  acceptedAt      DateTime?      @map("accepted_at")
+  revokedAt       DateTime?      @map("revoked_at")
+  lastSentAt      DateTime?      @map("last_sent_at")
+  sendCount       Int            @default(1) @map("send_count")
+
+  @@index([organizationId, emailNormalized])
+  @@index([organizationId, createdAt])
+  @@map("organization_invitations")
 }
 
 /// Opaque browser session; raw token never stored — only SHA-256 hash.

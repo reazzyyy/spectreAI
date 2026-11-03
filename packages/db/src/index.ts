@@ -8,6 +8,7 @@ export type {
   Matter,
   User,
   OrganizationMembership,
+  OrganizationInvitation,
   Session,
   Workspace,
   WorkspaceMember,

@@ -50,6 +50,9 @@ async function seedFixtures(): Promise<void> {
     await prisma.session.deleteMany({
       where: { userId: { in: [USER_A, USER_B, USER_ORG_B] } },
     });
+    await prisma.organizationInvitation.deleteMany({
+      where: { organizationId: { in: [ORG_A, ORG_B] } },
+    });
     await prisma.workspaceMember.deleteMany({
       where: { organizationId: { in: [ORG_A, ORG_B] } },
     });
@@ -60,10 +63,15 @@ async function seedFixtures(): Promise<void> {
       where: { organizationId: { in: [ORG_A, ORG_B] } },
     });
     await prisma.organizationMembership.deleteMany({
-      where: { id: { in: [MEMBERSHIP_A, MEMBERSHIP_B] } },
+      where: { organizationId: { in: [ORG_A, ORG_B] } },
     });
     await prisma.user.deleteMany({
-      where: { id: { in: [USER_A, USER_B, USER_ORG_B] } },
+      where: {
+        OR: [
+          { id: { in: [USER_A, USER_B, USER_ORG_B] } },
+          { email: { endsWith: "@localhost" } },
+        ],
+      },
     });
     await prisma.matter.deleteMany({
       where: { organizationId: { in: [ORG_A, ORG_B] } },
@@ -140,7 +148,7 @@ async function seedFixtures(): Promise<void> {
           id: MEMBERSHIP_A,
           organizationId: ORG_A,
           userId: USER_A,
-          role: "member",
+          role: "owner",
           status: "active",
         },
         {
@@ -279,7 +287,7 @@ describe("API scaffold", () => {
       expect(login.status).toBe(200);
       expect(login.body).toEqual({
         user: { id: USER_A, email: USER_A_EMAIL },
-        organization: { id: ORG_A, role: "member" },
+        organization: { id: ORG_A, role: "owner" },
       });
       expect(JSON.stringify(login.body)).not.toContain(USER_A_PASSWORD);
       const setCookie = login.headers["set-cookie"];
@@ -357,7 +365,7 @@ describe("API scaffold", () => {
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
         user: { id: USER_A, email: USER_A_EMAIL },
-        organization: { id: ORG_A, role: "member" },
+        organization: { id: ORG_A, role: "owner" },
       });
     });
 
@@ -650,6 +658,73 @@ describe("API scaffold", () => {
       );
       expect(revoked.status).toBe(200);
       expect(revoked.body).toMatchObject({ userId: USER_B, status: "REVOKED" });
+    });
+
+    it("creates, accepts, and revokes org invitations; rejects owner role and foreign org", async () => {
+      const inviteEmail = `invitee-${Date.now()}@localhost`;
+      const created = await agent.post(`/api/v1/organizations/${ORG_A}/invitations`).send({
+        email: inviteEmail,
+        role: "member",
+      });
+      expect(created.status).toBe(201);
+      expect(created.body).toMatchObject({
+        organizationId: ORG_A,
+        emailNormalized: inviteEmail,
+        role: "member",
+      });
+      expect(created.body.devToken).toEqual(expect.any(String));
+      expect(JSON.stringify(created.body)).not.toContain("tokenHash");
+
+      const ownerRole = await agent.post(`/api/v1/organizations/${ORG_A}/invitations`).send({
+        email: `owner-role-${Date.now()}@localhost`,
+        role: "owner",
+      });
+      expect(ownerRole.status).toBe(422);
+
+      const foreignOrg = await agent.post(`/api/v1/organizations/${ORG_B}/invitations`).send({
+        email: `x-${Date.now()}@localhost`,
+        role: "member",
+      });
+      expect(foreignOrg.status).toBe(404);
+
+      const accepted = await request(app.getHttpServer())
+        .post("/api/v1/invitations/accept")
+        .send({
+          token: created.body.devToken,
+          password: "synthetic-invitee-password",
+        });
+      expect(accepted.status).toBe(200);
+      expect(accepted.body).toMatchObject({
+        organizationId: ORG_A,
+        role: "member",
+      });
+
+      const replay = await request(app.getHttpServer())
+        .post("/api/v1/invitations/accept")
+        .send({
+          token: created.body.devToken,
+          password: "synthetic-invitee-password",
+        });
+      expect(replay.status).toBe(404);
+
+      const pending = await agent.post(`/api/v1/organizations/${ORG_A}/invitations`).send({
+        email: `revoke-${Date.now()}@localhost`,
+        role: "admin",
+      });
+      expect(pending.status).toBe(201);
+      const revokedInvite = await agent.delete(
+        `/api/v1/organizations/${ORG_A}/invitations/${pending.body.id}`,
+      );
+      expect(revokedInvite.status).toBe(200);
+      expect(revokedInvite.body.revokedAt).toEqual(expect.any(String));
+
+      const acceptRevoked = await request(app.getHttpServer())
+        .post("/api/v1/invitations/accept")
+        .send({
+          token: pending.body.devToken,
+          password: "synthetic-invitee-password",
+        });
+      expect(acceptRevoked.status).toBe(404);
     });
   });
 
