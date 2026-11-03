@@ -26,6 +26,11 @@ type RequestWithProfile = Request & {
 export class SessionService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** Auth bootstrap uses migrator URL until SECURITY DEFINER helpers land (S0 §6). */
+  private get authDb() {
+    return this.prisma.migrator;
+  }
+
   /**
    * Creates a session after credential + active membership checks.
    * Returns null on any auth failure (uniform caller response — no enumeration).
@@ -35,7 +40,7 @@ export class SessionService {
     password: string,
     organizationId: string,
   ): Promise<{ rawToken: string; profile: SessionProfile } | null> {
-    const user = await this.prisma.client.user.findUnique({
+    const user = await this.authDb.user.findUnique({
       where: { email },
     });
     if (!user || user.status !== "active") {
@@ -47,7 +52,7 @@ export class SessionService {
       return null;
     }
 
-    const membership = await this.prisma.client.organizationMembership.findUnique({
+    const membership = await this.authDb.organizationMembership.findUnique({
       where: {
         organizationId_userId: { organizationId, userId: user.id },
       },
@@ -60,7 +65,7 @@ export class SessionService {
     const tokenHash = hashToken(rawToken);
     const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
 
-    await this.prisma.client.session.create({
+    await this.authDb.session.create({
       data: {
         userId: user.id,
         organizationId,
@@ -69,7 +74,7 @@ export class SessionService {
       },
     });
 
-    await this.prisma.client.user.update({
+    await this.authDb.user.update({
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
     });
@@ -92,7 +97,7 @@ export class SessionService {
       return;
     }
 
-    await this.prisma.client.session.updateMany({
+    await this.authDb.session.updateMany({
       where: {
         tokenHash: hashToken(rawToken),
         revokedAt: null,
@@ -133,21 +138,21 @@ export class SessionService {
       return null;
     }
 
-    const session = await this.prisma.client.session.findUnique({
+    const session = await this.authDb.session.findUnique({
       where: { tokenHash: hashToken(rawToken) },
     });
     if (!session || session.revokedAt !== null || session.expiresAt <= new Date()) {
       return null;
     }
 
-    const user = await this.prisma.client.user.findUnique({
+    const user = await this.authDb.user.findUnique({
       where: { id: session.userId },
     });
     if (!user || user.status !== "active") {
       return null;
     }
 
-    const membership = await this.prisma.client.organizationMembership.findUnique({
+    const membership = await this.authDb.organizationMembership.findUnique({
       where: {
         organizationId_userId: {
           organizationId: session.organizationId,

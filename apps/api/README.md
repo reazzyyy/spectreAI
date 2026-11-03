@@ -5,8 +5,8 @@ NestJS HTTP API scaffold. Global prefix: `/api/v1`. Default port: `3000`.
 ## Prerequisites
 
 - `docker compose up -d` (Postgres + Redis)
-- `.env` from `.env.example` (`DATABASE_URL`)
-- `pnpm --filter @spectre/db migrate:deploy`
+- `.env` from `.env.example` (`DATABASE_URL` + `DATABASE_URL_RUNTIME`)
+- `pnpm --filter @spectre/db migrate:deploy` (creates `spectre_app` + tenant RLS)
 
 ## Run
 
@@ -26,7 +26,7 @@ On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` 
 |---|---|
 | `src/main.ts` | Bootstrap + `cookie-parser` |
 | `src/app.module.ts` | Controllers + DI wiring |
-| `src/db/` | `PrismaService` from `@spectre/db` |
+| `src/db/` | Dual Prisma (`migrator` auth/seed, `runtime` + GUC for tenant); actor-scoped stores |
 | `src/health/` | Liveness |
 | `src/auth/` | Login/logout/me, SessionService, REQUEST-scoped `ACTOR_CONTEXT`, `ActorGuard` |
 | `src/clients/` | Client list/create/get/patch via Prisma + `ClientAccess` |

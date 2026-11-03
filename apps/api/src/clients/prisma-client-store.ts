@@ -1,5 +1,7 @@
 import type { ClientCreateInput, ClientRecord, ClientStore, ClientUpdateInput } from "@spectre/access";
-import type { PrismaClient } from "@spectre/db";
+import type { PrismaClient, PrismaTxClient } from "@spectre/db";
+
+type Db = PrismaClient | PrismaTxClient;
 
 function toRecord(client: {
   id: string;
@@ -17,8 +19,9 @@ function toRecord(client: {
 
 /**
  * ClientStore backed by Prisma. Organization isolation stays in ClientAccess.
+ * Accepts interactive-transaction client so RLS GUC applies on the same connection.
  */
-export function createPrismaClientStore(prisma: PrismaClient): ClientStore {
+export function createPrismaClientStore(prisma: Db): ClientStore {
   return {
     async findById(id: string): Promise<ClientRecord | null> {
       const client = await prisma.client.findUnique({ where: { id } });

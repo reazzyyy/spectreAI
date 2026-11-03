@@ -1,5 +1,7 @@
 import type { MatterCreateInput, MatterRecord, MatterStore, MatterUpdateInput } from "@spectre/access";
-import type { PrismaClient } from "@spectre/db";
+import type { PrismaClient, PrismaTxClient } from "@spectre/db";
+
+type Db = PrismaClient | PrismaTxClient;
 
 function toRecord(matter: {
   id: string;
@@ -21,8 +23,9 @@ function toRecord(matter: {
 
 /**
  * MatterStore backed by Prisma. Loads/writes by id; organization isolation stays in MatterAccess.
+ * Accepts interactive-transaction client so RLS GUC applies on the same connection.
  */
-export function createPrismaMatterStore(prisma: PrismaClient): MatterStore {
+export function createPrismaMatterStore(prisma: Db): MatterStore {
   return {
     async findById(id: string): Promise<MatterRecord | null> {
       const matter = await prisma.matter.findUnique({ where: { id } });

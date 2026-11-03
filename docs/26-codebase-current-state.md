@@ -1,10 +1,10 @@
 # Текущее состояние кодовой базы (AS-IS)
 
 **Статус:** CONFIRMED как снимок scaffold на дату ниже; не заменяет продуктовые спецификации и не утверждает MVP.  
-**Дата снимка кода:** 2026-10-30  
-**Сверка статусов решений:** 2026-11-03 (W-001–W-020 в журнале; код Workspace/RLS по-прежнему отсутствует)  
+**Дата снимка кода:** 2026-11-03 (S1 schema/RLS foundation)  
+**Сверка статусов решений:** 2026-11-03 (W-001–W-020)  
 **Источник истины по решениям:** `docs/decisions-log.md`  
-**План:** живой глобальный план — `tasks/roadmap.md`. Фаза 1 закрыта. Фаза 2 (Workspace) **утверждена** (`tasks/plan.md`); S0 — `docs/workspace-phase2/S0-rls-foundation-and-inventory.md`. Следующий код — **S1** (Workspace schema + RLS + runtime DB role). Workspace/RLS в коде **ещё нет**.
+**План:** `tasks/roadmap.md` / `tasks/plan.md` (Фаза 2 утверждена). S0 note + **S1 in progress**: Workspace* таблицы и tenant RLS есть; Workspace HTTP API (**S3**) и полный W-020 (workspace-level policies) — ещё нет.
 
 Этот документ описывает **только то, что реально есть в репозитории**. Спецификации в `docs/00–25` могут описывать целевое MVP шире; если код ещё не реализован — ниже явно указано «не реализовано».
 
@@ -19,7 +19,8 @@
 | Client / Matter (D-009) | Prisma-модели есть; HTTP CRU+list для Client/Matter через `@spectre/access` + Prisma (hard delete нет) |
 | Сессии / User / Membership | Scaffold: email+password login, HttpOnly cookie, `ACTOR_CONTEXT` из Session |
 | MFA / SSO (O-008) | **Не реализовано** (OUT OF SCOPE этой итерации) |
-| Workspace как сущность | Не реализована; у Matter есть опциональный `workspaceId` без FK |
+| Workspace как сущность | Prisma: `Workspace` / `WorkspaceMember` / `WorkspaceMatter`; **HTTP API ещё нет** (S3) |
+| PostgreSQL RLS (W-020) | Tenant-boundary RLS + runtime role `spectre_app`; **неполное** (нет workspace-membership/chat/grant policies) |
 | Загрузка документов / OCR / RAG | Не реализованы |
 | Воркер очереди AI / обработка документов | Не реализованы |
 | Admin content-grant | Не реализован |
@@ -118,15 +119,14 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 ### 4.3 `@spectre/db`
 
 - Prisma 7, URL в `prisma.config.ts`, клиент генерируется в `src/generated`.
-- Публичный API: `createPrismaClient` (+ re-export `PrismaClient` / типов) через `@prisma/adapter-pg`.
-- Модели: `Organization`, `Client`, `Matter`, `User`, `OrganizationMembership`, `Session`.
-- `Session` соответствует `AuthSession` в `docs/12` (урезанный subset) и хранит `organizationId`, привязанный при login.
-- `Matter.workspaceId` опционален, **без FK** (Workspace ещё нет).
-- Composite FK: Matter → Client только в той же организации.
-- Миграции: `20261027200000_init_organization_client_matter`, `20261029120000_auth_user_membership_session`.
-- Document / AIJob / Audit / Invitation — **в схеме нет**.
-- Runtime consumer: `@spectre/api` (Client/Matter CRU + sessions).
-- Поле `created_by` из `docs/06` в Prisma **ещё нет** (OPEN / отложено).
+- `createPrismaClient({ purpose: "migrator" | "runtime" })` + `withActorContext` (GUC в interactive tx).
+- Модели: Organization, Client, Matter, User, OrganizationMembership, Session, **Workspace, WorkspaceMember, WorkspaceMatter**.
+- `Matter.workspaceId` legacy nullable без FK; связи Matter↔Workspace — `WorkspaceMatter` (backfill в миграции S1).
+- Миграции: init, auth, **`20261103220000_workspace_rls_foundation`** (tables + `spectre_app` + tenant RLS).
+- RLS FORCE на clients/matters/organization_memberships/workspaces/workspace_members/workspace_matters (только org GUC).
+- Auth bootstrap / e2e seed — migrator URL; Client/Matter API — runtime + GUC.
+- Document / AIJob / Audit / Invitation / Chat — **в схеме нет**.
+- Поле `created_by` из `docs/06` на Client/Matter **ещё нет** (OPEN / отложено).
 
 ## 5. HTTP-контракт scaffold (фактический)
 
@@ -208,7 +208,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 - Postgres: образ `pgvector/pgvector:pg16`, user/password/db `spectre`, порт `5432`.
 - Redis: `redis:7-alpine`, порт `6379`.
 
-`.env.example`: `DATABASE_URL`, `REDIS_URL`, `PORT`, `API_ORIGIN` (rewrite target для `@spectre/web`). Файл `.env` не коммитится. Пароли compose — не для shared/production. Отдельный session signing secret не используется (opaque DB sessions).
+`.env.example`: `DATABASE_URL` (migrator), `DATABASE_URL_RUNTIME` (`spectre_app`), `REDIS_URL`, `PORT`, `API_ORIGIN`. Файл `.env` не коммитится. Пароли compose/runtime — не для shared/production. Opaque DB sessions (без отдельного signing secret).
 
 ## 7. Тесты (что покрыто)
 
@@ -218,7 +218,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 | `packages/ai-gateway` | Synthetic OK; блок несинтетики; статусы AIJob; нет `fetch` |
 | `apps/api` e2e | health, provider; 401 без cookie; Client/Matter CRU+list; чужой id → 404; чужой clientId → 422; header org игнорируется; generate/block/validation |
 | `apps/api` queue unit | имя `ai-jobs`, разбор Redis URL |
-| `@spectre/db` | `prisma validate` как скрипт `test` |
+| `@spectre/db` | `prisma validate` + RLS harness (`src/rls.tenant.test.ts`) под runtime role |
 
 E2e требуют поднятый Postgres (`docker compose`) и применённые миграции (`pnpm --filter @spectre/db migrate:deploy`).
 
@@ -231,7 +231,7 @@ Workflow: `.github/workflows/ci.yml`.
 | `pull_request` (любой) | job `test`: pnpm install → `migrate:deploy` → `pnpm test` |
 | `push` в `main` | то же |
 
-Сервис: `pgvector/pgvector:pg16` с теми же local-only credentials, что в `docker-compose.yml` (`spectre`/`spectre`/`spectre`). Live Redis в CI **не** поднимается (текущий suite его не требует). Lint / typecheck / build как отдельные обязательные gates **ещё не** подключены (см. целевой порядок в `docs/22`, TEST-005 частично: Postgres есть, очередь Redis — нет).
+Сервис: `pgvector/pgvector:pg16` (`spectre` migrator). Env также задаёт `DATABASE_URL_RUNTIME` для `spectre_app` (роль создаётся миграцией S1). Live Redis в CI **не** поднимается. Lint / typecheck / build как отдельные gates **ещё не** подключены.
 
 ## 8. Явно не реализовано (ожидаемо по спецификациям, отсутствует в коде)
 
@@ -241,7 +241,7 @@ Workflow: `.github/workflows/ci.yml`.
 - CSRF token / Origin gate (**W-014**; web login уже есть; SameSite=Lax only).
 - Продуктовый seed / invite первых пользователей: ворота A2 **закрыты W-011–W-014**, но bootstrap/invite **в коде ещё нет**.
 - Полный `docs/12` (audit events, password policy product confirmation, idle timeout).
-- Hard delete Client/Matter; `created_by`; Workspace entity / RLS (**W-001–W-020**, ADR-0003); ACL матрица `docs/07`; admin grant.
+- Hard delete Client/Matter; `created_by`; Workspace **HTTP API** / membership policies / invitations; полный W-020 (сверх tenant RLS); ACL матрица `docs/07`; admin grant.
 - Загрузка файлов, хранилище, OCR, парсинг (D-010/D-017, H-002).
 - BullMQ worker, сущность/жизненный цикл AIJob в БД.
 - RAG / pgvector индексы в приложении (D-018 — решение есть, кода поиска нет).

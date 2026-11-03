@@ -20,7 +20,8 @@ import {
 } from "./matter-fixtures.js";
 
 async function seedFixtures(): Promise<void> {
-  const prisma = createPrismaClient();
+  // Seed as migrator (table owner) — bypasses tenant RLS; API uses runtime + GUC.
+  const prisma = createPrismaClient({ purpose: "migrator" });
   try {
     await prisma.session.deleteMany({
       where: { userId: USER_A },
