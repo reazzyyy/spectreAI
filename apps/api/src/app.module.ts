@@ -1,5 +1,5 @@
 import { Module, Scope } from "@nestjs/common";
-import { APP_FILTER, REQUEST } from "@nestjs/core";
+import { APP_FILTER, APP_GUARD, REQUEST } from "@nestjs/core";
 import { ClientAccess, MatterAccess, WorkspaceAccess } from "@spectre/access";
 import { AiGateway } from "@spectre/ai-gateway";
 import type { Request } from "express";
@@ -18,6 +18,7 @@ import {
 import { PrismaService } from "./db/prisma.service.js";
 import { HealthController } from "./health/health.controller.js";
 import { ApiExceptionFilter } from "./http/api-exception.filter.js";
+import { CsrfGuard } from "./http/csrf.guard.js";
 import { MattersController } from "./matters/matters.controller.js";
 import { MattersService } from "./matters/matters.service.js";
 import { AI_JOBS_QUEUE } from "./queue/ai-jobs.queue.js";
@@ -44,6 +45,7 @@ import { WorkspacesService } from "./workspaces/workspaces.service.js";
         sessions.resolveActor(req),
     },
     ActorGuard,
+    { provide: APP_GUARD, useClass: CsrfGuard },
     {
       provide: ClientAccess,
       scope: Scope.REQUEST,

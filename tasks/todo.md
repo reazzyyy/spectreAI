@@ -11,14 +11,14 @@ S0 note: `docs/workspace-phase2/S0-rls-foundation-and-inventory.md`.
 - [x] S1 Schema Workspace* + RLS + runtime role + harness (verified: migrate + `pnpm test` with Docker)
 - [x] S2 `@spectre/access` Workspace policies + tx GUC (branch `feature/workspace-phase2-s2-access`)
 - [x] S3 Workspace HTTP API + e2e negatives (PERSONAL create only until TEAM decision)
-- [ ] S4a CSRF (**W-014**)
+- [x] S4a CSRF (**W-014** / **W-014a** Origin + double-submit)
 - [ ] S4b Dev bootstrap (**W-012**)
 - [ ] S4c Invitations (TTL **O-011** config)
 
 ## Checkpoint: Phase 2 (roadmap)
-- [ ] S0–S3 merged to `main`, CI green
+- [x] S0–S3 merged to `main`, CI green
 - [ ] Runtime-role RLS tests green
-- [ ] AS-IS / package README updated
+- [x] AS-IS / package README updated (through S4a)
 - [ ] No export / grant / chat / purge quietly shipped
 
 ## Later (не этот checkpoint)

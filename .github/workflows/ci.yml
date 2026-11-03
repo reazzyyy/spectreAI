@@ -39,6 +39,7 @@ jobs:
       DATABASE_URL_RUNTIME: postgresql://spectre_app:spectre_app@localhost:5432/spectre
       # Present for packages that read it; current unit suite does not need a live Redis.
       REDIS_URL: redis://localhost:6379
+      WEB_ORIGIN: http://localhost:3001
       CI: true
 
     steps:

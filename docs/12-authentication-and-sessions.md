@@ -1,8 +1,8 @@
 # 12. Аутентификация, сессии и управление аккаунтами
 
 **Файл:** `docs/12-authentication-and-sessions.md`  
-**Статус:** детали TTL сессий, payload invitation и CSRF-механизм — PROPOSED до реализации; продуктовые решения входа Phase 2 — **CONFIRMED (W-011–W-014)**.  
-**CONFIRMED острова:** стек Next.js/NestJS/PostgreSQL (**D-008**); Email + Password + Organization ID (**W-011**); bootstrap + invite-only, без публичной регистрации (**W-012**); MFA/SSO не в MVP (**W-013** / **O-008**); CSRF-срез до следующих mutating forms (**W-014**); сессия ≠ content ACL; admin grant TTL ≤ 60 мин (**D-013**); `admin_grant:approve` (**D-016**/W-015/W-016). Детали: `docs/workspace-phase2/03-api-auth-and-invitations.md`. Срок invite token — **O-011**. Сверять с `docs/decisions-log.md`.  
+**Статус:** детали TTL сессий и payload invitation — PROPOSED; CSRF-механизм scaffold — **CONFIRMED W-014a** (Origin allowlist + double-submit); продуктовые решения входа Phase 2 — **CONFIRMED (W-011–W-014)**.
+**CONFIRMED острова:** стек Next.js/NestJS/PostgreSQL (**D-008**); Email + Password + Organization ID (**W-011**); bootstrap + invite-only, без публичной регистрации (**W-012**); MFA/SSO не в MVP (**W-013** / **O-008**); CSRF до mutating forms (**W-014**) с механизмом **W-014a**; сессия ≠ content ACL; admin grant TTL ≤ 60 мин (**D-013**); `admin_grant:approve` (**D-016**/W-015/W-016). Детали: `docs/workspace-phase2/03-api-auth-and-invitations.md`. Срок invite token — **O-011**. Сверять с `docs/decisions-log.md`.
 **Приоритет:** высокий.  
 **Связанные документы:**
 - `docs/06-data-model.md`
@@ -238,9 +238,9 @@ Backend обязан проверять актуальный статус акк
 
 **CONFIRMED (W-013):** MFA и SSO в MVP не входят (**O-008** остаётся для пост-MVP). Архитектура не должна блокировать добавление SSO позже без ломки модели организаций и прав.
 
-**CONFIRMED (W-014):** отдельный CSRF-срез обязателен **до** следующих mutating-форм и массовых cookie-changing endpoints; текущий scaffold login/logout опирается на SameSite=Lax.
+**CONFIRMED (W-014 / W-014a):** CSRF-срез обязателен **до** следующих mutating-форм; scaffold: Origin allowlist (`WEB_ORIGIN`) + double-submit (`spectre_csrf` + `X-CSRF-Token`); SameSite=Lax — дополнительный слой.
 
-Остаётся **OPEN / не CONFIRMED** до отдельных решений: обязательность подтверждения email до первого входа; idle timeout сессии; TTL invitation (**O-011**); детали payload invitation и CSRF-механизма (см. статус документа и §19).
+Остаётся **OPEN / не CONFIRMED** до отдельных решений: обязательность подтверждения email до первого входа; idle timeout сессии; TTL invitation (**O-011**); детали payload invitation (см. статус документа и §19).
 
 ### 5.2. Общий алгоритм входа
 
