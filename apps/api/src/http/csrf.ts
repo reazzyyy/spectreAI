@@ -57,6 +57,23 @@ export function loadAllowedOrigins(
   );
 }
 
+/**
+ * Production must set WEB_ORIGIN; empty allowlist would reject all browser Origin
+ * with opaque mass 403s. Dev/test may omit it (tooling without Origin still works).
+ */
+export function assertWebOriginConfiguredForProduction(
+  env: NodeJS.ProcessEnv = process.env,
+): void {
+  if (env.NODE_ENV !== "production") {
+    return;
+  }
+  if (loadAllowedOrigins(env.WEB_ORIGIN).size === 0) {
+    throw new Error(
+      "WEB_ORIGIN must be set to a non-empty comma-separated allowlist when NODE_ENV=production (W-014a)",
+    );
+  }
+}
+
 export function requestPath(req: Request): string {
   const original = typeof req.originalUrl === "string" ? req.originalUrl : req.url;
   return (original ?? "").split("?")[0] ?? "";

@@ -39,7 +39,7 @@ On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` 
 ## Auth scaffold
 
 - Cookie `spectre_sid` (HttpOnly, SameSite=Lax); DB stores SHA-256 of the opaque token only.
-- CSRF (**W-014a**): login sets non-HttpOnly `spectre_csrf`; mutating requests need matching `X-CSRF-Token` + `WEB_ORIGIN` when Origin/Referer present. Global `CsrfGuard`.
+- CSRF (**W-014a**): login sets non-HttpOnly `spectre_csrf`; mutating requests need matching `X-CSRF-Token` + `WEB_ORIGIN` when Origin/Referer present. Global `CsrfGuard`. Production boot **requires** non-empty `WEB_ORIGIN`.
 - `ACTOR_CONTEXT` comes from Session + live User/Membership checks — never from client `organizationId` / `userId`.
 - Password hashing: argon2id.
 - **OUT OF SCOPE:** MFA/SSO (**O-008**), invitations, register, recovery. Web login UI lives in `@spectre/web` (Фаза 1).
