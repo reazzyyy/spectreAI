@@ -1,7 +1,8 @@
-// Scaffold subset of docs/06-data-model.md.
-// Organization, Client, and Matter only. User and Workspace are not modeled yet.
+// Scaffold subset of docs/06-data-model.md + docs/12 (auth).
+// Organization, Client, Matter, User, OrganizationMembership, Session.
+// Session maps to AuthSession in docs/12; organizationId binds the actor org at login.
 // workspace_id is optional (D-009) and has no foreign key until Workspace exists.
-// A matter can reference a client only inside the same organization.
+// MFA/SSO (O-008) is out of scope for this schema iteration.
 
 generator client {
   provider = "prisma-client"
@@ -19,14 +20,38 @@ enum OrganizationStatus {
   @@map("organization_status")
 }
 
+enum UserStatus {
+  active
+  disabled
+
+  @@map("user_status")
+}
+
+enum MembershipRole {
+  owner
+  admin
+  member
+
+  @@map("membership_role")
+}
+
+enum MembershipStatus {
+  active
+  revoked
+
+  @@map("membership_status")
+}
+
 model Organization {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String
-  status    OrganizationStatus @default(active)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  clients   Client[]
-  matters   Matter[]
+  id           String                   @id @default(uuid()) @db.Uuid
+  name         String
+  status       OrganizationStatus       @default(active)
+  createdAt    DateTime                 @default(now()) @map("created_at")
+  updatedAt    DateTime                 @updatedAt @map("updated_at")
+  clients      Client[]
+  matters      Matter[]
+  memberships  OrganizationMembership[]
+  sessions     Session[]
 
   @@map("organizations")
 }
@@ -60,4 +85,53 @@ model Matter {
 
   @@index([organizationId])
   @@map("matters")
+}
+
+model User {
+  id           String                   @id @default(uuid()) @db.Uuid
+  email        String                   @unique
+  passwordHash String                   @map("password_hash")
+  status       UserStatus               @default(active)
+  lastLoginAt  DateTime?                @map("last_login_at")
+  createdAt    DateTime                 @default(now()) @map("created_at")
+  updatedAt    DateTime                 @updatedAt @map("updated_at")
+  memberships  OrganizationMembership[]
+  sessions     Session[]
+
+  @@map("users")
+}
+
+model OrganizationMembership {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @map("organization_id") @db.Uuid
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  userId         String           @map("user_id") @db.Uuid
+  user           User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  role           MembershipRole   @default(member)
+  status         MembershipStatus @default(active)
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@map("organization_memberships")
+}
+
+/// Opaque browser session; raw token never stored — only SHA-256 hash.
+/// organizationId is the actor org bound at login (scaffold; not a full org-switcher).
+model Session {
+  id             String       @id @default(uuid()) @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String       @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  tokenHash      String       @unique @map("token_hash")
+  expiresAt      DateTime     @map("expires_at")
+  revokedAt      DateTime?    @map("revoked_at")
+  lastSeenAt     DateTime?    @map("last_seen_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([organizationId])
+  @@map("sessions")
 }

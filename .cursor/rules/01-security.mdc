@@ -3,7 +3,7 @@ description: Обязательные правила безопасности
 alwaysApply: true
 ---
 - Следуй `AGENTS.md`, `docs/decisions-log.md` и `docs/DOCUMENTATION-GOVERNANCE.md`.
-- Используй `docs/03-data-security.md` для общих принципов, `docs/07-access-control-matrix.md` для разрешений, `docs/09-threat-model.md` для модели угроз и `docs/25-logging-monitoring-and-audit.md` для аудита.
+- Используй `docs/03-data-security.md` для общих принципов, `docs/07-access-control-matrix.md` для разрешений, `docs/09-threat-model.md` для модели угроз и `docs/25-logging-monitoring-and-audit.md` для аудита. Workspace/RLS MVP: `docs/workspace-phase2/` и **W-001–W-020** (ADR-0003); RLS не заменяет NestJS authz.
 - Не используй файлы из `docs/archive/` как действующие требования.
 - ID объекта не доказывает право доступа.
 - Не передавай реальные юридические документы во внешний AI (в т.ч. OpenAI) до завершения проверки договора и политики (**O-002**); до этого — только SyntheticAIProvider (**D-012**). Размещение в РФ (**D-014**) само по себе не разрешает внешнюю передачу.

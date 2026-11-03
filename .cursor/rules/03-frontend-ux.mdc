@@ -2,9 +2,11 @@
 description: Интерфейс и пользовательские сценарии
 alwaysApply: false
 ---
-- Следуй `docs/01-ux-ui-design.md`.
+- Следуй `docs/01-ux-ui-design.md` и `docs/21-frontend-architecture.md`.
+- **FSD обязателен (D-023 / ADR-0002):** слои `app → widgets → features → entities → shared`; правила импортов `docs/21` §4.1 и правило `.cursor/rules/08-frontend-fsd.mdc`. Не складывай логику в плоский `components/` вне слайсов. Проверки: `pnpm --filter @spectre/web lint` + `lint:fsd` (Steiger).
 - Не создавай фиктивные кнопки и действия.
 - Предусматривай loading, empty, error, forbidden и success состояния.
 - Скрытие UI-элемента не является защитой доступа.
 - Не показывай stack traces и чувствительные данные в URL/аналитике.
 - Не перезаписывай пользовательские правки при повторной генерации молча.
+- В synthetic/test до O-002 явно показывай метку синтетического режима (**D-012**).
