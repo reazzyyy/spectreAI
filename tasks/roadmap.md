@@ -3,7 +3,7 @@
 **Статус:** живой рабочий план. Его можно менять и дополнять. Это не подтверждённое продуктовое решение и не описание уже написанного кода.  
 **Дата редакции:** 2026-11-03  
 **Опора:** `docs/decisions-log.md` (D-001–D-023, W-001–W-020, O-001–O-013, H-001–H-005), `docs/05-mvp-acceptance.md`, AS-IS `docs/26-codebase-current-state.md`.  
-**Детальный срез:** `tasks/plan.md` / `tasks/todo.md` — **Фаза 2 утверждена**; S0 влит; **S1** (Workspace schema + tenant RLS + runtime role) на ветке `feature/workspace-phase2-s1-schema-rls`.
+**Детальный срез:** `tasks/plan.md` / `tasks/todo.md` — Фаза 2: S0–S1 в `main`; **S2** (WorkspaceAccess) на `feature/workspace-phase2-s2-access`; далее S3 HTTP.
 
 Если журнал решений и этот план расходятся, приоритет у журнала. Новое CONFIRMED сначала попадает в `docs/decisions-log.md`, затем сюда сдвигается соответствующее ворота.
 

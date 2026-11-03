@@ -1,6 +1,6 @@
 import { Module, Scope } from "@nestjs/common";
 import { APP_FILTER, REQUEST } from "@nestjs/core";
-import { ClientAccess, MatterAccess } from "@spectre/access";
+import { ClientAccess, MatterAccess, WorkspaceAccess } from "@spectre/access";
 import { AiGateway } from "@spectre/ai-gateway";
 import type { Request } from "express";
 import { AiController } from "./ai/ai.controller.js";
@@ -13,6 +13,7 @@ import { ClientsService } from "./clients/clients.service.js";
 import {
   createActorScopedClientStore,
   createActorScopedMatterStore,
+  createActorScopedWorkspaceStore,
 } from "./db/actor-scoped-stores.js";
 import { PrismaService } from "./db/prisma.service.js";
 import { HealthController } from "./health/health.controller.js";
@@ -53,6 +54,13 @@ import { AI_JOBS_QUEUE } from "./queue/ai-jobs.queue.js";
       inject: [PrismaService, ACTOR_CONTEXT],
       useFactory: (prisma: PrismaService, actor: ActorContext | null) =>
         new MatterAccess(createActorScopedMatterStore(prisma, actor)),
+    },
+    {
+      provide: WorkspaceAccess,
+      scope: Scope.REQUEST,
+      inject: [PrismaService, ACTOR_CONTEXT],
+      useFactory: (prisma: PrismaService, actor: ActorContext | null) =>
+        new WorkspaceAccess(createActorScopedWorkspaceStore(prisma, actor)),
     },
     ClientsService,
     MattersService,

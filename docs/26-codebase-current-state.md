@@ -19,7 +19,7 @@
 | Client / Matter (D-009) | Prisma-модели есть; HTTP CRU+list для Client/Matter через `@spectre/access` + Prisma (hard delete нет) |
 | Сессии / User / Membership | Scaffold: email+password login, HttpOnly cookie, `ACTOR_CONTEXT` из Session |
 | MFA / SSO (O-008) | **Не реализовано** (OUT OF SCOPE этой итерации) |
-| Workspace как сущность | Prisma: `Workspace` / `WorkspaceMember` / `WorkspaceMatter`; **HTTP API ещё нет** (S3) |
+| Workspace как сущность | Prisma + `@spectre/access` `WorkspaceAccess` (S2); **HTTP API ещё нет** (S3) |
 | PostgreSQL RLS (W-020) | Tenant-boundary RLS + runtime role `spectre_app`; **неполное** (нет workspace-membership/chat/grant policies) |
 | Загрузка документов / OCR / RAG | Не реализованы |
 | Воркер очереди AI / обработка документов | Не реализованы |
@@ -102,12 +102,12 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 
 ### 4.1 `@spectre/access`
 
-Публичный API: `ClientRecord` / `ClientStore` / `ClientAccess` и `MatterRecord` / `MatterStore` / `MatterAccess` — read, list, create, update по `actorOrganizationId`.
+Публичный API: Client/Matter org-isolation + **`WorkspaceAccess`** (S2).
 
-- Чужой или отсутствующий id → `null` (HTTP → одинаковый `NOT_FOUND`).
-- Create штампует `organizationId` актёра; пустой actor org → `null` / пустой list.
-- Hard delete **нет** (OUT OF SCOPE первого slice).
-- Это org-membership isolation scaffold, **не** полный ACL/`docs/07` / Workspace.
+- Client/Matter: чужой id → `null`; create штампует `organizationId` актёра.
+- Workspace: content (PERSONAL owner / TEAM owner+member) отдельно от member-management (Workspace Owner **или** Org Owner/Admin без content read, **W-008**).
+- Create Workspace: только PERSONAL; TEAM create отложен.
+- Hard delete **нет**. Chat/grant ACL — ещё нет.
 
 ### 4.2 `@spectre/ai-gateway`
 
@@ -214,7 +214,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 
 | Место | Что проверяет |
 |---|---|
-| `packages/access` | Изоляция Client/Matter read/list/create/update по organizationId |
+| `packages/access` | Client/Matter org-isolation + WorkspaceAccess content/manage unit tests |
 | `packages/ai-gateway` | Synthetic OK; блок несинтетики; статусы AIJob; нет `fetch` |
 | `apps/api` e2e | health, provider; 401 без cookie; Client/Matter CRU+list; чужой id → 404; чужой clientId → 422; header org игнорируется; generate/block/validation |
 | `apps/api` queue unit | имя `ai-jobs`, разбор Redis URL |

@@ -1,7 +1,8 @@
-import type { ClientStore, MatterStore } from "@spectre/access";
+import type { ClientStore, MatterStore, WorkspaceStore } from "@spectre/access";
 import type { ActorDbContext } from "@spectre/db";
 import { createPrismaClientStore } from "../clients/prisma-client-store.js";
 import { createPrismaMatterStore } from "../matters/prisma-matter-store.js";
+import { createPrismaWorkspaceStore } from "../workspaces/prisma-workspace-store.js";
 import type { PrismaService } from "./prisma.service.js";
 
 /**
@@ -65,6 +66,66 @@ export function createActorScopedMatterStore(
     async update(id, input) {
       if (!actor) return null;
       return prisma.withActor(actor, (tx) => createPrismaMatterStore(tx).update(id, input));
+    },
+  };
+}
+
+/** WorkspaceStore with RLS GUC on every call (ready for S3 HTTP). */
+export function createActorScopedWorkspaceStore(
+  prisma: PrismaService,
+  actor: ActorDbContext | null,
+): WorkspaceStore {
+  return {
+    async findById(id) {
+      if (!actor) return null;
+      return prisma.withActor(actor, (tx) => createPrismaWorkspaceStore(tx).findById(id));
+    },
+    async listByOrganization(organizationId) {
+      if (!actor) return [];
+      return prisma.withActor(actor, (tx) =>
+        createPrismaWorkspaceStore(tx).listByOrganization(organizationId),
+      );
+    },
+    async create(organizationId, ownerUserId, input) {
+      if (!actor) {
+        throw new Error("Authenticated actor required to create Workspace");
+      }
+      return prisma.withActor(actor, (tx) =>
+        createPrismaWorkspaceStore(tx).create(organizationId, ownerUserId, input),
+      );
+    },
+    async update(id, input) {
+      if (!actor) return null;
+      return prisma.withActor(actor, (tx) => createPrismaWorkspaceStore(tx).update(id, input));
+    },
+    async findActiveMember(workspaceId, userId) {
+      if (!actor) return null;
+      return prisma.withActor(actor, (tx) =>
+        createPrismaWorkspaceStore(tx).findActiveMember(workspaceId, userId),
+      );
+    },
+    async listActiveMembers(workspaceId) {
+      if (!actor) return [];
+      return prisma.withActor(actor, (tx) =>
+        createPrismaWorkspaceStore(tx).listActiveMembers(workspaceId),
+      );
+    },
+    async upsertMember(organizationId, workspaceId, input, addedByUserId) {
+      if (!actor) return null;
+      return prisma.withActor(actor, (tx) =>
+        createPrismaWorkspaceStore(tx).upsertMember(
+          organizationId,
+          workspaceId,
+          input,
+          addedByUserId,
+        ),
+      );
+    },
+    async revokeMember(workspaceId, userId) {
+      if (!actor) return null;
+      return prisma.withActor(actor, (tx) =>
+        createPrismaWorkspaceStore(tx).revokeMember(workspaceId, userId),
+      );
     },
   };
 }

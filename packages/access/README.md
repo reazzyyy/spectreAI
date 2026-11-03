@@ -1,21 +1,24 @@
 # `@spectre/access`
 
-Organization-scoped Client/Matter access policy (scaffold). Used by the API so a foreign or missing record becomes `null` (mapped to identical `NOT_FOUND`).
+Server-side access policy for Client/Matter (org isolation) and Workspace ACL (**W-001–W-008**).
 
-**Scope:** isolation by actor `organizationId` (active membership). This is **not** the full `docs/07` ACL / Workspace matrix.
+Foreign or missing records → `null` (HTTP maps to identical `NOT_FOUND`).
 
 ## Public API
 
-- `ClientRecord` / `ClientStore` / `ClientAccess` — read, list, create, update for organization
-- `MatterRecord` / `MatterStore` / `MatterAccess` — read, list, create, update for organization
+- `ClientRecord` / `ClientStore` / `ClientAccess` — org-scoped CRU+list
+- `MatterRecord` / `MatterStore` / `MatterAccess` — org-scoped CRU+list
+- `WorkspaceRecord` / `WorkspaceStore` / `WorkspaceAccess` — content vs member-management
 
-## Rules encoded here
+## Workspace rules (S2)
 
-- Actor organization comes from the **server**, not from the client body.
-- Create always stamps `organizationId` from the actor.
-- Update/read of another org’s id → `null` (no leak of the other tenant’s fields).
-- Hard delete is intentionally out of this package (first CRUD slice = CRU + list).
-- `workspaceId` may be set without validating Workspace existence (**D-009**, no FK yet).
+- Actor comes from the **server** (`WorkspaceActor`: userId, organizationId, orgRole).
+- **Content:** PERSONAL → owner only; TEAM → owner or active EDITOR/VIEWER member.
+- **Org Admin does not read content** via these helpers (admin grant is a later slice).
+- **Member management:** Workspace Owner **or** Org Owner/Admin (`W-008`) — without implying content read.
+- **Create:** PERSONAL only in this phase (TEAM create deferred).
+- Cannot attach membership to Workspace owner; cannot manage members on PERSONAL.
+- VIEWER cannot mutate content; EDITOR/OWNER can (`canMutateContent`).
 
 ```bash
 pnpm --filter @spectre/access test
