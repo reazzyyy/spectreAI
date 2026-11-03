@@ -6,7 +6,7 @@
 
 ## Локальный scaffold
 
-Каркас приложений описан в `tasks/plan.md`. Стек: Next.js, NestJS, PostgreSQL, Prisma, Redis, BullMQ (**D-008**). До закрытия **O-002** модель вызывается только через `SyntheticAIProvider`.
+Глобальный порядок работ — живой план `tasks/roadmap.md` (его можно менять; это не канон требований). Закрытый срез Auth scaffold — `tasks/plan.md`. **Что реально есть в коде сейчас** — только в `docs/26-codebase-current-state.md` (не путать с целевым MVP в остальных `docs/`). Стек: Next.js, NestJS, PostgreSQL, Prisma, Redis, BullMQ (**D-008**). До закрытия **O-002** модель вызывается только через `SyntheticAIProvider`.
 
 ```bash
 pnpm install
@@ -18,6 +18,8 @@ pnpm dev:web   # http://localhost:3001
 
 Образец переменных — `.env.example`. Файл `.env` не коммитится. Пароли в `docker-compose.yml` только для локальной машины. Движок Docker должен быть запущен, чтобы поднять Postgres и Redis. Схема БД проверяется командой `pnpm --filter @spectre/db validate`; применение миграции — когда Postgres доступен: `pnpm --filter @spectre/db exec prisma migrate dev`.
 
+Краткие README модулей: `apps/api`, `apps/web`, `packages/access`, `packages/ai-gateway`, `packages/db`.
+
 **CI:** на каждый pull request и на push в `main` GitHub Actions запускает `.github/workflows/ci.yml`: Postgres `pgvector/pgvector:pg16`, `pnpm --filter @spectre/db migrate:deploy`, затем `pnpm test`. Live Redis в этом workflow нет. Lint, typecheck и build отдельными gates пока не стоят.
 
 ## С чего начинать
@@ -25,16 +27,18 @@ pnpm dev:web   # http://localhost:3001
 1. Прочитать `AGENTS.md`.
 2. Прочитать `docs/decisions-log.md`.
 3. Прочитать `docs/DOCUMENTATION-GOVERNANCE.md`.
-4. Для задачи прочитать соответствующие спецификации из `docs/`.
-5. Если решение по архитектуре, данным, безопасности, провайдерам, удалению или миграциям открыто — остановить затронутую часть и запросить согласование.
-6. Работать небольшими этапами, добавлять тесты и сообщать только о проверках, которые действительно были выполнены.
+4. Прочитать `docs/26-codebase-current-state.md` (AS-IS код), `tasks/roadmap.md` (живой план) и README нужного `apps/*` или `packages/*`.
+5. Для задачи прочитать соответствующие спецификации из `docs/`.
+6. Если решение по архитектуре, данным, безопасности, провайдерам, удалению или миграциям открыто — остановить затронутую часть и запросить согласование.
+7. Работать небольшими этапами, добавлять тесты, обновлять AS-IS/README при смене публичного поведения (правило `.cursor/rules/07-code-documentation.mdc`) и сообщать только о проверках, которые действительно были выполнены.
 
 ## Статус подтверждённых решений
 
-Сводка **D-001–D-007** и пакета 2 (**D-008–D-022**, 2026-10-27). Полный текст — только в `docs/decisions-log.md`.
+Сводка **D-001–D-007** и пакета 2+ (**D-008–D-023**). Полный текст — только в `docs/decisions-log.md`.
 
 - Рынок запуска — Россия; аудитория — юридические фирмы и команды.
 - Базовый стек MVP (**D-008**): Next.js, NestJS, PostgreSQL, Prisma, Redis/BullMQ.
+- Frontend-организация кода — Feature-Sliced Design (**D-023**); канон `docs/21`, ADR-0002.
 - Сущности `Client` и `Matter` в MVP (**D-009**); связь с Workspace может быть необязательной.
 - Файлы (**D-010**, **D-017**): PDF, DOCX, TXT; max 25 МБ на файл; max 10 файлов за операцию; архивы/исполняемые/макросы/пароль — отклонять.
 - Статусы AIJob (**D-011**): `queued`, `running`, `succeeded`, `failed`, `cancelled`, `timed_out` (не `retry_wait`, не `completed` как статус job).
@@ -53,7 +57,8 @@ pnpm dev:web   # http://localhost:3001
 | `docs/00-project-overview.md` | Обзор продукта и границ MVP |
 | `docs/01-ux-ui-design.md` | Направление UX/UI и принципы интерфейса |
 | `docs/02-architecture.md` | Общая архитектура и подтверждённый стек MVP |
-| `docs/03-data-security.md` | Общие принципы защиты данных |
+| `docs/03-data-security.md` | Общие принципы защиты данных; нормативная классификация **D0–D4** |
+| `docs/security/README.md` | **PROPOSED** security governance (дополнение к канонам; не замена `03`/`07`/`09`/`22`/`23`/`25`) |
 | `docs/04-ai-document-processing.md` | Общий процесс AI-обработки документов |
 | `docs/05-mvp-acceptance.md` | Критерии приёмки MVP |
 | `docs/06-data-model.md` | Сущности и связи данных |
@@ -71,14 +76,17 @@ pnpm dev:web   # http://localhost:3001
 | `docs/18-legal-research-and-external-sources.md` | Юридическое исследование и внешние источники |
 | `docs/19-conversation-and-workspace-context.md` | Контекст бесед и рабочих пространств |
 | `docs/20-ai-product-workflows.md` | Сквозные продуктовые сценарии |
-| `docs/21-frontend-architecture.md` | Frontend-архитектура |
+| `docs/21-frontend-architecture.md` | Frontend-архитектура; FSD **CONFIRMED (D-023)** |
 | `docs/22-testing-and-quality-strategy.md` | Стратегия тестирования и качества |
 | `docs/23-deployment-and-infrastructure.md` | Развёртывание, инфраструктура и восстановление |
 | `docs/archive/24-security-and-threat-model-legacy.md` | Архив прежней модели угроз; не нормативный источник |
 | `docs/25-logging-monitoring-and-audit.md` | Технические логи, метрики и аудит |
+| `docs/26-codebase-current-state.md` | AS-IS снимок исполняемого scaffold (что есть в коде сейчас) |
+| `tasks/roadmap.md` | Живой план реализации и ворота недостающих вводных; не канон и не описание кода |
 | `docs/decisions-log.md` | Подтверждённые решения, гипотезы и открытые вопросы |
 | `docs/DOCUMENTATION-GOVERNANCE.md` | Канонические источники, статусы и процесс изменения документации |
 | `docs/adr/ADR-0001-data-residency-and-model-provider.md` | ADR по размещению данных и AI-провайдеру; статус проверять в самом ADR |
+| `docs/adr/ADR-0002-frontend-fsd.md` | ADR: обязательный FSD для `apps/web` (**D-023**) |
 
 В `docs/archive/` находятся сохранённые устаревшие спецификации. Они оставлены для сверки, но не являются нормативными источниками.
 
@@ -89,7 +97,7 @@ pnpm dev:web   # http://localhost:3001
 ## Cursor configuration
 
 - `AGENTS.md` — общие обязательные правила.
-- `.cursor/rules/` — правила по безопасности, архитектуре, UX, AI-обработке и Context7.
+- `.cursor/rules/` — правила по безопасности, архитектуре, UX, AI-обработке, Context7 и обязательной документации кода (`07-code-documentation.mdc`).
 - `.cursor/skills/` — навыки для отдельных рабочих процессов.
 - `.cursor/references/` — чек-листы и справочные материалы.
 
@@ -100,8 +108,9 @@ pnpm dev:web   # http://localhost:3001
 1. Правила выполнения задач из `AGENTS.md` и применимых `.cursor/rules/`.
 2. Статусы решений из `docs/decisions-log.md`.
 3. Каноническая спецификация соответствующей области.
-4. Явные инструкции текущей задачи.
-5. Примеры и предположения в коде.
+4. `docs/security/` — PROPOSED security governance (не заменяет п. 2–3).
+5. Явные инструкции текущей задачи.
+6. Примеры и предположения в коде.
 
 Если источники противоречат друг другу, Cursor не должен выбирать удобный вариант самостоятельно. Нужно описать конфликт, влияние и варианты решения, затем дождаться согласования.
 
