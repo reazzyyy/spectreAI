@@ -4,7 +4,7 @@
 **Дата снимка кода:** 2026-10-30  
 **Сверка статусов решений:** 2026-11-03 (W-001–W-020 в журнале; код Workspace/RLS по-прежнему отсутствует)  
 **Источник истины по решениям:** `docs/decisions-log.md`  
-**План:** живой глобальный план — `tasks/roadmap.md`. Фаза 1 (web login) закрыта в `tasks/plan.md` / `tasks/todo.md`. Следующий код-срез — Фаза 2 (Workspace) после утверждённого плана по `docs/CURSOR-INSTRUCTIONS-WORKSPACE-PHASE2.md`.
+**План:** живой глобальный план — `tasks/roadmap.md`. Фаза 1 закрыта. Фаза 2 (Workspace) **утверждена** (`tasks/plan.md`); S0 — `docs/workspace-phase2/S0-rls-foundation-and-inventory.md`. Следующий код — **S1** (Workspace schema + RLS + runtime DB role). Workspace/RLS в коде **ещё нет**.
 
 Этот документ описывает **только то, что реально есть в репозитории**. Спецификации в `docs/00–25` могут описывать целевое MVP шире; если код ещё не реализован — ниже явно указано «не реализовано».
 

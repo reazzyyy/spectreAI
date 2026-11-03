@@ -15,6 +15,7 @@
 5. `04-lifecycle-admin-grants-and-export.md` — увольнение, admin grant, архивирование, удаление и целевой экспорт.
 6. `05-testing-and-acceptance.md` — обязательные проверки и критерии готовности.
 7. `../CURSOR-INSTRUCTIONS-WORKSPACE-PHASE2.md` — пошаговая инструкция Cursor.
+8. `S0-rls-foundation-and-inventory.md` — WORKING: RLS inventory, roles, GUC, rollback (Slice 0; не CONFIRMED SQL).
 
 ## 2. Отношение к существующей документации
 
