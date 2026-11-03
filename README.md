@@ -18,6 +18,8 @@ pnpm dev:web   # http://localhost:3001
 
 Образец переменных — `.env.example`. Файл `.env` не коммитится. Пароли в `docker-compose.yml` только для локальной машины. Движок Docker должен быть запущен, чтобы поднять Postgres и Redis. Схема БД проверяется командой `pnpm --filter @spectre/db validate`; применение миграции — когда Postgres доступен: `pnpm --filter @spectre/db exec prisma migrate dev`.
 
+**CI:** на каждый pull request и на push в `main` GitHub Actions запускает `.github/workflows/ci.yml`: Postgres `pgvector/pgvector:pg16`, `pnpm --filter @spectre/db migrate:deploy`, затем `pnpm test`. Live Redis в этом workflow нет. Lint, typecheck и build отдельными gates пока не стоят.
+
 ## С чего начинать
 
 1. Прочитать `AGENTS.md`.
