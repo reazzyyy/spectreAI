@@ -29,7 +29,109 @@ h1 {
   line-height: 1.2;
 }
 
+h2 {
+  margin: 1.5rem 0 0.75rem;
+  font-size: 1.15rem;
+}
+
+.lead {
+  margin: 0 0 1.5rem;
+  line-height: 1.5;
+  color: #3a4048;
+}
+
 p {
   margin: 0;
   line-height: 1.5;
+}
+
+form {
+  display: grid;
+  gap: 1rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.field label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.field input {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #c5cad3;
+  border-radius: 4px;
+  font: inherit;
+  background: #fff;
+}
+
+.field input:focus {
+  outline: 2px solid #2f5d9f;
+  outline-offset: 1px;
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #5a6270;
+}
+
+.form-error {
+  margin: 0;
+  color: #8a1f11;
+  font-size: 0.95rem;
+}
+
+button {
+  justify-self: start;
+  padding: 0.55rem 1rem;
+  border: 1px solid #1c1f24;
+  border-radius: 4px;
+  background: #1c1f24;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+button:focus-visible {
+  outline: 2px solid #2f5d9f;
+  outline-offset: 2px;
+}
+
+.session-meta {
+  margin: 0 0 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.session-meta div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.session-meta dt {
+  font-size: 0.8rem;
+  color: #5a6270;
+}
+
+.session-meta dd {
+  margin: 0;
+}
+
+code {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 0.9em;
+  word-break: break-all;
+}
+
+a {
+  color: #2f5d9f;
 }
