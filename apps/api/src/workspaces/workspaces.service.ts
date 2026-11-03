@@ -147,17 +147,19 @@ export class WorkspacesService {
     workspaceId: string,
     matterId: string,
   ): Promise<WorkspaceMatterLink> {
+    const workspaceActor = toWorkspaceActor(actor);
+    // Workspace access first: inaccessible/foreign id → uniform 404 (docs/11), before body validation.
+    if (!(await this.workspaces.canMutateContent(workspaceActor, workspaceId))) {
+      throw new NotFoundException();
+    }
+
     const matter = await this.matters.readForOrganization(actor.organizationId, matterId);
     if (!matter) {
       // Same-org missing and foreign matter → identical validation failure (no cross-org leak).
       throw new UnprocessableEntityException();
     }
 
-    const link = await this.workspaces.linkMatter(
-      toWorkspaceActor(actor),
-      workspaceId,
-      matterId,
-    );
+    const link = await this.workspaces.linkMatter(workspaceActor, workspaceId, matterId);
     if (!link) {
       throw new NotFoundException();
     }

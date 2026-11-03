@@ -578,6 +578,20 @@ describe("API scaffold", () => {
       expect(foreignMatter.status).toBe(422);
       expect(foreignMatter.body.error.code).toBe("VALIDATION_ERROR");
 
+      const missingMatterId = "00000000-0000-4000-8000-000000000099";
+      const foreignWsKnownMatter = await agent
+        .post(`/api/v1/workspaces/${TEAM_WORKSPACE_B}/matters`)
+        .send({ matterId: MATTER_A.id });
+      const foreignWsMissingMatter = await agent
+        .post(`/api/v1/workspaces/${TEAM_WORKSPACE_B}/matters`)
+        .send({ matterId: missingMatterId });
+      expect(foreignWsKnownMatter.status).toBe(404);
+      expect(foreignWsMissingMatter.status).toBe(404);
+      expect(foreignWsKnownMatter.body.error.code).toBe("NOT_FOUND");
+      expect(foreignWsKnownMatter.body.error.message).toBe(
+        foreignWsMissingMatter.body.error.message,
+      );
+
       const unlinked = await agent.delete(
         `/api/v1/workspaces/${TEAM_WORKSPACE_A}/matters/${MATTER_A.id}`,
       );
