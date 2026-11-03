@@ -1,9 +1,10 @@
 # Текущее состояние кодовой базы (AS-IS)
 
 **Статус:** CONFIRMED как снимок scaffold на дату ниже; не заменяет продуктовые спецификации и не утверждает MVP.  
-**Дата снимка:** 2026-10-30  
+**Дата снимка кода:** 2026-10-30  
+**Сверка статусов решений:** 2026-11-03 (W-001–W-020 в журнале; код Workspace/RLS по-прежнему отсутствует)  
 **Источник истины по решениям:** `docs/decisions-log.md`  
-**План:** живой глобальный план — `tasks/roadmap.md` (может меняться; не описание этого снимка). Текущий срез (Фаза 1 web login) — `tasks/plan.md` / `tasks/todo.md`.
+**План:** живой глобальный план — `tasks/roadmap.md`. Фаза 1 (web login) закрыта в `tasks/plan.md` / `tasks/todo.md`. Следующий код-срез — Фаза 2 (Workspace) после утверждённого плана по `docs/CURSOR-INSTRUCTIONS-WORKSPACE-PHASE2.md`.
 
 Этот документ описывает **только то, что реально есть в репозитории**. Спецификации в `docs/00–25` могут описывать целевое MVP шире; если код ещё не реализован — ниже явно указано «не реализовано».
 
@@ -183,22 +184,22 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 | Канон | Статус канона | Факт в коде | Вердикт |
 |---|---|---|---|
 | `docs/decisions-log.md` O-008 MFA/SSO | OPEN | Нет MFA/SSO | Соответствует OUT OF SCOPE |
-| `docs/12` §5.1 способ входа | PROPOSED | Scaffold: email+password (без email verify) | Не CONFIRMED; выбор scaffold, не закрывает O-008 |
-| `docs/12` §5.2 алгоритм login | PROPOSED | Шаги 1–7 есть; §8 audit event — нет | Audit OUT OF SCOPE |
+| `docs/12` §5.1 способ входа | **CONFIRMED W-011** | Scaffold: email+password+organizationId (без email verify) | Продуктовый способ совпадает; verify email — **OPEN**; MFA/SSO не в MVP (**W-013** / **O-008**) |
+| `docs/12` §5.2 алгоритм login | PROPOSED детали | Шаги 1–7 есть; §8 audit event — нет | Audit OUT OF SCOPE |
 | `docs/12` §5.3 `GET /auth/me` | PROPOSED иллюстрация `organizations[]` + `emailVerified` | Фактически: одна `organization` (из Session) без `emailVerified` | **OPEN** форма DTO до утверждения полного `docs/12` |
 | `docs/12` §5.4 актёр из сессии | принцип | Cookie→Session→membership; клиентский org игнорируется | Соответствует |
 | `docs/12` §6.1 cookie | PROPOSED | HttpOnly, SameSite=Lax, Secure в production, Path=/ | Соответствует scaffold |
 | `docs/12` §6.2 TTL 7d + idle 24h | PROPOSED | Только абсолютные 7d; idle timeout нет | Idle — OPEN / не реализован |
 | `docs/12` §6.4 logout | PROPOSED | Revoke + clear cookie, идемпотентно | Соответствует (без audit event) |
 | `docs/12` §6.5 logout-all | PROPOSED | Нет | OUT OF SCOPE |
-| `docs/12` §7 CSRF | PROPOSED | Только SameSite=Lax; web login/logout уже mutating | **OPEN** (см. также `docs/11` CSRF); double-submit / Origin — отдельный срез |
+| `docs/12` §7 CSRF | **W-014** + PROPOSED механизм | Только SameSite=Lax; web login/logout уже mutating | CSRF-срез обязателен до следующих mutating forms (**W-014**) |
 | `docs/21` same-origin API | PROPOSED detail | Next rewrite `/api/v1` → Nest | Соответствует локальному scaffold |
 | `docs/21` / **D-023** FSD | CONFIRMED | Слои app/widgets/features/entities/shared + Steiger/ESLint | Соответствует scaffold login |
 | `docs/11` префикс `/api/v1`, коды ошибок | — | `/api/v1`, `UNAUTHENTICATED` / `NOT_FOUND` / `VALIDATION_ERROR` | Согласовано |
 | `docs/11` карта `clients`/`matters` | PROPOSED GET/POST (+ GET by id) | Есть также PATCH; DELETE нет | PATCH — scaffold extension; DELETE OUT OF SCOPE |
 | `docs/06` `created_by` на Client/Matter | PROPOSED | Поля в Prisma нет | OPEN / отложено |
 | `docs/07` ACL / Workspace для содержимого | PROPOSED | Любой active membership org видит/меняет Client/Matter своей org | Scaffold org-isolation; **не** закрывает матрицу §6 |
-| `docs/11` API-002 механизм auth | OPEN | Cookie-сессии scaffold есть | API-002 **не закрыт**: CSRF/продуктовое утверждение метода входа ещё нужны |
+| `docs/11` API-002 механизм auth | частично | Cookie-сессии + **W-011** способ входа | Способ входа CONFIRMED; CSRF-механизм и полный product auth surface — ещё нужны (**W-014**, invitations) |
 
 ## 6. Инфраструктура локальной разработки
 
@@ -236,11 +237,11 @@ Workflow: `.github/workflows/ci.yml`.
 
 Не считать сделанным, пока нет кода и тестов:
 
-- MFA/SSO (**O-008**), invitations, self-registration, email verify, recovery, logout-all, session list.
-- CSRF token / Origin gate (web login уже есть; SameSite=Lax only).
-- Продуктовый seed / invite первых пользователей (Gate A2).
+- MFA/SSO (**O-008** / **W-013** — не в MVP), invitations, self-registration (**W-012** запрещает public self-reg), email verify, recovery, logout-all, session list.
+- CSRF token / Origin gate (**W-014**; web login уже есть; SameSite=Lax only).
+- Продуктовый seed / invite первых пользователей: ворота A2 **закрыты W-011–W-014**, но bootstrap/invite **в коде ещё нет**.
 - Полный `docs/12` (audit events, password policy product confirmation, idle timeout).
-- Hard delete Client/Matter; `created_by`; Workspace entity; ACL матрица `docs/07`; admin grant.
+- Hard delete Client/Matter; `created_by`; Workspace entity / RLS (**W-001–W-020**, ADR-0003); ACL матрица `docs/07`; admin grant.
 - Загрузка файлов, хранилище, OCR, парсинг (D-010/D-017, H-002).
 - BullMQ worker, сущность/жизненный цикл AIJob в БД.
 - RAG / pgvector индексы в приложении (D-018 — решение есть, кода поиска нет).

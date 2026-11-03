@@ -43,7 +43,7 @@ src/
 - Rewrite `/api/v1/*` → Nest (`next.config.ts`).
 - No registration, recovery, MFA, CSRF token, Workspace, or document UI.
 
-Local login needs an existing User + active OrganizationMembership in Postgres (Gate A2 — no product seed yet).
+Local login needs an existing User + active OrganizationMembership in Postgres. Product entry is **W-011–W-012** (Email+Password+Organization ID; bootstrap + invite-only); **product seed/invite UI is not implemented yet**.
 
 Lint configs: `eslint.config.mjs`, `steiger.config.mjs`.  
 Cursor rule: `.cursor/rules/08-frontend-fsd.mdc`.  

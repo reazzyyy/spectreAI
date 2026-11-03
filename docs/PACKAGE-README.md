@@ -1,5 +1,7 @@
 # Пакет Workspace Phase 2 — расположение в репозитории
 
+**Назначение:** короткий указатель путей (не канон требований). Канон — `docs/DOCUMENTATION-GOVERNANCE.md` → `docs/workspace-phase2/` и **W-001–W-020** в `docs/decisions-log.md`.
+
 После интеграции (2026-11-03) файлы находятся по каноническим путям:
 
 - `docs/workspace-phase2/README.md`
