@@ -61,6 +61,7 @@ export class InvitationsService {
     input: ParsedInviteCreate,
   ): Promise<InvitationView> {
     this.assertCanManageInvites(actor, organizationId);
+    const ttlMs = inviteTtlMs();
 
     const existingMember = await this.db.organizationMembership.findFirst({
       where: {
@@ -73,30 +74,33 @@ export class InvitationsService {
       throw new UnprocessableEntityException();
     }
 
-    // Supersede prior pending invites for the same email in this org.
-    await this.db.organizationInvitation.updateMany({
-      where: {
-        organizationId,
-        emailNormalized: input.email,
-        acceptedAt: null,
-        revokedAt: null,
-      },
-      data: { revokedAt: new Date() },
-    });
-
     const { rawToken, tokenHash } = mintInviteToken();
     const now = new Date();
-    const row = await this.db.organizationInvitation.create({
-      data: {
-        organizationId,
-        emailNormalized: input.email,
-        role: input.role,
-        tokenHash,
-        invitedByUserId: actor.userId,
-        expiresAt: new Date(now.getTime() + inviteTtlMs()),
-        lastSentAt: now,
-        sendCount: 1,
-      },
+
+    const row = await this.db.$transaction(async (tx: PrismaTxClient) => {
+      // Supersede prior pending invites only after TTL is known-valid.
+      await tx.organizationInvitation.updateMany({
+        where: {
+          organizationId,
+          emailNormalized: input.email,
+          acceptedAt: null,
+          revokedAt: null,
+        },
+        data: { revokedAt: now },
+      });
+
+      return tx.organizationInvitation.create({
+        data: {
+          organizationId,
+          emailNormalized: input.email,
+          role: input.role,
+          tokenHash,
+          invitedByUserId: actor.userId,
+          expiresAt: new Date(now.getTime() + ttlMs),
+          lastSentAt: now,
+          sendCount: 1,
+        },
+      });
     });
 
     return toView(row, exposeInviteTokenInResponse() ? rawToken : undefined);
@@ -108,6 +112,7 @@ export class InvitationsService {
     invitationId: string,
   ): Promise<InvitationView> {
     this.assertCanManageInvites(actor, organizationId);
+    const ttlMs = inviteTtlMs();
     const existing = await this.findPending(organizationId, invitationId);
     const { rawToken, tokenHash } = mintInviteToken();
     const now = new Date();
@@ -115,7 +120,7 @@ export class InvitationsService {
       where: { id: existing.id },
       data: {
         tokenHash,
-        expiresAt: new Date(now.getTime() + inviteTtlMs()),
+        expiresAt: new Date(now.getTime() + ttlMs),
         lastSentAt: now,
         sendCount: { increment: 1 },
       },
@@ -139,84 +144,88 @@ export class InvitationsService {
 
   /**
    * Accept invite. New user: password required. Existing user: session email must match invite.
+   * Token claim is atomic (conditional update) so parallel accepts cannot both succeed.
    */
   async accept(
     actor: ActorContext | null,
     input: ParsedInviteAccept,
   ): Promise<{ organizationId: string; userId: string; role: InvitableRole }> {
     const tokenHash = hashInviteToken(input.token);
-    const invite = await this.db.organizationInvitation.findUnique({
+
+    // Preflight for clearer errors before claiming (not a substitute for atomic claim).
+    const preview = await this.db.organizationInvitation.findUnique({
       where: { tokenHash },
     });
-    if (!invite || !isPending(invite)) {
+    if (!preview || !isPending(preview) || preview.expiresAt.getTime() <= Date.now()) {
       throw new NotFoundException();
     }
-    if (invite.expiresAt.getTime() <= Date.now()) {
-      throw new NotFoundException();
-    }
-    if (invite.role !== "admin" && invite.role !== "member") {
+    if (preview.role !== "admin" && preview.role !== "member") {
       throw new ForbiddenException();
     }
 
     const existingUser = await this.db.user.findUnique({
-      where: { email: invite.emailNormalized },
+      where: { email: preview.emailNormalized },
     });
 
-    let userId: string;
+    let passwordHash: string | undefined;
     if (!existingUser) {
       if (!input.password) {
         throw new UnprocessableEntityException();
       }
-      const created = await this.db.user.create({
-        data: {
-          email: invite.emailNormalized,
-          passwordHash: await hashPassword(input.password),
-          status: "active",
-        },
-      });
-      userId = created.id;
+      passwordHash = await hashPassword(input.password);
     } else {
       if (!actor || actor.userId !== existingUser.id) {
-        // Existing account must be the session actor (email match via user id).
         throw new ForbiddenException();
       }
-      if (existingUser.email !== invite.emailNormalized) {
+      if (existingUser.email !== preview.emailNormalized || existingUser.status !== "active") {
         throw new ForbiddenException();
       }
-      if (existingUser.status !== "active") {
-        throw new ForbiddenException();
-      }
-      userId = existingUser.id;
     }
 
-    const alreadyMember = await this.db.organizationMembership.findUnique({
-      where: {
-        organizationId_userId: { organizationId: invite.organizationId, userId },
-      },
-    });
-    if (alreadyMember?.status === "active") {
-      await this.db.organizationInvitation.update({
-        where: { id: invite.id },
+    return this.db.$transaction(async (tx: PrismaTxClient) => {
+      const claimed = await tx.organizationInvitation.updateMany({
+        where: {
+          tokenHash,
+          acceptedAt: null,
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
+        },
         data: { acceptedAt: new Date() },
       });
-      return {
-        organizationId: invite.organizationId,
-        userId,
-        role: invite.role as InvitableRole,
-      };
-    }
-
-    await this.db.$transaction(async (tx: PrismaTxClient) => {
-      const fresh = await tx.organizationInvitation.findUnique({ where: { id: invite.id } });
-      if (!fresh || !isPending(fresh) || fresh.expiresAt.getTime() <= Date.now()) {
+      if (claimed.count !== 1) {
         throw new NotFoundException();
       }
-      if (alreadyMember) {
-        await tx.organizationMembership.update({
-          where: { id: alreadyMember.id },
-          data: { status: "active", role: invite.role },
+
+      const invite = await tx.organizationInvitation.findUniqueOrThrow({
+        where: { tokenHash },
+      });
+      if (invite.role !== "admin" && invite.role !== "member") {
+        throw new ForbiddenException();
+      }
+
+      let userId: string;
+      if (!existingUser) {
+        const created = await tx.user.create({
+          data: {
+            email: invite.emailNormalized,
+            passwordHash: passwordHash!,
+            status: "active",
+          },
         });
+        userId = created.id;
       } else {
+        userId = existingUser.id;
+      }
+
+      const membership = await tx.organizationMembership.findUnique({
+        where: {
+          organizationId_userId: {
+            organizationId: invite.organizationId,
+            userId,
+          },
+        },
+      });
+      if (!membership) {
         await tx.organizationMembership.create({
           data: {
             organizationId: invite.organizationId,
@@ -225,18 +234,19 @@ export class InvitationsService {
             status: "active",
           },
         });
+      } else if (membership.status !== "active") {
+        await tx.organizationMembership.update({
+          where: { id: membership.id },
+          data: { status: "active", role: invite.role },
+        });
       }
-      await tx.organizationInvitation.update({
-        where: { id: invite.id },
-        data: { acceptedAt: new Date() },
-      });
-    });
 
-    return {
-      organizationId: invite.organizationId,
-      userId,
-      role: invite.role as InvitableRole,
-    };
+      return {
+        organizationId: invite.organizationId,
+        userId,
+        role: invite.role as InvitableRole,
+      };
+    });
   }
 
   private async findPending(
