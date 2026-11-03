@@ -1,8 +1,8 @@
-import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { Inject, Injectable, NotFoundException, Scope } from "@nestjs/common";
 import { ClientAccess, type ClientRecord } from "@spectre/access";
 import type { ParsedClientCreate, ParsedClientUpdate } from "./parse-client.js";
 
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class ClientsService {
   constructor(@Inject(ClientAccess) private readonly access: ClientAccess) {}
 

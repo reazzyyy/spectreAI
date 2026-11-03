@@ -35,6 +35,8 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://spectre:spectre@localhost:5432/spectre
+      # Runtime RLS role (created in workspace RLS migration). Local/CI password only.
+      DATABASE_URL_RUNTIME: postgresql://spectre_app:spectre_app@localhost:5432/spectre
       # Present for packages that read it; current unit suite does not need a live Redis.
       REDIS_URL: redis://localhost:6379
       CI: true

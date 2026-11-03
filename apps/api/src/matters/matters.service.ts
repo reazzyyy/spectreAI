@@ -2,12 +2,13 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  Scope,
   UnprocessableEntityException,
 } from "@nestjs/common";
 import { ClientAccess, MatterAccess, type MatterRecord } from "@spectre/access";
 import type { ParsedMatterCreate, ParsedMatterUpdate } from "./parse-matter.js";
 
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class MattersService {
   constructor(
     @Inject(MatterAccess) private readonly access: MatterAccess,

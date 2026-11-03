@@ -1,8 +1,8 @@
-// Scaffold subset of docs/06-data-model.md + docs/12 (auth).
-// Organization, Client, Matter, User, OrganizationMembership, Session.
-// Session maps to AuthSession in docs/12; organizationId binds the actor org at login.
-// workspace_id is optional (D-009) and has no foreign key until Workspace exists.
-// MFA/SSO (O-008) is out of scope for this schema iteration.
+// Scaffold + Workspace Phase 2 S1 subset (W-001–W-004, W-006, W-020 foundation).
+// Organization, Client, Matter, User, OrganizationMembership, Session,
+// Workspace, WorkspaceMember, WorkspaceMatter.
+// Matter.workspaceId remains legacy nullable without FK until a later contract drop (W-003).
+// MFA/SSO (O-008) / invitations / chat / grant — out of this schema slice.
 
 generator client {
   provider = "prisma-client"
@@ -42,6 +42,37 @@ enum MembershipStatus {
   @@map("membership_status")
 }
 
+enum WorkspaceVisibility {
+  PERSONAL
+  TEAM
+
+  @@map("workspace_visibility")
+}
+
+enum WorkspaceStatus {
+  ACTIVE
+  ARCHIVED
+  PENDING_DELETION
+  DELETING
+  DELETED
+
+  @@map("workspace_status")
+}
+
+enum WorkspaceMemberRole {
+  EDITOR
+  VIEWER
+
+  @@map("workspace_member_role")
+}
+
+enum WorkspaceMemberStatus {
+  ACTIVE
+  REVOKED
+
+  @@map("workspace_member_status")
+}
+
 model Organization {
   id           String                   @id @default(uuid()) @db.Uuid
   name         String
@@ -52,6 +83,7 @@ model Organization {
   matters      Matter[]
   memberships  OrganizationMembership[]
   sessions     Session[]
+  workspaces   Workspace[]
 
   @@map("organizations")
 }
@@ -65,6 +97,7 @@ model Client {
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
   matters        Matter[]
+  workspaces     Workspace[]
 
   @@unique([organizationId, id])
   @@index([organizationId])
@@ -72,31 +105,38 @@ model Client {
 }
 
 model Matter {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @map("organization_id") @db.Uuid
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  clientId       String?      @map("client_id") @db.Uuid
-  client         Client?      @relation(fields: [organizationId, clientId], references: [organizationId, id], onDelete: Restrict)
-  workspaceId    String?      @map("workspace_id") @db.Uuid
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @map("organization_id") @db.Uuid
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  clientId       String?          @map("client_id") @db.Uuid
+  client         Client?          @relation(fields: [organizationId, clientId], references: [organizationId, id], onDelete: Restrict)
+  /// Legacy scaffold field (nullable, no FK). Prefer WorkspaceMatter (W-003); drop in a later contract migration after backfill.
+  workspaceId    String?          @map("workspace_id") @db.Uuid
   title          String
-  status         String       @default("active")
-  createdAt      DateTime     @default(now()) @map("created_at")
-  updatedAt      DateTime     @updatedAt @map("updated_at")
+  status         String           @default("active")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  workspaceLinks WorkspaceMatter[]
 
+  @@unique([organizationId, id])
   @@index([organizationId])
   @@map("matters")
 }
 
 model User {
-  id           String                   @id @default(uuid()) @db.Uuid
-  email        String                   @unique
-  passwordHash String                   @map("password_hash")
-  status       UserStatus               @default(active)
-  lastLoginAt  DateTime?                @map("last_login_at")
-  createdAt    DateTime                 @default(now()) @map("created_at")
-  updatedAt    DateTime                 @updatedAt @map("updated_at")
-  memberships  OrganizationMembership[]
-  sessions     Session[]
+  id                 String                   @id @default(uuid()) @db.Uuid
+  email              String                   @unique
+  passwordHash       String                   @map("password_hash")
+  status             UserStatus               @default(active)
+  lastLoginAt        DateTime?                @map("last_login_at")
+  createdAt          DateTime                 @default(now()) @map("created_at")
+  updatedAt          DateTime                 @updatedAt @map("updated_at")
+  memberships        OrganizationMembership[]
+  sessions           Session[]
+  ownedWorkspaces    Workspace[]              @relation("WorkspaceOwner")
+  workspaceMembers   WorkspaceMember[]
+  workspaceMatters   WorkspaceMatter[]        @relation("WorkspaceMatterCreator")
+  addedMembers       WorkspaceMember[]        @relation("WorkspaceMemberAdder")
 
   @@map("users")
 }
@@ -134,4 +174,69 @@ model Session {
   @@index([userId])
   @@index([organizationId])
   @@map("sessions")
+}
+
+/// Workspace (W-001). PERSONAL/TEAM (W-002). Optional Client 0..1 (W-004). OWNER via ownerUserId (W-006).
+model Workspace {
+  id             String              @id @default(uuid()) @db.Uuid
+  organizationId String              @map("organization_id") @db.Uuid
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  ownerUserId    String              @map("owner_user_id") @db.Uuid
+  owner          User                @relation("WorkspaceOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  name           String
+  description    String?
+  visibility     WorkspaceVisibility
+  status         WorkspaceStatus     @default(ACTIVE)
+  clientId       String?             @map("client_id") @db.Uuid
+  client         Client?             @relation(fields: [organizationId, clientId], references: [organizationId, id], onDelete: Restrict)
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+  archivedAt     DateTime?           @map("archived_at")
+  members        WorkspaceMember[]
+  matterLinks    WorkspaceMatter[]
+
+  @@unique([organizationId, id])
+  @@index([organizationId, status, updatedAt])
+  @@index([organizationId, ownerUserId, status])
+  @@index([organizationId, clientId])
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id             String                @id @default(uuid()) @db.Uuid
+  organizationId String                @map("organization_id") @db.Uuid
+  workspaceId    String                @map("workspace_id") @db.Uuid
+  workspace      Workspace             @relation(fields: [organizationId, workspaceId], references: [organizationId, id], onDelete: Cascade)
+  userId         String                @map("user_id") @db.Uuid
+  user           User                  @relation(fields: [userId], references: [id], onDelete: Restrict)
+  role           WorkspaceMemberRole
+  status         WorkspaceMemberStatus @default(ACTIVE)
+  addedByUserId  String?               @map("added_by_user_id") @db.Uuid
+  addedBy        User?                 @relation("WorkspaceMemberAdder", fields: [addedByUserId], references: [id], onDelete: SetNull)
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+  revokedAt      DateTime?             @map("revoked_at")
+
+  @@unique([workspaceId, userId])
+  @@index([organizationId, workspaceId])
+  @@index([userId])
+  @@map("workspace_members")
+}
+
+/// M:N Workspace ↔ Matter (W-003).
+model WorkspaceMatter {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @map("organization_id") @db.Uuid
+  workspaceId     String   @map("workspace_id") @db.Uuid
+  workspace       Workspace @relation(fields: [organizationId, workspaceId], references: [organizationId, id], onDelete: Cascade)
+  matterId        String   @map("matter_id") @db.Uuid
+  matter          Matter   @relation(fields: [organizationId, matterId], references: [organizationId, id], onDelete: Cascade)
+  createdByUserId String?  @map("created_by_user_id") @db.Uuid
+  createdBy       User?    @relation("WorkspaceMatterCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@unique([workspaceId, matterId])
+  @@index([organizationId, workspaceId])
+  @@index([organizationId, matterId])
+  @@map("workspace_matters")
 }
