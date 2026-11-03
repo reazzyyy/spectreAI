@@ -14,6 +14,7 @@ export {
   type WorkspaceCreatePersonalInput,
   type WorkspaceUpdateInput,
   type WorkspaceMemberUpsertInput,
+  type WorkspaceMatterLink,
   type WorkspaceVisibility,
   type WorkspaceStatus,
   type WorkspaceMemberRole,

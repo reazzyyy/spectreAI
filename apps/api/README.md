@@ -16,7 +16,7 @@ pnpm --filter @spectre/api test
 pnpm --filter @spectre/api build
 ```
 
-E2e seeds organizations, clients, matters, a user + membership, logs in via cookie, and asserts cross-org Client/Matter → `404` and foreign `clientId` on Matter → `422`.
+E2e seeds organizations, clients, matters, users + memberships, a TEAM Workspace fixture, logs in via cookie, and asserts cross-org Client/Matter/Workspace → `404`, foreign `clientId`/`matterId` → `422`, and TEAM create → `422`.
 
 On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` against a service Postgres (`pgvector/pgvector:pg16`) after `migrate:deploy`.
 
@@ -27,7 +27,7 @@ On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` 
 | `src/main.ts` | Bootstrap + `cookie-parser` |
 | `src/app.module.ts` | Controllers + DI wiring |
 | `src/db/` | Dual Prisma (`migrator` auth/seed, `runtime` + GUC); actor-scoped Client/Matter/Workspace stores |
-| `src/workspaces/` | Prisma WorkspaceStore (S2); HTTP controllers — S3 |
+| `src/workspaces/` | Prisma WorkspaceStore + HTTP list/create/get/patch, members, matter links (S3) |
 | `src/health/` | Liveness |
 | `src/auth/` | Login/logout/me, SessionService, REQUEST-scoped `ACTOR_CONTEXT`, `ActorGuard` |
 | `src/clients/` | Client list/create/get/patch via Prisma + `ClientAccess` |
@@ -52,10 +52,18 @@ On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` 
 - Status values: `active` | `archived` (no hard delete in this slice).
 - Access model: org-membership isolation via `@spectre/access` — **not** full `docs/07` ACL.
 
+## Workspace scaffold (S3)
+
+- Endpoints (session required): `GET/POST /workspaces`, `GET/PATCH /workspaces/:id`, members CRUD-lite, matter link/unlink.
+- Create accepts **PERSONAL only** (`visibility: TEAM` → `422`); TEAM create deferred.
+- Content list/read uses `WorkspaceAccess` (owner or TEAM member). Member management: Workspace owner or Org Admin (no auto content for Org Admin).
+- Foreign/missing Workspace → identical `404`; foreign Matter on link → `422`.
+- **OUT:** invitations, CSRF, Workspace UI, TEAM create policy, hard delete.
+
 ## Hard boundaries
 
-- No valid session → Clients / Matters / `/auth/me` return `401`.
-- Foreign or missing Client/Matter → identical `404 NOT_FOUND`.
+- No valid session → Clients / Matters / Workspaces / `/auth/me` return `401`.
+- Foreign or missing Client/Matter/Workspace → identical `404 NOT_FOUND`.
 - AI path uses only `@spectre/ai-gateway` Synthetic provider.
 
 Full inventory: `docs/26-codebase-current-state.md`.

@@ -1,10 +1,10 @@
 # Текущее состояние кодовой базы (AS-IS)
 
 **Статус:** CONFIRMED как снимок scaffold на дату ниже; не заменяет продуктовые спецификации и не утверждает MVP.  
-**Дата снимка кода:** 2026-11-03 (S1 schema/RLS foundation)  
+**Дата снимка кода:** 2026-11-04 (S3 Workspace HTTP API)  
 **Сверка статусов решений:** 2026-11-03 (W-001–W-020)  
 **Источник истины по решениям:** `docs/decisions-log.md`  
-**План:** `tasks/roadmap.md` / `tasks/plan.md` (Фаза 2 утверждена). S0 note + **S1 in progress**: Workspace* таблицы и tenant RLS есть; Workspace HTTP API (**S3**) и полный W-020 (workspace-level policies) — ещё нет.
+**План:** `tasks/roadmap.md` / `tasks/plan.md` (Фаза 2 утверждена). S0–S2 в `main`; **S3**: Workspace HTTP (PERSONAL create; members; matter links). Полный W-020 (workspace-level RLS policies) и TEAM create — ещё нет.
 
 Этот документ описывает **только то, что реально есть в репозитории**. Спецификации в `docs/00–25` могут описывать целевое MVP шире; если код ещё не реализован — ниже явно указано «не реализовано».
 
@@ -19,7 +19,7 @@
 | Client / Matter (D-009) | Prisma-модели есть; HTTP CRU+list для Client/Matter через `@spectre/access` + Prisma (hard delete нет) |
 | Сессии / User / Membership | Scaffold: email+password login, HttpOnly cookie, `ACTOR_CONTEXT` из Session |
 | MFA / SSO (O-008) | **Не реализовано** (OUT OF SCOPE этой итерации) |
-| Workspace как сущность | Prisma + `@spectre/access` `WorkspaceAccess` (S2); **HTTP API ещё нет** (S3) |
+| Workspace как сущность | Prisma + `WorkspaceAccess` + HTTP CRU/list/members/matter-links (S3); TEAM create / invitations / UI — нет |
 | PostgreSQL RLS (W-020) | Tenant-boundary RLS + runtime role `spectre_app`; **неполное** (нет workspace-membership/chat/grant policies) |
 | Загрузка документов / OCR / RAG | Не реализованы |
 | Воркер очереди AI / обработка документов | Не реализованы |
@@ -71,12 +71,13 @@ spectreAI/
 | Auth | `src/auth/*` | login / logout / me; SessionService; REQUEST-scoped `ACTOR_CONTEXT` |
 | Clients | `src/clients/*` | list/create/get/patch под `ActorGuard`; Prisma store + `ClientAccess` |
 | Matters | `src/matters/*` | list/create/get/patch под `ActorGuard`; Prisma store + `MatterAccess` |
+| Workspaces | `src/workspaces/*` | list/create PERSONAL/get/patch, members, matter links под `ActorGuard` + `WorkspaceAccess` |
 | AI | `src/ai/*` | `GET /api/v1/ai/provider`, `POST /api/v1/ai/generate` |
 | Ошибки | `src/http/api-exception.filter.ts` | Единый JSON `{ error: { code, message, requestId } }` |
 | Prisma | `src/db/prisma.service.ts` | `createPrismaClient` из `@spectre/db`; `$disconnect` на destroy |
 | Очередь | `src/queue/*` | Имя `ai-jobs`, фабрика `createAiJobsQueue`; **воркер не стартует**; в AppModule только имя очереди |
 
-**Хранилище Client/Matter в API:** `createPrismaClientStore` / `createPrismaMatterStore` + `ClientAccess` / `MatterAccess` (изоляция по `organizationId` актёра; не матрица `docs/07`). E2e сидирует org/client/matter/user/membership и проверяет cross-org `404` / чужой `clientId` → `422`.
+**Хранилище Client/Matter/Workspace в API:** Prisma stores + actor-scoped GUC wrappers + `ClientAccess` / `MatterAccess` / `WorkspaceAccess` (не матрица `docs/07`). E2e: cross-org `404`, чужой `clientId`/`matterId` → `422`, TEAM create → `422`.
 
 **Аутентификация (scaffold subset `docs/12`, не полный MVP):**
 
@@ -148,10 +149,23 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 | POST | `/matters` | сессия | Matter (`201`) | `401`; `422` (в т.ч. чужой/неизвестный `clientId`) |
 | GET | `/matters/:matterId` | сессия | Matter | `401`; `404 NOT_FOUND` |
 | PATCH | `/matters/:matterId` | сессия | Matter | `401`; `404`; `422` |
+| GET | `/workspaces` | сессия | `{ items: Workspace[] }` (content-visible) | `401` |
+| POST | `/workspaces` | сессия | Workspace PERSONAL (`201`) | `401`; `422` (в т.ч. `visibility: TEAM`, чужой `clientId`) |
+| GET | `/workspaces/:workspaceId` | сессия | Workspace | `401`; `404 NOT_FOUND` |
+| PATCH | `/workspaces/:workspaceId` | сессия | Workspace (OWNER) | `401`; `404`; `422` |
+| GET | `/workspaces/:workspaceId/members` | сессия | `{ items: Member[] }` | `401`; `404` |
+| POST | `/workspaces/:workspaceId/members` | сессия | Member (`201`) | `401`; `404`; `422` |
+| PATCH | `/workspaces/:workspaceId/members/:userId` | сессия | Member | `401`; `404`; `422` |
+| DELETE | `/workspaces/:workspaceId/members/:userId` | сессия | Member (`REVOKED`) | `401`; `404` |
+| GET | `/workspaces/:workspaceId/matters` | сессия | `{ items: [{ matterId }] }` | `401`; `404` |
+| POST | `/workspaces/:workspaceId/matters` | сессия | `{ matterId }` (`201`) | `401`; `404`; `422` (чужой/missing matter) |
+| DELETE | `/workspaces/:workspaceId/matters/:matterId` | сессия | `{ ok: true }` | `401`; `404` |
 
 Тело Client: `{ id, organizationId, name, status }` (`status`: `active` \| `archived`).  
 Тело Matter: `{ id, organizationId, title, clientId, workspaceId, status }` (`status`: `active` \| `archived`).  
-`organizationId` в теле запроса игнорируется / не принимается парсером — только из сессии. Hard `DELETE` Client/Matter **нет**.
+Тело Workspace: `{ id, organizationId, ownerUserId, name, description, visibility, status, clientId }` (`visibility`: `PERSONAL` \| `TEAM`; `status`: `ACTIVE` \| …).  
+Тело Member: `{ id, organizationId, workspaceId, userId, role, status }` (`role`: `EDITOR` \| `VIEWER`; `status`: `ACTIVE` \| `REVOKED`).  
+`organizationId` / `ownerUserId` в теле запроса игнорируются / не принимаются — только из сессии. Hard `DELETE` Client/Matter/Workspace **нет**. TEAM create через API **отклонён** (`422`) до отдельного решения.
 
 Тело `POST /auth/login`:
 
@@ -216,7 +230,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 |---|---|
 | `packages/access` | Client/Matter org-isolation + WorkspaceAccess content/manage unit tests |
 | `packages/ai-gateway` | Synthetic OK; блок несинтетики; статусы AIJob; нет `fetch` |
-| `apps/api` e2e | health, provider; 401 без cookie; Client/Matter CRU+list; чужой id → 404; чужой clientId → 422; header org игнорируется; generate/block/validation |
+| `apps/api` e2e | health, provider; 401 без cookie; Client/Matter/Workspace CRU+list; members + matter links; чужой id → 404; чужой clientId/matterId → 422; TEAM create → 422; header org игнорируется; generate/block/validation |
 | `apps/api` queue unit | имя `ai-jobs`, разбор Redis URL |
 | `@spectre/db` | `prisma validate` + RLS harness (`src/rls.tenant.test.ts`) под runtime role |
 
@@ -241,7 +255,7 @@ Workflow: `.github/workflows/ci.yml`.
 - CSRF token / Origin gate (**W-014**; web login уже есть; SameSite=Lax only).
 - Продуктовый seed / invite первых пользователей: ворота A2 **закрыты W-011–W-014**, но bootstrap/invite **в коде ещё нет**.
 - Полный `docs/12` (audit events, password policy product confirmation, idle timeout).
-- Hard delete Client/Matter; `created_by`; Workspace **HTTP API** / membership policies / invitations; полный W-020 (сверх tenant RLS); ACL матрица `docs/07`; admin grant.
+- Hard delete Client/Matter/Workspace; `created_by`; TEAM Workspace create; invitations; CSRF (**W-014**); полный W-020 (сверх tenant RLS); ACL матрица `docs/07`; admin grant; Workspace web UI.
 - Загрузка файлов, хранилище, OCR, парсинг (D-010/D-017, H-002).
 - BullMQ worker, сущность/жизненный цикл AIJob в БД.
 - RAG / pgvector индексы в приложении (D-018 — решение есть, кода поиска нет).

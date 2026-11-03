@@ -61,6 +61,12 @@ export interface WorkspaceMemberUpsertInput {
  * Persistence for Workspace + members. Callers must not trust client-supplied org/user ids;
  * {@link WorkspaceAccess} stamps and checks the actor.
  */
+export interface WorkspaceMatterLink {
+  organizationId: string;
+  workspaceId: string;
+  matterId: string;
+}
+
 export interface WorkspaceStore {
   findById(id: string): Promise<WorkspaceRecord | null>;
   listByOrganization(organizationId: string): Promise<WorkspaceRecord[]>;
@@ -75,6 +81,14 @@ export interface WorkspaceStore {
     addedByUserId: string,
   ): Promise<WorkspaceMemberRecord | null>;
   revokeMember(workspaceId: string, userId: string): Promise<WorkspaceMemberRecord | null>;
+  listMatterLinks(workspaceId: string): Promise<WorkspaceMatterLink[]>;
+  linkMatter(
+    organizationId: string,
+    workspaceId: string,
+    matterId: string,
+    createdByUserId: string,
+  ): Promise<WorkspaceMatterLink | null>;
+  unlinkMatter(workspaceId: string, matterId: string): Promise<boolean>;
 }
 
 function hasOrg(actor: WorkspaceActor): boolean {
@@ -299,5 +313,54 @@ export class WorkspaceAccess {
     }
 
     return this.store.revokeMember(workspaceId, userId);
+  }
+
+  /** List Matter links for content readers. */
+  async listMatterLinks(
+    actor: WorkspaceActor,
+    workspaceId: string,
+  ): Promise<WorkspaceMatterLink[] | null> {
+    if (!(await this.canReadContent(actor, workspaceId))) {
+      return null;
+    }
+    return this.store.listMatterLinks(workspaceId);
+  }
+
+  /**
+   * Link Matter to Workspace. Caller must ensure Matter is same-org (service layer).
+   * Requires content mutate (OWNER/EDITOR).
+   */
+  async linkMatter(
+    actor: WorkspaceActor,
+    workspaceId: string,
+    matterId: string,
+  ): Promise<WorkspaceMatterLink | null> {
+    if (!(await this.canMutateContent(actor, workspaceId))) {
+      return null;
+    }
+    const workspace = await this.store.findById(workspaceId);
+    if (!workspace || workspace.organizationId !== actor.organizationId) {
+      return null;
+    }
+    if (matterId.trim() === "") {
+      return null;
+    }
+    return this.store.linkMatter(
+      actor.organizationId,
+      workspaceId,
+      matterId,
+      actor.userId,
+    );
+  }
+
+  async unlinkMatter(
+    actor: WorkspaceActor,
+    workspaceId: string,
+    matterId: string,
+  ): Promise<boolean> {
+    if (!(await this.canMutateContent(actor, workspaceId))) {
+      return false;
+    }
+    return this.store.unlinkMatter(workspaceId, matterId);
   }
 }

@@ -127,5 +127,28 @@ export function createActorScopedWorkspaceStore(
         createPrismaWorkspaceStore(tx).revokeMember(workspaceId, userId),
       );
     },
+    async listMatterLinks(workspaceId) {
+      if (!actor) return [];
+      return prisma.withActor(actor, (tx) =>
+        createPrismaWorkspaceStore(tx).listMatterLinks(workspaceId),
+      );
+    },
+    async linkMatter(organizationId, workspaceId, matterId, createdByUserId) {
+      if (!actor) return null;
+      return prisma.withActor(actor, (tx) =>
+        createPrismaWorkspaceStore(tx).linkMatter(
+          organizationId,
+          workspaceId,
+          matterId,
+          createdByUserId,
+        ),
+      );
+    },
+    async unlinkMatter(workspaceId, matterId) {
+      if (!actor) return false;
+      return prisma.withActor(actor, (tx) =>
+        createPrismaWorkspaceStore(tx).unlinkMatter(workspaceId, matterId),
+      );
+    },
   };
 }
