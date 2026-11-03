@@ -67,7 +67,8 @@ export function assertWebOriginConfiguredForProduction(
   if (env.NODE_ENV !== "production") {
     return;
   }
-  if (loadAllowedOrigins(env.WEB_ORIGIN).size === 0) {
+  // Use "" when unset on the passed env — do not fall back to process.env via default arg.
+  if (loadAllowedOrigins(env.WEB_ORIGIN ?? "").size === 0) {
     throw new Error(
       "WEB_ORIGIN must be set to a non-empty comma-separated allowlist when NODE_ENV=production (W-014a)",
     );

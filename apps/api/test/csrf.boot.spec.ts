@@ -10,6 +10,12 @@ describe("assertWebOriginConfiguredForProduction", () => {
 
   it("fails closed in production without WEB_ORIGIN", () => {
     expect(() =>
+      assertWebOriginConfiguredForProduction({
+        NODE_ENV: "production",
+        WEB_ORIGIN: "",
+      }),
+    ).toThrow(/WEB_ORIGIN/);
+    expect(() =>
       assertWebOriginConfiguredForProduction({ NODE_ENV: "production" }),
     ).toThrow(/WEB_ORIGIN/);
   });
