@@ -39,9 +39,10 @@ On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` 
 ## Auth scaffold
 
 - Cookie `spectre_sid` (HttpOnly, SameSite=Lax); DB stores SHA-256 of the opaque token only.
+- CSRF (**W-014a**): login sets non-HttpOnly `spectre_csrf`; mutating requests need matching `X-CSRF-Token` + `WEB_ORIGIN` when Origin/Referer present. Global `CsrfGuard`.
 - `ACTOR_CONTEXT` comes from Session + live User/Membership checks — never from client `organizationId` / `userId`.
 - Password hashing: argon2id.
-- **OUT OF SCOPE:** MFA/SSO (**O-008**), invitations, register, recovery, CSRF token. Web login UI lives in `@spectre/web` (Фаза 1).
+- **OUT OF SCOPE:** MFA/SSO (**O-008**), invitations, register, recovery. Web login UI lives in `@spectre/web` (Фаза 1).
 
 ## Client / Matter scaffold
 
@@ -63,6 +64,7 @@ On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` 
 ## Hard boundaries
 
 - No valid session → Clients / Matters / Workspaces / `/auth/me` return `401`.
+- Session mutating without CSRF / bad Origin → `403 CSRF_REJECTED`.
 - Foreign or missing Client/Matter/Workspace → identical `404 NOT_FOUND`.
 - AI path uses only `@spectre/ai-gateway` Synthetic provider.
 

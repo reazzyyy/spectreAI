@@ -1,10 +1,10 @@
 # Текущее состояние кодовой базы (AS-IS)
 
 **Статус:** CONFIRMED как снимок scaffold на дату ниже; не заменяет продуктовые спецификации и не утверждает MVP.  
-**Дата снимка кода:** 2026-11-04 (S3 Workspace HTTP API)  
-**Сверка статусов решений:** 2026-11-03 (W-001–W-020)  
+**Дата снимка кода:** 2026-11-04 (S4a CSRF)  
+**Сверка статусов решений:** 2026-11-04 (W-001–W-020, W-014a)  
 **Источник истины по решениям:** `docs/decisions-log.md`  
-**План:** `tasks/roadmap.md` / `tasks/plan.md` (Фаза 2 утверждена). S0–S2 в `main`; **S3**: Workspace HTTP (PERSONAL create; members; matter links). Полный W-020 (workspace-level RLS policies) и TEAM create — ещё нет.
+**План:** `tasks/roadmap.md` / `tasks/plan.md`. S0–S3 в `main`; **S4a**: Origin allowlist + double-submit CSRF. S4b bootstrap / S4c invites / полный W-020 / TEAM create — ещё нет.
 
 Этот документ описывает **только то, что реально есть в репозитории**. Спецификации в `docs/00–25` могут описывать целевое MVP шире; если код ещё не реализован — ниже явно указано «не реализовано».
 
@@ -18,6 +18,7 @@
 | SyntheticAIProvider (D-012) | Реализован; внешнего OpenAI SDK нет |
 | Client / Matter (D-009) | Prisma-модели есть; HTTP CRU+list для Client/Matter через `@spectre/access` + Prisma (hard delete нет) |
 | Сессии / User / Membership | Scaffold: email+password login, HttpOnly cookie, `ACTOR_CONTEXT` из Session |
+| CSRF (W-014 / W-014a) | Origin allowlist (`WEB_ORIGIN`) + double-submit (`spectre_csrf` + `X-CSRF-Token`); login выдаёт CSRF cookie |
 | MFA / SSO (O-008) | **Не реализовано** (OUT OF SCOPE этой итерации) |
 | Workspace как сущность | Prisma + `WorkspaceAccess` + HTTP CRU/list/members/matter-links (S3); TEAM create / invitations / UI — нет |
 | PostgreSQL RLS (W-020) | Tenant-boundary RLS + runtime role `spectre_app`; **неполное** (нет workspace-membership/chat/grant policies) |
@@ -136,21 +137,21 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 | Метод | Путь | Auth | Успех | Ошибки |
 |---|---|---|---|---|
 | GET | `/health` | нет | `{ status: "ok" }` | — |
-| POST | `/auth/login` | нет | `{ user, organization }` + Set-Cookie | `401 UNAUTHENTICATED`; `422 VALIDATION_ERROR` |
-| POST | `/auth/logout` | cookie optional | `{ ok: true }` + clear cookie | — |
+| POST | `/auth/login` | нет (CSRF token не требуется) | `{ user, organization }` + `spectre_sid` + `spectre_csrf` | `401`; `422`; `403 CSRF_REJECTED` (чужой Origin) |
+| POST | `/auth/logout` | cookie + CSRF | `{ ok: true }` + clear session/CSRF cookies | `403 CSRF_REJECTED` |
 | GET | `/auth/me` | сессия | `{ user, organization }` | `401 UNAUTHENTICATED` |
 | GET | `/ai/provider` | нет | `{ providerId: "synthetic", externalTransferEnabled: false }` | — |
 | POST | `/ai/generate` | нет | `{ providerId, modelId, synthetic, text }` | `422 VALIDATION_ERROR`; `403 AI_DATA_POLICY_BLOCKED` |
 | GET | `/clients` | сессия | `{ items: Client[] }` | `401 UNAUTHENTICATED` |
-| POST | `/clients` | сессия | Client (`201`) | `401`; `422 VALIDATION_ERROR` |
+| POST | `/clients` | сессия + CSRF | Client (`201`) | `401`; `403 CSRF_REJECTED`; `422` |
 | GET | `/clients/:clientId` | сессия | Client | `401`; `404 NOT_FOUND` |
 | PATCH | `/clients/:clientId` | сессия | Client | `401`; `404`; `422` |
 | GET | `/matters` | сессия | `{ items: Matter[] }` | `401 UNAUTHENTICATED` |
-| POST | `/matters` | сессия | Matter (`201`) | `401`; `422` (в т.ч. чужой/неизвестный `clientId`) |
+| POST | `/matters` | сессия + CSRF | Matter (`201`) | `401`; `403 CSRF_REJECTED`; `422` (в т.ч. чужой/неизвестный `clientId`) |
 | GET | `/matters/:matterId` | сессия | Matter | `401`; `404 NOT_FOUND` |
 | PATCH | `/matters/:matterId` | сессия | Matter | `401`; `404`; `422` |
 | GET | `/workspaces` | сессия | `{ items: Workspace[] }` (content-visible) | `401` |
-| POST | `/workspaces` | сессия | Workspace PERSONAL (`201`) | `401`; `422` (в т.ч. `visibility: TEAM`, чужой `clientId`) |
+| POST | `/workspaces` | сессия + CSRF | Workspace PERSONAL (`201`) | `401`; `403 CSRF_REJECTED`; `422` (в т.ч. `visibility: TEAM`, чужой `clientId`) |
 | GET | `/workspaces/:workspaceId` | сессия | Workspace | `401`; `404 NOT_FOUND` |
 | PATCH | `/workspaces/:workspaceId` | сессия | Workspace (OWNER) | `401`; `404`; `422` |
 | GET | `/workspaces/:workspaceId/members` | сессия | `{ items: Member[] }` | `401`; `404` |
@@ -166,6 +167,8 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 Тело Workspace: `{ id, organizationId, ownerUserId, name, description, visibility, status, clientId }` (`visibility`: `PERSONAL` \| `TEAM`; `status`: `ACTIVE` \| …).  
 Тело Member: `{ id, organizationId, workspaceId, userId, role, status }` (`role`: `EDITOR` \| `VIEWER`; `status`: `ACTIVE` \| `REVOKED`).  
 `organizationId` / `ownerUserId` в теле запроса игнорируются / не принимаются — только из сессии. Hard `DELETE` Client/Matter/Workspace **нет**. TEAM create через API **отклонён** (`422`) до отдельного решения.
+
+**CSRF (W-014a):** mutating методы (кроме `POST /auth/login`) при наличии session/CSRF cookie требуют заголовок `X-CSRF-Token` = cookie `spectre_csrf`. Если `Origin`/`Referer` присутствует — должен входить в `WEB_ORIGIN`. Отсутствие обоих заголовков допускается для non-browser tooling (e2e). Ошибка: `403 CSRF_REJECTED`.
 
 Тело `POST /auth/login`:
 
@@ -206,14 +209,14 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 | `docs/12` §6.2 TTL 7d + idle 24h | PROPOSED | Только абсолютные 7d; idle timeout нет | Idle — OPEN / не реализован |
 | `docs/12` §6.4 logout | PROPOSED | Revoke + clear cookie, идемпотентно | Соответствует (без audit event) |
 | `docs/12` §6.5 logout-all | PROPOSED | Нет | OUT OF SCOPE |
-| `docs/12` §7 CSRF | **W-014** + PROPOSED механизм | Только SameSite=Lax; web login/logout уже mutating | CSRF-срез обязателен до следующих mutating forms (**W-014**) |
+| `docs/12` §7 CSRF | **W-014** + **W-014a** | Origin allowlist + double-submit; SameSite=Lax доп. слой | Соответствует scaffold S4a |
 | `docs/21` same-origin API | PROPOSED detail | Next rewrite `/api/v1` → Nest | Соответствует локальному scaffold |
 | `docs/21` / **D-023** FSD | CONFIRMED | Слои app/widgets/features/entities/shared + Steiger/ESLint | Соответствует scaffold login |
 | `docs/11` префикс `/api/v1`, коды ошибок | — | `/api/v1`, `UNAUTHENTICATED` / `NOT_FOUND` / `VALIDATION_ERROR` | Согласовано |
 | `docs/11` карта `clients`/`matters` | PROPOSED GET/POST (+ GET by id) | Есть также PATCH; DELETE нет | PATCH — scaffold extension; DELETE OUT OF SCOPE |
 | `docs/06` `created_by` на Client/Matter | PROPOSED | Поля в Prisma нет | OPEN / отложено |
 | `docs/07` ACL / Workspace для содержимого | PROPOSED | Любой active membership org видит/меняет Client/Matter своей org | Scaffold org-isolation; **не** закрывает матрицу §6 |
-| `docs/11` API-002 механизм auth | частично | Cookie-сессии + **W-011** способ входа | Способ входа CONFIRMED; CSRF-механизм и полный product auth surface — ещё нужны (**W-014**, invitations) |
+| `docs/11` API-002 механизм auth | частично | Cookie + **W-011** + CSRF **W-014a** | Invitations / MFA — ещё нужны |
 
 ## 6. Инфраструктура локальной разработки
 
@@ -222,7 +225,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 - Postgres: образ `pgvector/pgvector:pg16`, user/password/db `spectre`, порт `5432`.
 - Redis: `redis:7-alpine`, порт `6379`.
 
-`.env.example`: `DATABASE_URL` (migrator), `DATABASE_URL_RUNTIME` (`spectre_app`), `REDIS_URL`, `PORT`, `API_ORIGIN`. Файл `.env` не коммитится. Пароли compose/runtime — не для shared/production. Opaque DB sessions (без отдельного signing secret).
+`.env.example`: `DATABASE_URL` (migrator), `DATABASE_URL_RUNTIME` (`spectre_app`), `REDIS_URL`, `PORT`, `API_ORIGIN`, `WEB_ORIGIN` (CSRF Origin allowlist). Файл `.env` не коммитится. Пароли compose/runtime — не для shared/production. Opaque DB sessions (без отдельного signing secret).
 
 ## 7. Тесты (что покрыто)
 
@@ -230,7 +233,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 |---|---|
 | `packages/access` | Client/Matter org-isolation + WorkspaceAccess content/manage unit tests |
 | `packages/ai-gateway` | Synthetic OK; блок несинтетики; статусы AIJob; нет `fetch` |
-| `apps/api` e2e | health, provider; 401 без cookie; Client/Matter/Workspace CRU+list; members + matter links; чужой id → 404; чужой clientId/matterId → 422; TEAM create → 422; header org игнорируется; generate/block/validation |
+| `apps/api` e2e | health, provider; 401 без cookie; CSRF Origin/header reject; Client/Matter/Workspace CRU+list; members + matter links; чужой id → 404; чужой clientId/matterId → 422; TEAM create → 422; generate/block/validation |
 | `apps/api` queue unit | имя `ai-jobs`, разбор Redis URL |
 | `@spectre/db` | `prisma validate` + RLS harness (`src/rls.tenant.test.ts`) под runtime role |
 

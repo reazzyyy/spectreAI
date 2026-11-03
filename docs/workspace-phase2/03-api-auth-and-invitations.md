@@ -212,6 +212,8 @@ B4 требует выделить CSRF техническим срезом до
 
 Точный механизм (synchronizer vs double-submit) выбрать после проверки доменной схемы, Next rewrite, cookie attributes и deployment topology. Не реализовывать одновременно несколько несовместимых схем без необходимости.
 
+**CONFIRMED (W-014a, 2026-11-04):** scaffold — Origin allowlist (`WEB_ORIGIN`) + double-submit cookie (`spectre_csrf` + `X-CSRF-Token`). Synchronizer не используется. AS-IS: `docs/26-codebase-current-state.md`.
+
 ## 7. Технические лимиты
 
 Тарифных квот в MVP нет, но обязательны:

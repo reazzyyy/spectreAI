@@ -7,6 +7,7 @@ import request from "supertest";
 import { AppModule } from "../src/app.module.js";
 import { hashPassword } from "../src/auth/password.js";
 import { applyHttpMiddleware } from "../src/http/apply-http-middleware.js";
+import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from "../src/http/csrf.js";
 import {
   CLIENT_B,
   MATTER_A,
@@ -26,6 +27,21 @@ import {
   USER_ORG_B,
   USER_ORG_B_EMAIL,
 } from "./matter-fixtures.js";
+
+function extractCookieValue(
+  setCookie: string | string[] | undefined,
+  name: string,
+): string | undefined {
+  const parts = Array.isArray(setCookie) ? setCookie : setCookie ? [setCookie] : [];
+  const prefix = `${name}=`;
+  for (const part of parts) {
+    const segment = part.split(";")[0] ?? "";
+    if (segment.startsWith(prefix)) {
+      return decodeURIComponent(segment.slice(prefix.length));
+    }
+  }
+  return undefined;
+}
 
 async function seedFixtures(): Promise<void> {
   // Seed as migrator (table owner) — bypasses tenant RLS; API uses runtime + GUC.
@@ -271,10 +287,41 @@ describe("API scaffold", () => {
         ? setCookie.join(";")
         : (setCookie ?? "");
       expect(cookieHeader).toContain("spectre_sid=");
+      expect(cookieHeader).toContain(`${CSRF_COOKIE_NAME}=`);
+      const csrf = extractCookieValue(setCookie, CSRF_COOKIE_NAME);
+      expect(csrf).toEqual(expect.any(String));
+      agent.set(CSRF_HEADER_NAME, csrf!);
     });
 
     afterAll(async () => {
       await app.close();
+    });
+
+    it("rejects mutating requests with a foreign Origin", async () => {
+      const response = await agent
+        .post("/api/v1/clients")
+        .set("Origin", "https://evil.example")
+        .send({ name: "Should Fail Origin" });
+
+      expect(response.status).toBe(403);
+      expect(response.body.error.code).toBe("CSRF_REJECTED");
+    });
+
+    it("rejects mutating requests without the CSRF header", async () => {
+      const sidAgent = request.agent(app.getHttpServer());
+      const login = await sidAgent.post("/api/v1/auth/login").send({
+        email: USER_A_EMAIL,
+        password: USER_A_PASSWORD,
+        organizationId: ORG_A,
+      });
+      expect(login.status).toBe(200);
+      expect(extractCookieValue(login.headers["set-cookie"], CSRF_COOKIE_NAME)).toEqual(
+        expect.any(String),
+      );
+
+      const response = await sidAgent.post("/api/v1/clients").send({ name: "No Csrf Header" });
+      expect(response.status).toBe(403);
+      expect(response.body.error.code).toBe("CSRF_REJECTED");
     });
 
     it("reads a matter from the same organization", async () => {

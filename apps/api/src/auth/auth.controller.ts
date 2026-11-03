@@ -14,9 +14,16 @@ import {
 import type { Request, Response } from "express";
 import { ActorGuard } from "./actor.guard.js";
 import { parseLogin } from "./parse-login.js";
+import { randomBytes } from "node:crypto";
+import {
+  clearCsrfCookieOptions,
+  CSRF_COOKIE_NAME,
+  csrfCookieOptions,
+} from "../http/csrf.js";
 import {
   clearSessionCookieOptions,
   SESSION_COOKIE_NAME,
+  SESSION_TTL_MS,
   sessionCookieOptions,
 } from "./session-cookie.js";
 import { SessionService } from "./session.service.js";
@@ -47,6 +54,11 @@ export class AuthController {
     }
 
     res.cookie(SESSION_COOKIE_NAME, result.rawToken, sessionCookieOptions());
+    res.cookie(
+      CSRF_COOKIE_NAME,
+      randomBytes(32).toString("base64url"),
+      csrfCookieOptions(SESSION_TTL_MS),
+    );
 
     return {
       user: { id: result.profile.userId, email: result.profile.email },
@@ -65,6 +77,7 @@ export class AuthController {
   ) {
     await this.sessions.logout(req);
     res.clearCookie(SESSION_COOKIE_NAME, clearSessionCookieOptions());
+    res.clearCookie(CSRF_COOKIE_NAME, clearCsrfCookieOptions());
     return { ok: true };
   }
 

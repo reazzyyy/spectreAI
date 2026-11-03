@@ -15,7 +15,8 @@ pnpm --filter @spectre/web lint:fsd   # Steiger FSD boundaries
 pnpm --filter @spectre/web lint:all
 ```
 
-API must be reachable for auth (default rewrite target `http://localhost:3000`). Override with `API_ORIGIN` (see root `.env.example`).
+API must be reachable for auth (default rewrite target `http://localhost:3000`). Override with `API_ORIGIN` (see root `.env.example`).  
+Set `WEB_ORIGIN=http://localhost:3001` on the API for CSRF Origin allowlist (**W-014a**). Mutating `fetch` sends `X-CSRF-Token` from `spectre_csrf`.
 
 ## FSD layout (AS-IS)
 

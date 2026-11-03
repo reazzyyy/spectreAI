@@ -49,16 +49,19 @@ export class ApiExceptionFilter implements ExceptionFilter {
     }
     if (status === HttpStatus.FORBIDDEN && exception instanceof HttpException) {
       const payload = exception.getResponse();
-      if (
-        typeof payload === "object" &&
-        payload !== null &&
-        "code" in payload &&
-        payload.code === "AI_DATA_POLICY_BLOCKED"
-      ) {
-        return {
-          code: "AI_DATA_POLICY_BLOCKED",
-          message: "Only synthetic data is allowed",
-        };
+      if (typeof payload === "object" && payload !== null && "code" in payload) {
+        if (payload.code === "AI_DATA_POLICY_BLOCKED") {
+          return {
+            code: "AI_DATA_POLICY_BLOCKED",
+            message: "Only synthetic data is allowed",
+          };
+        }
+        if (payload.code === "CSRF_REJECTED") {
+          return {
+            code: "CSRF_REJECTED",
+            message: "CSRF validation failed",
+          };
+        }
       }
       return { code: "FORBIDDEN", message: "Operation is not allowed" };
     }
