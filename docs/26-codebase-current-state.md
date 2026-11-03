@@ -1,10 +1,10 @@
 # Текущее состояние кодовой базы (AS-IS)
 
 **Статус:** CONFIRMED как снимок scaffold на дату ниже; не заменяет продуктовые спецификации и не утверждает MVP.  
-**Дата снимка кода:** 2026-11-04 (S4a CSRF)  
+**Дата снимка кода:** 2026-11-04 (S4b dev bootstrap)  
 **Сверка статусов решений:** 2026-11-04 (W-001–W-020, W-014a)  
 **Источник истины по решениям:** `docs/decisions-log.md`  
-**План:** `tasks/roadmap.md` / `tasks/plan.md`. S0–S3 в `main`; **S4a**: Origin allowlist + double-submit CSRF. S4b bootstrap / S4c invites / полный W-020 / TEAM create — ещё нет.
+**План:** `tasks/roadmap.md` / `tasks/plan.md`. S0–S4a в `main`; **S4b**: CLI `bootstrap:dev` (Org+Owner). S4c invites / полный W-020 / TEAM create — ещё нет.
 
 Этот документ описывает **только то, что реально есть в репозитории**. Спецификации в `docs/00–25` могут описывать целевое MVP шире; если код ещё не реализован — ниже явно указано «не реализовано».
 
@@ -19,6 +19,7 @@
 | Client / Matter (D-009) | Prisma-модели есть; HTTP CRU+list для Client/Matter через `@spectre/access` + Prisma (hard delete нет) |
 | Сессии / User / Membership | Scaffold: email+password login, HttpOnly cookie, `ACTOR_CONTEXT` из Session |
 | CSRF (W-014 / W-014a) | Origin allowlist (`WEB_ORIGIN`) + double-submit (`spectre_csrf` + `X-CSRF-Token`); login выдаёт CSRF cookie |
+| Bootstrap первой Org (W-012) | CLI `pnpm --filter @spectre/api bootstrap:dev` (dev-only, идемпотентный); HTTP bootstrap / invitations — нет |
 | MFA / SSO (O-008) | **Не реализовано** (OUT OF SCOPE этой итерации) |
 | Workspace как сущность | Prisma + `WorkspaceAccess` + HTTP CRU/list/members/matter-links (S3); TEAM create / invitations / UI — нет |
 | PostgreSQL RLS (W-020) | Tenant-boundary RLS + runtime role `spectre_app`; **неполное** (нет workspace-membership/chat/grant policies) |
@@ -225,7 +226,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 - Postgres: образ `pgvector/pgvector:pg16`, user/password/db `spectre`, порт `5432`.
 - Redis: `redis:7-alpine`, порт `6379`.
 
-`.env.example`: `DATABASE_URL` (migrator), `DATABASE_URL_RUNTIME` (`spectre_app`), `REDIS_URL`, `PORT`, `API_ORIGIN`, `WEB_ORIGIN` (CSRF Origin allowlist). Файл `.env` не коммитится. Пароли compose/runtime — не для shared/production. Opaque DB sessions (без отдельного signing secret).
+`.env.example`: `DATABASE_URL` (migrator), `DATABASE_URL_RUNTIME` (`spectre_app`), `REDIS_URL`, `PORT`, `API_ORIGIN`, `WEB_ORIGIN` (CSRF), optional `BOOTSTRAP_*` (dev-only W-012). Файл `.env` не коммитится. Пароли compose/runtime/bootstrap — не для shared/production. Opaque DB sessions (без отдельного signing secret).
 
 ## 7. Тесты (что покрыто)
 
@@ -234,6 +235,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 | `packages/access` | Client/Matter org-isolation + WorkspaceAccess content/manage unit tests |
 | `packages/ai-gateway` | Synthetic OK; блок несинтетики; статусы AIJob; нет `fetch` |
 | `apps/api` e2e | health, provider; 401 без cookie; CSRF Origin/header reject; Client/Matter/Workspace CRU+list; members + matter links; чужой id → 404; чужой clientId/matterId → 422; TEAM create → 422; generate/block/validation |
+| `apps/api` bootstrap unit | guards + idempotent Org/Owner create; refuse foreign owner on same org |
 | `apps/api` queue unit | имя `ai-jobs`, разбор Redis URL |
 | `@spectre/db` | `prisma validate` + RLS harness (`src/rls.tenant.test.ts`) под runtime role |
 
@@ -256,7 +258,7 @@ Workflow: `.github/workflows/ci.yml`.
 
 - MFA/SSO (**O-008** / **W-013** — не в MVP), invitations, self-registration (**W-012** запрещает public self-reg), email verify, recovery, logout-all, session list.
 - CSRF token / Origin gate (**W-014**; web login уже есть; SameSite=Lax only).
-- Продуктовый seed / invite первых пользователей: ворота A2 **закрыты W-011–W-014**, но bootstrap/invite **в коде ещё нет**.
+- Invite первых сотрудников: **S4c** ещё нет; локальный bootstrap Owner — CLI S4b.
 - Полный `docs/12` (audit events, password policy product confirmation, idle timeout).
 - Hard delete Client/Matter/Workspace; `created_by`; TEAM Workspace create; invitations; CSRF (**W-014**); полный W-020 (сверх tenant RLS); ACL матрица `docs/07`; admin grant; Workspace web UI.
 - Загрузка файлов, хранилище, OCR, парсинг (D-010/D-017, H-002).

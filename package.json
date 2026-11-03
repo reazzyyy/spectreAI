@@ -11,6 +11,7 @@
     "lint": "pnpm -r --if-present lint",
     "lint:fsd": "pnpm --filter @spectre/web lint:fsd",
     "dev:api": "pnpm --filter @spectre/api dev",
-    "dev:web": "pnpm --filter @spectre/web dev"
+    "dev:web": "pnpm --filter @spectre/web dev",
+    "bootstrap:dev": "pnpm --filter @spectre/api bootstrap:dev"
   }
 }
