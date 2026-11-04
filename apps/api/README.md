@@ -29,6 +29,13 @@ pnpm --filter @spectre/api bootstrap:dev
 
 Idempotent for the same org name + owner email; refuses replacing an existing different owner on that org; refuses creating another org when that email already owns a different one.
 
+### Invitations (S4c)
+
+- Owner-only: `GET/POST /organizations/:orgId/invitations`, resend, revoke.
+- `POST /invitations/accept` — new user supplies `password`; existing user must be logged in as the invite email.
+- Roles: `admin` | `member` only (not `owner`). Raw token stored as SHA-256; `devToken` returned outside production only.
+- TTL: `INVITE_TTL_HOURS` (**O-011**). Email provider stub — out of this slice (devToken stands in).
+
 E2e seeds organizations, clients, matters, users + memberships, a TEAM Workspace fixture, logs in via cookie, and asserts cross-org Client/Matter/Workspace → `404`, foreign `clientId`/`matterId` → `422`, and TEAM create → `422`.
 
 On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` against a service Postgres (`pgvector/pgvector:pg16`) after `migrate:deploy`.
@@ -49,6 +56,7 @@ On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` 
 | `src/http/` | Uniform error JSON + shared middleware helper |
 | `src/queue/` | BullMQ queue name/helpers; **no worker** |
 | `src/scripts/` | Dev bootstrap CLI (`bootstrap:dev`) — not an HTTP API |
+| `src/invitations/` | Org invitations create/list/resend/revoke/accept (S4c); TTL via `INVITE_TTL_HOURS` |
 
 ## Auth scaffold
 

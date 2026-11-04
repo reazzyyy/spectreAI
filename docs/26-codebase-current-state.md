@@ -1,10 +1,10 @@
 # Текущее состояние кодовой базы (AS-IS)
 
 **Статус:** CONFIRMED как снимок scaffold на дату ниже; не заменяет продуктовые спецификации и не утверждает MVP.  
-**Дата снимка кода:** 2026-11-04 (S4b dev bootstrap)  
+**Дата снимка кода:** 2026-11-04 (S4c invitations)  
 **Сверка статусов решений:** 2026-11-04 (W-001–W-020, W-014a)  
 **Источник истины по решениям:** `docs/decisions-log.md`  
-**План:** `tasks/roadmap.md` / `tasks/plan.md`. S0–S4a в `main`; **S4b**: CLI `bootstrap:dev` (Org+Owner). S4c invites / полный W-020 / TEAM create — ещё нет.
+**План:** `tasks/roadmap.md` / `tasks/plan.md`. S0–S4b в `main`; **S4c**: OrganizationInvitation HTTP. Полный W-020 / TEAM create / email provider — ещё нет.
 
 Этот документ описывает **только то, что реально есть в репозитории**. Спецификации в `docs/00–25` могут описывать целевое MVP шире; если код ещё не реализован — ниже явно указано «не реализовано».
 
@@ -19,7 +19,8 @@
 | Client / Matter (D-009) | Prisma-модели есть; HTTP CRU+list для Client/Matter через `@spectre/access` + Prisma (hard delete нет) |
 | Сессии / User / Membership | Scaffold: email+password login, HttpOnly cookie, `ACTOR_CONTEXT` из Session |
 | CSRF (W-014 / W-014a) | Origin allowlist (`WEB_ORIGIN`) + double-submit (`spectre_csrf` + `X-CSRF-Token`); login выдаёт CSRF cookie |
-| Bootstrap первой Org (W-012) | CLI `pnpm --filter @spectre/api bootstrap:dev` (dev-only, идемпотентный); HTTP bootstrap / invitations — нет |
+| Bootstrap первой Org (W-012) | CLI `bootstrap:dev` (dev-only, идемпотентный) |
+| Invitations (W-012 / O-011) | Prisma + HTTP create/list/resend/revoke/accept; TTL `INVITE_TTL_HOURS`; email provider — stub/devToken |
 | MFA / SSO (O-008) | **Не реализовано** (OUT OF SCOPE этой итерации) |
 | Workspace как сущность | Prisma + `WorkspaceAccess` + HTTP CRU/list/members/matter-links (S3); TEAM create / invitations / UI — нет |
 | PostgreSQL RLS (W-020) | Tenant-boundary RLS + runtime role `spectre_app`; **неполное** (нет workspace-membership/chat/grant policies) |
@@ -74,6 +75,7 @@ spectreAI/
 | Clients | `src/clients/*` | list/create/get/patch под `ActorGuard`; Prisma store + `ClientAccess` |
 | Matters | `src/matters/*` | list/create/get/patch под `ActorGuard`; Prisma store + `MatterAccess` |
 | Workspaces | `src/workspaces/*` | list/create PERSONAL/get/patch, members, matter links под `ActorGuard` + `WorkspaceAccess` |
+| Invitations | `src/invitations/*` | Org Owner invite CRUD-lite + accept; migrator store; TTL config |
 | AI | `src/ai/*` | `GET /api/v1/ai/provider`, `POST /api/v1/ai/generate` |
 | Ошибки | `src/http/api-exception.filter.ts` | Единый JSON `{ error: { code, message, requestId } }` |
 | Prisma | `src/db/prisma.service.ts` | `createPrismaClient` из `@spectre/db`; `$disconnect` на destroy |
@@ -128,7 +130,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 - Миграции: init, auth, **`20261103220000_workspace_rls_foundation`** (tables + `spectre_app` + tenant RLS).
 - RLS FORCE на clients/matters/organization_memberships/workspaces/workspace_members/workspace_matters (только org GUC).
 - Auth bootstrap / e2e seed — migrator URL; Client/Matter API — runtime + GUC.
-- Document / AIJob / Audit / Invitation / Chat — **в схеме нет**.
+- Document / AIJob / Audit / Chat — **в схеме нет**. `OrganizationInvitation` — есть (S4c).
 - Поле `created_by` из `docs/06` на Client/Matter **ещё нет** (OPEN / отложено).
 
 ## 5. HTTP-контракт scaffold (фактический)
@@ -162,6 +164,11 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 | GET | `/workspaces/:workspaceId/matters` | сессия | `{ items: [{ matterId }] }` | `401`; `404` |
 | POST | `/workspaces/:workspaceId/matters` | сессия | `{ matterId }` (`201`) | `401`; `404`; `422` (чужой/missing matter) |
 | DELETE | `/workspaces/:workspaceId/matters/:matterId` | сессия | `{ ok: true }` | `401`; `404` |
+| GET | `/organizations/:organizationId/invitations` | сессия Owner | `{ items }` | `401`; `404` |
+| POST | `/organizations/:organizationId/invitations` | сессия Owner + CSRF | Invitation (`201`, optional `devToken`) | `401`; `404`; `422` |
+| POST | `/organizations/:organizationId/invitations/:id/resend` | сессия Owner + CSRF | Invitation | `401`; `404` |
+| DELETE | `/organizations/:organizationId/invitations/:id` | сессия Owner + CSRF | Invitation revoked | `401`; `404` |
+| POST | `/invitations/accept` | CSRF if session; new user: password | `{ organizationId, userId, role }` | `404`; `403`; `422` |
 
 Тело Client: `{ id, organizationId, name, status }` (`status`: `active` \| `archived`).  
 Тело Matter: `{ id, organizationId, title, clientId, workspaceId, status }` (`status`: `active` \| `archived`).  
@@ -258,7 +265,7 @@ Workflow: `.github/workflows/ci.yml`.
 
 - MFA/SSO (**O-008** / **W-013** — не в MVP), invitations, self-registration (**W-012** запрещает public self-reg), email verify, recovery, logout-all, session list.
 - CSRF token / Origin gate (**W-014**; web login уже есть; SameSite=Lax only).
-- Invite первых сотрудников: **S4c** ещё нет; локальный bootstrap Owner — CLI S4b.
+- Email delivery provider для invitations; audit events; rate limit каркас.
 - Полный `docs/12` (audit events, password policy product confirmation, idle timeout).
 - Hard delete Client/Matter/Workspace; `created_by`; TEAM Workspace create; invitations; CSRF (**W-014**); полный W-020 (сверх tenant RLS); ACL матрица `docs/07`; admin grant; Workspace web UI.
 - Загрузка файлов, хранилище, OCR, парсинг (D-010/D-017, H-002).
