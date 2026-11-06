@@ -43,16 +43,18 @@ F5+ Product screens from Make (projects, chat, …) по docs/31 — отдел�
 
 ### F5a — Workspace list + PERSONAL create ✅ в `main`
 
-### F5b — Workspace detail + rename/description (текущий PR)
+### F5b — Workspace detail + rename/description ✅ в `main`
 
-**Description:** `/projects/[id]` — `GET/PATCH /workspaces/:id` (WS-03/04/05); links from list/home; create → detail.
+### F5c — Workspace ↔ Matter links (текущий PR)
+
+**Description:** On `/projects/[id]` — list/link/unlink Matters (WS-08/WS-10 unlink).
 
 **Acceptance criteria:**
-- [x] Detail widget + `features/edit-workspace`
-- [x] Entity fetch/update + detail query
-- [x] Vitest schema; AS-IS / README / plan
+- [x] `entities/matter` list + workspace matters API/query
+- [x] `features/manage-workspace-matters` on detail
+- [x] AS-IS / README / plan
 
-**Out of scope F5b:** TEAM create, members, Matter/Client link, chat, search.
+**Out of scope F5c:** Matter/Client CRUD screens, TEAM, members, chat.
 
 ## Risks
 

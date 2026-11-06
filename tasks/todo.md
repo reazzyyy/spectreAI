@@ -29,7 +29,10 @@
 ## F5b Workspace detail + edit
 - [x] GET/PATCH detail UI; list/home links; docs / verify
 
+## F5c Workspace ↔ Matter links
+- [x] Link/unlink panel on detail; docs / verify
+
 ## Later
-- [ ] F5c+ TEAM / members / Matter / docs/31 screens
+- [ ] F5d+ TEAM / members / Client / Matter CRUD / docs/31
 - [ ] Chore: migrate system-map to SCSS Modules
 - [ ] Optional: CI Chromatic / Playwright when ready

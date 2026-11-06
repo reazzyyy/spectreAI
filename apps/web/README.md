@@ -6,7 +6,7 @@ Next.js App Router. Port: `3001`.
 Import direction: `app → widgets → features → entities → shared`.
 
 **Quality bar (CONFIRMED D-024 / ADR-0004):** SCSS Modules + CSS tokens, own `shared/ui`, RHF+Zod, TanStack Query, Vitest+RTL + Storybook+Chromatic + Playwright.  
-**AS-IS (F5b):** Sass tokens + Stylelint, Button/Input/Icon, RHF+Zod login/create/edit Workspace, Query session/workspaces, AppShell/Home, `/projects` list + PERSONAL create, `/projects/[id]` detail + rename/description, Vitest+RTL, Storybook 10 + Chromatic, Playwright auth smoke. `system-map` still plain CSS Modules. TEAM create / members / Matter — not wired.
+**AS-IS (F5c):** Sass tokens + Stylelint, Button/Input/Icon, RHF+Zod login/create/edit Workspace, Query session/workspaces/matters, AppShell/Home, `/projects` list + PERSONAL create, `/projects/[id]` detail + edit + Matter link/unlink, Vitest+RTL, Storybook 10 + Chromatic, Playwright auth smoke. `system-map` still plain CSS Modules. TEAM / members / Matter CRUD screens — not wired.
 
 ## Run
 
@@ -48,10 +48,12 @@ src/
 │   ├── login/
 │   ├── logout/
 │   ├── create-workspace/
-│   └── edit-workspace/
+│   ├── edit-workspace/
+│   └── manage-workspace-matters/
 ├── entities/
 │   ├── session/
-│   └── workspace/
+│   ├── workspace/
+│   └── matter/
 └── shared/
     ├── api/
     ├── lib/
@@ -63,7 +65,7 @@ src/
 - `/login` — RHF+Zod → `POST /auth/login` (no product shell).
 - `/` — `AppShell` + `HomeOverview`; session + recent workspaces; 401 → `/login`.
 - `/projects` — list `GET /workspaces` + create PERSONAL `POST /workspaces`.
-- `/projects/[id]` — detail `GET` + edit `PATCH` name/description.
+- `/projects/[id]` — detail `GET` + edit `PATCH` + Matter link/unlink.
 - Nav: Home, Все проекты; Личные/Команда disabled; link to `/system`.
 - Desktop gate below 1280px (Make constraint).
 - `/system` — system-map onboarding (no shell).

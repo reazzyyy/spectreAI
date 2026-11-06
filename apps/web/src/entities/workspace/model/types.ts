@@ -29,3 +29,12 @@ export type UpdateWorkspaceInput = {
   name?: string;
   description?: string | null;
 };
+
+/** Matter link from GET/POST /workspaces/:id/matters. */
+export type WorkspaceMatterLink = {
+  matterId: string;
+};
+
+export type WorkspaceMatterListResponse = {
+  items: WorkspaceMatterLink[];
+};

@@ -4,6 +4,8 @@ import type {
   UpdateWorkspaceInput,
   Workspace,
   WorkspaceListResponse,
+  WorkspaceMatterListResponse,
+  WorkspaceMatterLink,
 } from "../model/types";
 
 /** GET /workspaces — content-visible list for the session actor. */
@@ -35,4 +37,39 @@ export function updateWorkspace(
     method: "PATCH",
     body: JSON.stringify(input),
   });
+}
+
+/** GET /workspaces/:id/matters — linked matters (WS-08). */
+export function listWorkspaceMatters(
+  workspaceId: string,
+): Promise<WorkspaceMatterListResponse> {
+  return apiRequest<WorkspaceMatterListResponse>(
+    `/workspaces/${encodeURIComponent(workspaceId)}/matters`,
+    { method: "GET" },
+  );
+}
+
+/** POST /workspaces/:id/matters — link existing Matter. */
+export function linkWorkspaceMatter(
+  workspaceId: string,
+  matterId: string,
+): Promise<WorkspaceMatterLink> {
+  return apiRequest<WorkspaceMatterLink>(
+    `/workspaces/${encodeURIComponent(workspaceId)}/matters`,
+    {
+      method: "POST",
+      body: JSON.stringify({ matterId }),
+    },
+  );
+}
+
+/** DELETE /workspaces/:id/matters/:matterId — unlink Matter. */
+export function unlinkWorkspaceMatter(
+  workspaceId: string,
+  matterId: string,
+): Promise<{ ok: true }> {
+  return apiRequest<{ ok: true }>(
+    `/workspaces/${encodeURIComponent(workspaceId)}/matters/${encodeURIComponent(matterId)}`,
+    { method: "DELETE" },
+  );
 }
