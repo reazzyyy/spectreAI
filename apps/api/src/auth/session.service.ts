@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { createHash, randomBytes } from "node:crypto";
 import type { Request } from "express";
 import { PrismaService } from "../db/prisma.service.js";
@@ -23,7 +23,8 @@ type RequestWithProfile = Request & {
  */
 @Injectable()
 export class SessionService {
-  constructor(private readonly prisma: PrismaService) {}
+  /** Explicit @Inject: tsx ESM does not emit constructor metadata for Nest DI. */
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   /** Auth bootstrap uses migrator URL until SECURITY DEFINER helpers land (S0 §6). */
   private get authDb() {

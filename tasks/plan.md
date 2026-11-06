@@ -37,17 +37,19 @@ F5+ Product screens from Make (projects, chat, …) по docs/31 — отдел�
 
 ### F2 — App shell + Home ✅ в `main`
 
-### F3 — Storybook + Chromatic (текущий PR)
+### F3 — Storybook + Chromatic ✅ в `main`
 
-**Description:** Storybook 10 (`@storybook/nextjs-vite`) + Chromatic addon/CLI; stories для `shared/ui`.
+### F4 — Playwright smoke (текущий PR)
+
+**Description:** `@playwright/test` Chromium smoke: unauth `/` → `/login`; login → home.
 
 **Acceptance criteria:**
-- [x] `.storybook` + stories Button/Input/Icon
-- [x] `storybook` / `build-storybook` / `chromatic` scripts
-- [x] `build-storybook` green; AS-IS/README
-- [x] Chromatic publish optional (`CHROMATIC_PROJECT_TOKEN`)
+- [x] `playwright.config.ts` + `e2e/auth.smoke.spec.ts`
+- [x] `test:e2e` script; desktop viewport ≥1280
+- [x] Credentials via `E2E_*` / `BOOTSTRAP_OWNER_*` + `E2E_ORGANIZATION_ID`
+- [x] AS-IS / README / plan
 
-**Out of scope F3:** Playwright; CI Chromatic gate без токена; Workspace list UI.
+**Out of scope F4:** CI Playwright gate; multi-browser; full docs/31 flows.
 
 ## Risks
 
