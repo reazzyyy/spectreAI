@@ -35,18 +35,19 @@ F5+ Product screens from Make (projects, chat, …) по docs/31 — отдел�
 
 **Acceptance criteria:** выполнены (Sass/Stylelint/Button/Input/RHF+Zod/Query/Vitest).
 
-### F2 — App shell + Home (текущий PR)
+### F2 — App shell + Home ✅ в `main`
 
-**Description:** Chrome из Make (sidebar/topbar/desktop gate) + Home empty state без demo-state.
+### F3 — Storybook + Chromatic (текущий PR)
+
+**Description:** Storybook 10 (`@storybook/nextjs-vite`) + Chromatic addon/CLI; stories для `shared/ui`.
 
 **Acceptance criteria:**
-- [x] Токены ближе к Make; шрифты Golos/Noto
-- [x] `widgets/app-shell` + `(product)` layout
-- [x] Home: greeting/session/empty projects; Projects/Org disabled
-- [x] Vitest на AppShell; AS-IS/README
-- [x] Без mock projects / command palette / create dialog
+- [x] `.storybook` + stories Button/Input/Icon
+- [x] `storybook` / `build-storybook` / `chromatic` scripts
+- [x] `build-storybook` green; AS-IS/README
+- [x] Chromatic publish optional (`CHROMATIC_PROJECT_TOKEN`)
 
-**Out of scope F2:** список Workspace, Storybook, Playwright, миграция system-map.
+**Out of scope F3:** Playwright; CI Chromatic gate без токена; Workspace list UI.
 
 ## Risks
 

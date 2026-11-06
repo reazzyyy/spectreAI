@@ -2,6 +2,7 @@
 import js from "@eslint/js";
 import { defineConfig, globalIgnores } from "eslint/config";
 import reactHooks from "eslint-plugin-react-hooks";
+import storybook from "eslint-plugin-storybook";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
@@ -10,7 +11,13 @@ import tseslint from "typescript-eslint";
  * FSD layer/import boundaries are enforced by Steiger (`lint:fsd`), not duplicated here.
  */
 export default defineConfig(
-  globalIgnores([".next/**", "node_modules/**", "next-env.d.ts", "steiger.config.ts"]),
+  globalIgnores([
+    ".next/**",
+    "node_modules/**",
+    "next-env.d.ts",
+    "steiger.config.ts",
+    "storybook-static/**",
+  ]),
   {
     files: ["**/*.{js,mjs,cjs,ts,tsx}"],
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
@@ -60,4 +67,5 @@ export default defineConfig(
       ],
     },
   },
+  ...storybook.configs["flat/recommended"],
 );

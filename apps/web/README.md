@@ -6,7 +6,7 @@ Next.js App Router. Port: `3001`.
 Import direction: `app → widgets → features → entities → shared`.
 
 **Quality bar (CONFIRMED D-024 / ADR-0004):** SCSS Modules + CSS tokens, own `shared/ui`, RHF+Zod, TanStack Query, Vitest+RTL + Storybook+Chromatic + Playwright.  
-**AS-IS (F2):** Sass tokens (Make-aligned) + Stylelint, Button/Input/Icon, RHF+Zod login, TanStack Query session, AppShell + Home empty state, Vitest+RTL. Storybook / Chromatic / Playwright — not wired. `system-map` still plain CSS Modules.
+**AS-IS (F3):** Sass tokens + Stylelint, Button/Input/Icon, RHF+Zod login, Query session, AppShell/Home, Vitest+RTL, Storybook 10 + Chromatic addon/CLI. Playwright — not wired. `system-map` still plain CSS Modules. Chromatic publish needs `CHROMATIC_PROJECT_TOKEN` (not required for local `build-storybook`).
 
 ## Run
 
@@ -18,6 +18,9 @@ pnpm --filter @spectre/web lint
 pnpm --filter @spectre/web lint:fsd
 pnpm --filter @spectre/web lint:styles
 pnpm --filter @spectre/web lint:all
+pnpm --filter @spectre/web storybook
+pnpm --filter @spectre/web build-storybook
+pnpm --filter @spectre/web chromatic   # needs CHROMATIC_PROJECT_TOKEN
 ```
 
 API must be reachable for auth (default rewrite target `http://localhost:3000`). Override with `API_ORIGIN` (see root `.env.example`).  

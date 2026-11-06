@@ -4,6 +4,7 @@ dist/
 coverage/
 .turbo/
 *.tsbuildinfo
+storybook-static/
 .env
 .env.*
 !.env.example
