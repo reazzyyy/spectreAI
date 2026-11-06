@@ -1,10 +1,11 @@
 ---
-description: Feature-Sliced Design для apps/web (D-023)
+description: Feature-Sliced Design и quality bar для apps/web (D-023, D-024)
 alwaysApply: false
 globs:
   - apps/web/**
 ---
 - Обязателен FSD (**D-023**, ADR-0002, `docs/21` §4). Слои и импорты: `app → widgets → features → entities → shared`.
+- Quality bar (**D-024**, ADR-0004, `docs/21` §3/14/15): новые стили — **SCSS Modules** + токены; UI-примитивы в `shared/ui`; RHF+Zod; TanStack Query; тесты Vitest/RTL + Storybook/Chromatic + Playwright по мере среза. Не закреплять plain CSS Modules / Loki / обязательный shadcn как норму.
 - Новый код только в слайсах/сегментах этих слоёв. Не заводить плоский `src/components/` или «utils на всё» вне `shared`.
 - Импорты между слайсами — только через public API (`index.ts` слайса). Не импортировать `@/entities/foo/ui/...` снаружи слайса.
 - `shared` не знает про entities/features/widgets/app. `entities` не импортирует features/widgets. `features` не импортирует widgets.

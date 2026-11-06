@@ -1,10 +1,10 @@
 # Текущее состояние кодовой базы (AS-IS)
 
 **Статус:** CONFIRMED как снимок scaffold на дату ниже; не заменяет продуктовые спецификации и не утверждает MVP.  
-**Дата снимка кода:** 2026-11-04 (S4c invitations)  
-**Сверка статусов решений:** 2026-11-04 (W-001–W-020, W-014a)  
+**Дата снимка кода:** 2026-11-04 (system map page + S4c in main)  
+**Сверка статусов решений:** 2026-11-06 (W-001–W-020, W-014a, **D-024** quality bar — канон; тулчейн в коде ещё нет)  
 **Источник истины по решениям:** `docs/decisions-log.md`  
-**План:** `tasks/roadmap.md` / `tasks/plan.md`. S0–S4b в `main`; **S4c**: OrganizationInvitation HTTP. Полный W-020 / TEAM create / email provider — ещё нет.
+**План:** `tasks/roadmap.md` / `tasks/plan.md`. S0–S4c в `main`. Полный W-020 / TEAM create / email provider / Workspace UI — ещё нет.
 
 Этот документ описывает **только то, что реально есть в репозитории**. Спецификации в `docs/00–25` могут описывать целевое MVP шире; если код ещё не реализован — ниже явно указано «не реализовано».
 
@@ -22,7 +22,7 @@
 | Bootstrap первой Org (W-012) | CLI `bootstrap:dev` (dev-only, идемпотентный) |
 | Invitations (W-012 / O-011) | Prisma + HTTP create/list/resend/revoke/accept; TTL `INVITE_TTL_HOURS`; email provider — stub/devToken |
 | MFA / SSO (O-008) | **Не реализовано** (OUT OF SCOPE этой итерации) |
-| Workspace как сущность | Prisma + `WorkspaceAccess` + HTTP CRU/list/members/matter-links (S3); TEAM create / invitations / UI — нет |
+| Workspace как сущность | Prisma + `WorkspaceAccess` + HTTP CRU/list/members/matter-links (S3); TEAM create / Workspace UI — нет |
 | PostgreSQL RLS (W-020) | Tenant-boundary RLS + runtime role `spectre_app`; **неполное** (нет workspace-membership/chat/grant policies) |
 | Загрузка документов / OCR / RAG | Не реализованы |
 | Воркер очереди AI / обработка документов | Не реализованы |
@@ -89,19 +89,21 @@ spectreAI/
 - `organizationId` актёра берётся из `Session` (+ повторная проверка активного membership), не из заголовков/тела клиента.
 - Без валидной сессии защищённые маршруты → `401` / `UNAUTHENTICATED`.
 - TTL сессии scaffold: 7 суток абсолютных (не CONFIRMED в journal).
-- MFA/SSO, invitations, register, recovery, CSRF token — **не реализованы**.
+- MFA/SSO, register, recovery — **не реализованы**; invitations HTTP + CSRF (**W-014a**) — есть (см. таблицу HTTP).
 
 ### 3.2 `@spectre/web` (`apps/web`)
 
 Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities` / `shared`.
 
-- Явная метка synthetic/test: `shared/ui` на `/` и `/login` (D-012).
+- Явная метка synthetic/test: `shared/ui` на `/`, `/login`, `/system` (D-012).
 - `/login` — `features/login` → `POST /auth/login` (email, password, organizationId).
-- `/` — `widgets/session-panel` → `GET /auth/me`; без сессии → `/login`; `features/logout` → `POST /auth/logout`.
+- `/` — `widgets/session-panel` → `GET /auth/me`; без сессии → `/login`; `features/logout` → `POST /auth/logout`; ссылка на `/system`.
+- `/system` — `widgets/system-map`: статичная карта AS-IS (слои, сущности, путь запроса, roadmap) без требования сессии; не live health.
 - Сессия: `entities/session` (типы, API, `SessionMeta`).
-- Browser `fetch` на `/api/v1/*` с `credentials: "same-origin"`; rewrite в `next.config.ts` на `API_ORIGIN` (по умолчанию `http://localhost:3000`).
+- Browser `fetch` на `/api/v1/*` с `credentials: "same-origin"` + CSRF header на мутациях; rewrite в `next.config.ts` на `API_ORIGIN` (по умолчанию `http://localhost:3000`).
 - Линтеры: ESLint (`eslint.config.mjs`, deep-import ban) + Steiger FSD (`steiger.config.mjs`, `lint:fsd`).
-- Нет регистрации, recovery, MFA, CSRF token, Workspace UI, загрузки файлов.
+- Стили AS-IS: `globals.css` + CSS Modules (system-map). **Целевой бар D-024** — SCSS Modules + токены, свой `shared/ui`, RHF+Zod, TanStack Query, Vitest+RTL / Storybook+Chromatic / Playwright — **ещё не установлены** в этом пакете.
+- Нет регистрации, recovery, MFA, Workspace UI, invite accept UI, загрузки файлов.
 
 ## 4. Пакеты
 
@@ -220,6 +222,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 | `docs/12` §7 CSRF | **W-014** + **W-014a** | Origin allowlist + double-submit; SameSite=Lax доп. слой | Соответствует scaffold S4a |
 | `docs/21` same-origin API | PROPOSED detail | Next rewrite `/api/v1` → Nest | Соответствует локальному scaffold |
 | `docs/21` / **D-023** FSD | CONFIRMED | Слои app/widgets/features/entities/shared + Steiger/ESLint | Соответствует scaffold login |
+| `docs/21` / **D-024** quality bar | CONFIRMED | SCSS Modules, `shared/ui`, RHF+Zod, Query, Vitest/Storybook/Chromatic/Playwright | AS-IS: CSS Modules; тулчейн D-024 не установлен |
 | `docs/11` префикс `/api/v1`, коды ошибок | — | `/api/v1`, `UNAUTHENTICATED` / `NOT_FOUND` / `VALIDATION_ERROR` | Согласовано |
 | `docs/11` карта `clients`/`matters` | PROPOSED GET/POST (+ GET by id) | Есть также PATCH; DELETE нет | PATCH — scaffold extension; DELETE OUT OF SCOPE |
 | `docs/06` `created_by` на Client/Matter | PROPOSED | Поля в Prisma нет | OPEN / отложено |
@@ -263,11 +266,10 @@ Workflow: `.github/workflows/ci.yml`.
 
 Не считать сделанным, пока нет кода и тестов:
 
-- MFA/SSO (**O-008** / **W-013** — не в MVP), invitations, self-registration (**W-012** запрещает public self-reg), email verify, recovery, logout-all, session list.
-- CSRF token / Origin gate (**W-014**; web login уже есть; SameSite=Lax only).
-- Email delivery provider для invitations; audit events; rate limit каркас.
+- MFA/SSO (**O-008** / **W-013** — не в MVP), self-registration (**W-012** запрещает public self-reg), email verify, recovery, logout-all, session list.
+- Email delivery provider для invitations; invite/accept UI; audit events; rate limit каркас.
 - Полный `docs/12` (audit events, password policy product confirmation, idle timeout).
-- Hard delete Client/Matter/Workspace; `created_by`; TEAM Workspace create; invitations; CSRF (**W-014**); полный W-020 (сверх tenant RLS); ACL матрица `docs/07`; admin grant; Workspace web UI.
+- Hard delete Client/Matter/Workspace; `created_by`; TEAM Workspace create; полный W-020 (сверх tenant RLS); ACL матрица `docs/07`; admin grant; Workspace web UI.
 - Загрузка файлов, хранилище, OCR, парсинг (D-010/D-017, H-002).
 - BullMQ worker, сущность/жизненный цикл AIJob в БД.
 - RAG / pgvector индексы в приложении (D-018 — решение есть, кода поиска нет).
