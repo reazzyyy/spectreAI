@@ -10,6 +10,8 @@ NestJS HTTP API scaffold. Global prefix: `/api/v1`. Default port: `3000`.
 
 ## Run
 
+`dev` / `start` load root `.env` via `tsx --env-file` (needed for `WEB_ORIGIN` CSRF allowlist). Nest DI under tsx ESM requires explicit `@Inject(...)` on constructors (metadata is not emitted).
+
 ```bash
 pnpm --filter @spectre/api dev
 pnpm --filter @spectre/api test
