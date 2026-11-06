@@ -26,7 +26,10 @@
 - [x] Entity/API/Query + create form + /projects list
 - [x] Nav/home wiring; docs / AS-IS; verify
 
+## F5b Workspace detail + edit
+- [x] GET/PATCH detail UI; list/home links; docs / verify
+
 ## Later
-- [ ] F5b+ Workspace detail / TEAM / docs/31 screens
+- [ ] F5c+ TEAM / members / Matter / docs/31 screens
 - [ ] Chore: migrate system-map to SCSS Modules
 - [ ] Optional: CI Chromatic / Playwright when ready
