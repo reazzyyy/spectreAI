@@ -22,7 +22,11 @@
 - [x] Config + Chromium smoke (unauth → login; login → home)
 - [x] Docs / AS-IS; verify test + test:e2e
 
+## F5a Workspace list + PERSONAL create
+- [x] Entity/API/Query + create form + /projects list
+- [x] Nav/home wiring; docs / AS-IS; verify
+
 ## Later
-- [ ] F5+ product screens / Workspace list UI / docs/31
+- [ ] F5b+ Workspace detail / TEAM / docs/31 screens
 - [ ] Chore: migrate system-map to SCSS Modules
 - [ ] Optional: CI Chromatic / Playwright when ready
