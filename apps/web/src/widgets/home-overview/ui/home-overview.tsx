@@ -1,19 +1,23 @@
 "use client";
 
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { SessionMeta, sessionMeQueryOptions } from "@/entities/session";
+import { workspacesListQueryOptions } from "@/entities/workspace";
 import { Button } from "@/shared/ui";
 import styles from "./home-overview.module.scss";
 
 /**
- * Home dashboard (Make Home, slim F2): greeting + empty projects + session.
- * No mock projects / ownership inbox until Workspace UI API is wired.
+ * Home dashboard (Make Home): greeting + recent workspaces + session.
+ * Full projects UI lives on /projects (F5a).
  */
 export function HomeOverview() {
   const { data } = useQuery(sessionMeQueryOptions);
+  const workspaces = useQuery(workspacesListQueryOptions);
   if (!data) return null;
 
   const firstName = data.user.email.split("@")[0] ?? data.user.email;
+  const items = workspaces.data?.items ?? [];
 
   return (
     <div className={styles.page}>
@@ -27,21 +31,35 @@ export function HomeOverview() {
             Продолжите работу по проекту или начните новую задачу.
           </p>
         </div>
-        <Button type="button" disabled title="Создание проекта — следующий срез">
-          Новая задача
-        </Button>
+        <Link href="/projects">
+          <Button type="button">Новая задача</Button>
+        </Link>
       </div>
 
       <div className={styles.columns}>
         <section>
           <h2 className={styles.sectionTitle}>Недавние проекты</h2>
-          <div className={styles.empty}>
-            <strong>У вас пока нет проектов в этом интерфейсе</strong>
-            <p>
-              API Workspace уже есть; список и создание проектов появятся в следующем
-              срезе UI. Пока можно проверить сессию и карту системы.
-            </p>
-          </div>
+          {workspaces.isPending ? (
+            <p className={styles.attention}>Загрузка проектов…</p>
+          ) : null}
+          {!workspaces.isPending && items.length === 0 ? (
+            <div className={styles.empty}>
+              <strong>У вас пока нет проектов</strong>
+              <p>
+                Создайте личный проект на странице{" "}
+                <Link href="/projects">Все проекты</Link>.
+              </p>
+            </div>
+          ) : null}
+          {items.length > 0 ? (
+            <ul className={styles.recentList}>
+              {items.slice(0, 5).map((ws) => (
+                <li key={ws.id}>
+                  <Link href="/projects">{ws.name}</Link>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </section>
 
         <section>

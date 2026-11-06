@@ -47,6 +47,22 @@
   color: var(--color-muted);
 }
 
+.recentList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recentList li {
+  margin-bottom: 8px;
+}
+
+.recentList a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .sessionCard {
   padding: 20px;
   border: 1px solid var(--color-border);

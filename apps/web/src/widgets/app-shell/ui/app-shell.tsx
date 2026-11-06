@@ -67,6 +67,7 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   const homeActive = pathname === "/";
+  const projectsActive = pathname === "/projects" || pathname.startsWith("/projects/");
 
   return (
     <div className={styles.shell}>
@@ -115,15 +116,14 @@ export function AppShell({ children }: AppShellProps) {
           </Link>
 
           <p className={styles.navGroup}>Проекты</p>
-          <button
-            type="button"
-            className={styles.navItem}
-            disabled
-            title="Список проектов — следующий срез"
+          <Link
+            href="/projects"
+            className={classNames(styles.navItem, projectsActive && styles.navItemActive)}
+            title="Все проекты"
           >
             <Icon name="folder" />
             <span className={styles.navLabel}>Все проекты</span>
-          </button>
+          </Link>
           <button
             type="button"
             className={styles.navItem}

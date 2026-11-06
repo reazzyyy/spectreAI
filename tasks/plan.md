@@ -39,17 +39,18 @@ F5+ Product screens from Make (projects, chat, …) по docs/31 — отдел�
 
 ### F3 — Storybook + Chromatic ✅ в `main`
 
-### F4 — Playwright smoke (текущий PR)
+### F4 — Playwright smoke ✅ в `main`
 
-**Description:** `@playwright/test` Chromium smoke: unauth `/` → `/login`; login → home.
+### F5a — Workspace list + PERSONAL create (текущий PR)
+
+**Description:** `/projects` — `GET /workspaces` + `POST /workspaces` (PERSONAL); nav + home preview.
 
 **Acceptance criteria:**
-- [x] `playwright.config.ts` + `e2e/auth.smoke.spec.ts`
-- [x] `test:e2e` script; desktop viewport ≥1280
-- [x] Credentials via `E2E_*` / `BOOTSTRAP_OWNER_*` + `E2E_ORGANIZATION_ID`
-- [x] AS-IS / README / plan
+- [x] `entities/workspace` + `features/create-workspace` + `widgets/workspace-list`
+- [x] Route `/projects`; nav «Все проекты»; home recent list
+- [x] Vitest schema; AS-IS / README / plan
 
-**Out of scope F4:** CI Playwright gate; multi-browser; full docs/31 flows.
+**Out of scope F5a:** Workspace detail, TEAM create, members/matters UI, search.
 
 ## Risks
 

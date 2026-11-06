@@ -6,7 +6,7 @@ Next.js App Router. Port: `3001`.
 Import direction: `app → widgets → features → entities → shared`.
 
 **Quality bar (CONFIRMED D-024 / ADR-0004):** SCSS Modules + CSS tokens, own `shared/ui`, RHF+Zod, TanStack Query, Vitest+RTL + Storybook+Chromatic + Playwright.  
-**AS-IS (F4):** Sass tokens + Stylelint, Button/Input/Icon, RHF+Zod login, Query session, AppShell/Home, Vitest+RTL, Storybook 10 + Chromatic, Playwright smoke (login → home / unauth → login). `system-map` still plain CSS Modules. Chromatic publish needs `CHROMATIC_PROJECT_TOKEN`.
+**AS-IS (F5a):** Sass tokens + Stylelint, Button/Input/Icon, RHF+Zod login + create Workspace, Query session/workspaces, AppShell/Home, `/projects` list + PERSONAL create, Vitest+RTL, Storybook 10 + Chromatic, Playwright auth smoke. `system-map` still plain CSS Modules. Workspace detail / TEAM create — not wired.
 
 ## Run
 
@@ -34,19 +34,22 @@ Set `WEB_ORIGIN=http://localhost:3001` on the API for CSRF Origin allowlist (**W
 ```text
 src/
 ├── app/
-│   ├── (product)/       # AppShell layout + Home
+│   ├── (product)/       # AppShell layout + Home + /projects
 │   ├── login/
 │   ├── system/
 │   └── styles/          # global SCSS tokens
 ├── widgets/
 │   ├── app-shell/
 │   ├── home-overview/
+│   ├── workspace-list/
 │   └── system-map/
 ├── features/
 │   ├── login/
-│   └── logout/
+│   ├── logout/
+│   └── create-workspace/
 ├── entities/
-│   └── session/
+│   ├── session/
+│   └── workspace/
 └── shared/
     ├── api/
     ├── lib/
@@ -56,11 +59,11 @@ src/
 ## Behaviour
 
 - `/login` — RHF+Zod → `POST /auth/login` (no product shell).
-- `/` — `AppShell` + `HomeOverview`; session via Query; 401 → `/login`; logout in sidebar.
-- Nav: Home active; Projects / Org disabled («скоро»); link to `/system`.
+- `/` — `AppShell` + `HomeOverview`; session + recent workspaces; 401 → `/login`.
+- `/projects` — list `GET /workspaces` + create PERSONAL `POST /workspaces`.
+- Nav: Home, Все проекты; Личные/Команда disabled; link to `/system`.
 - Desktop gate below 1280px (Make constraint).
 - `/system` — system-map onboarding (no shell).
 - Synthetic banner in topbar (D-012).
-- No Workspace list/create UI yet (API exists).
 
 Local login needs User + OrganizationMembership. Plan: `tasks/plan.md`.

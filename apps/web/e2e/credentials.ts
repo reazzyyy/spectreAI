@@ -9,7 +9,7 @@ export type SmokeCredentials = {
 };
 
 export function readSmokeCredentials(
-  env: NodeJS.ProcessEnv = process.env,
+  env: Record<string, string | undefined> = process.env,
 ): SmokeCredentials | null {
   const email = (env.E2E_EMAIL ?? env.BOOTSTRAP_OWNER_EMAIL ?? "").trim();
   const password = env.E2E_PASSWORD ?? env.BOOTSTRAP_OWNER_PASSWORD ?? "";
