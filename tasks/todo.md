@@ -1,27 +1,27 @@
-# Phase 2 — Workspace + membership
+# Frontend D-024 — task list
 
-Глобальный план: `tasks/roadmap.md`. Детали: `tasks/plan.md` (**утверждён** 2026-11-03).  
-S0 note: `docs/workspace-phase2/S0-rls-foundation-and-inventory.md`.
+План: `tasks/plan.md`. Roadmap продукт: `tasks/roadmap.md`.
 
 ## Gate
-- [x] План Phase 2 утверждён
+- [x] Канон D-024 / ADR-0004 в `main`
+- [x] План F1–F5+ записан
 
-## Slices
-- [x] S0 Foundation / RLS inventory + role topology (working note)
-- [x] S1 Schema Workspace* + RLS + runtime role + harness (verified: migrate + `pnpm test` with Docker)
-- [x] S2 `@spectre/access` Workspace policies + tx GUC (branch `feature/workspace-phase2-s2-access`)
-- [x] S3 Workspace HTTP API + e2e negatives (PERSONAL create only until TEAM decision)
-- [x] S4a CSRF (**W-014** / **W-014a** Origin + double-submit)
-- [x] S4b Dev bootstrap (**W-012**)
-- [x] S4c Invitations (TTL **O-011** config)
+## F1 Foundation
+- [x] Sass + токены + Stylelint; убрать `globals.css`
+- [x] `shared/ui` Button + Input
+- [x] Vitest + RTL (Button, login schema)
+- [x] Login RHF + Zod
+- [x] QueryProvider + session via TanStack Query
+- [x] AS-IS / web README
+- [x] Verify: test + lint + lint:fsd + lint:styles + build
 
-## Checkpoint: Phase 2 (roadmap)
-- [x] S0–S3 merged to `main`, CI green
-- [ ] Runtime-role RLS tests green
-- [x] AS-IS / package README updated (through S4c)
-- [ ] No export / grant / chat / purge quietly shipped
+## Checkpoint F1
+- [x] Login/session wiring на новом баре (ручной e2e с API — по возможности локально)
+- [x] Не объявлены Storybook/Playwright как AS-IS
 
-## Later (не этот checkpoint)
-- [ ] S5 Chat · S6 Admin grant · S7 Lifecycle · S8 Hardening
-- [ ] Optional: ActorGuard on `/ai/*`
-- [ ] Decision: who may create TEAM Workspace
+## Later
+- [ ] F2 App shell + Home (Make)
+- [ ] F3 Storybook + Chromatic
+- [ ] F4 Playwright smoke
+- [ ] F5+ product screens / docs/31
+- [ ] Chore: migrate system-map to SCSS Modules
