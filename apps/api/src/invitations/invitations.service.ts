@@ -1,5 +1,6 @@
 import {
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -34,7 +35,8 @@ export interface InvitationView {
  */
 @Injectable()
 export class InvitationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  /** Explicit @Inject: tsx ESM does not emit constructor metadata for Nest DI. */
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   private get db() {
     return this.prisma.migrator;
