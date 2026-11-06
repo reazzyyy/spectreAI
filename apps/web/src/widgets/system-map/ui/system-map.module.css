@@ -1,0 +1,344 @@
+.page {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+}
+
+.banner {
+  margin: 0 0 1.5rem;
+}
+
+.kicker {
+  margin: 0 0 0.35rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #5a6270;
+}
+
+.title {
+  margin: 0 0 0.75rem;
+  font-size: 1.75rem;
+  line-height: 1.2;
+}
+
+.lead {
+  margin: 0 0 1.75rem;
+  line-height: 1.55;
+  color: #3a4048;
+  max-width: 42rem;
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  margin: 0 0 2rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+}
+
+.nav a {
+  color: #2f5d9f;
+}
+
+.section {
+  margin: 0 0 2.5rem;
+}
+
+.sectionTitle {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+}
+
+.sectionLead {
+  margin: 0 0 1.25rem;
+  color: #3a4048;
+  line-height: 1.5;
+  max-width: 44rem;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.chipNow {
+  background: #e5f3ea;
+  border-color: #8fbf9f;
+  color: #1e4d2b;
+}
+
+.chipPartial {
+  background: #fff4d6;
+  border-color: #e2c56a;
+  color: #3f2e00;
+}
+
+.chipLater {
+  background: #eef0f3;
+  border-color: #c5cad3;
+  color: #3a4048;
+}
+
+.chipDot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Stack flow */
+.stack {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stackItem {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem 1rem;
+  align-items: start;
+  padding: 0.9rem 1rem;
+  background: #fff;
+  border: 1px solid #d5dae2;
+  border-radius: 6px;
+}
+
+.stackRank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 4px;
+  background: #1c1f24;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.stackBody h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+}
+
+.stackBody p {
+  margin: 0;
+  color: #3a4048;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.stackArrow {
+  display: flex;
+  justify-content: center;
+  color: #5a6270;
+  font-size: 0.85rem;
+  padding: 0.15rem 0;
+}
+
+/* Domain grid */
+.domain {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .domain {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.domainCard {
+  padding: 0.9rem 1rem;
+  background: #fff;
+  border: 1px solid #d5dae2;
+  border-radius: 6px;
+}
+
+.domainCard h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.domainCard p {
+  margin: 0;
+  color: #3a4048;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.domainCard.wide {
+  grid-column: 1 / -1;
+}
+
+/* Journey steps */
+.journey {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.65rem;
+  counter-reset: step;
+}
+
+.journey li {
+  counter-increment: step;
+  position: relative;
+  padding: 0.85rem 1rem 0.85rem 3.25rem;
+  background: #fff;
+  border: 1px solid #d5dae2;
+  border-radius: 6px;
+}
+
+.journey li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0.85rem;
+  top: 0.85rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: #2f5d9f;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.journey strong {
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.journey span {
+  color: #3a4048;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+/* Status table-like rows */
+.statusList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.statusRow {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border: 1px solid #d5dae2;
+  border-radius: 6px;
+}
+
+@media (min-width: 720px) {
+  .statusRow {
+    grid-template-columns: 9rem 1fr;
+    gap: 1rem;
+    align-items: start;
+  }
+}
+
+.statusRow p {
+  margin: 0;
+  color: #3a4048;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.callout {
+  margin: 1.25rem 0 0;
+  padding: 0.85rem 1rem;
+  background: #eef4fb;
+  border: 1px solid #b7c9e2;
+  border-radius: 6px;
+  color: #1c2f4a;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.phases {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.phase {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.7rem 1rem;
+  background: #fff;
+  border: 1px solid #d5dae2;
+  border-left-width: 4px;
+  border-radius: 6px;
+}
+
+.phaseNow {
+  border-left-color: #3d8f5a;
+}
+
+.phasePartial {
+  border-left-color: #c9a227;
+}
+
+.phaseLater {
+  border-left-color: #9aa3b0;
+}
+
+.phase strong {
+  font-size: 0.95rem;
+}
+
+.phase span {
+  color: #3a4048;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.footerNote {
+  margin: 2rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid #d5dae2;
+  font-size: 0.85rem;
+  color: #5a6270;
+  line-height: 1.45;
+}
+
+.footerNote code {
+  font-size: 0.85em;
+}

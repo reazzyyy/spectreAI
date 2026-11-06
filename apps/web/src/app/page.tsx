@@ -7,8 +7,12 @@ export default function HomePage() {
       <SyntheticModeBanner />
       <h1>НейроЮрист Спектр</h1>
       <p className="lead">
-        Каркас интерфейса: вход по cookie-сессии. Рабочие пространства появятся после
-        ворот A.
+        Каркас интерфейса: вход по cookie-сессии. API пространств уже есть; экраны Workspace
+        ещё впереди.
+      </p>
+      <p className="lead">
+        <a href="/system">Карта системы</a> — что уже работает, как устроены слои и куда
+        едем (для тех, кто ближе к фронту).
       </p>
       <SessionPanel />
     </main>

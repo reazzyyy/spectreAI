@@ -1,0 +1,308 @@
+.wrap {
+  display: grid;
+  gap: 1rem;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.toolbarLabel {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #5a6270;
+  margin-right: 0.25rem;
+}
+
+.tab {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #c5cad3;
+  border-radius: 4px;
+  background: #fff;
+  color: #1c1f24;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.tab:hover {
+  border-color: #2f5d9f;
+}
+
+.tabActive {
+  background: #1c1f24;
+  border-color: #1c1f24;
+  color: #fff;
+}
+
+.tab:focus-visible {
+  outline: 2px solid #2f5d9f;
+  outline-offset: 2px;
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #5a6270;
+  line-height: 1.45;
+}
+
+.board {
+  position: relative;
+  background: #f0f2f5;
+  border: 1px solid #d5dae2;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.boardInner {
+  position: relative;
+  min-height: 28rem;
+  padding: 1rem 0.75rem 1.25rem;
+}
+
+@media (min-width: 900px) {
+  .boardInner {
+    min-height: 32rem;
+    padding: 1.25rem 1.25rem 1.5rem;
+  }
+}
+
+.canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+/* SVG edge styles */
+.edge {
+  fill: none;
+  stroke: #8b93a1;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.edgeActive {
+  stroke: #2f5d9f;
+  stroke-width: 2.5;
+}
+
+.edgeDashed {
+  stroke-dasharray: 6 5;
+}
+
+.edgeFlow {
+  fill: none;
+  stroke: #2f5d9f;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 8 12;
+  animation: dashFlow 1.1s linear infinite;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.edgeFlowVisible {
+  opacity: 1;
+}
+
+.edgeFuture {
+  stroke: #9aa3b0;
+  stroke-dasharray: 4 6;
+  opacity: 0.65;
+}
+
+@keyframes dashFlow {
+  to {
+    stroke-dashoffset: -40;
+  }
+}
+
+/* Node groups */
+.node {
+  cursor: pointer;
+  outline: none;
+}
+
+.node:focus-visible .nodeBody {
+  stroke: #2f5d9f;
+  stroke-width: 2.5;
+}
+
+.nodeBody {
+  fill: #fff;
+  stroke: #c5cad3;
+  stroke-width: 1.5;
+  transition:
+    stroke 0.15s ease,
+    fill 0.15s ease,
+    filter 0.15s ease;
+}
+
+.nodeSelected .nodeBody {
+  stroke: #2f5d9f;
+  stroke-width: 2.5;
+  fill: #f5f8fc;
+  filter: drop-shadow(0 2px 4px rgb(47 93 159 / 18%));
+}
+
+.nodeDimmed {
+  opacity: 0.38;
+}
+
+.statusBadge {
+  fill: #eef0f3;
+  stroke: #c5cad3;
+}
+
+.nodeNow .statusBadge {
+  fill: #e5f3ea;
+  stroke: #8fbf9f;
+}
+
+.nodePartial .statusBadge {
+  fill: #fff4d6;
+  stroke: #e2c56a;
+}
+
+.nodeLater .statusBadge {
+  fill: #eef0f3;
+  stroke: #c5cad3;
+}
+
+.nodeTitle {
+  fill: #1c1f24;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.nodeSub {
+  fill: #5a6270;
+  font-size: 11px;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.statusText {
+  fill: #1c1f24;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.edgeLabel {
+  fill: #3a4048;
+  font-size: 10px;
+  font-family: "Segoe UI", sans-serif;
+  pointer-events: none;
+}
+
+.edgeLabelActive {
+  fill: #2f5d9f;
+  font-weight: 600;
+}
+
+.laneLabel {
+  fill: #5a6270;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.laneBand {
+  fill: #fff;
+  stroke: #dfe3ea;
+  stroke-width: 1;
+  rx: 6;
+}
+
+.iconStroke {
+  fill: none;
+  stroke: #1c1f24;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.iconFill {
+  fill: #1c1f24;
+}
+
+.detail {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.9rem 1rem;
+  background: #fff;
+  border: 1px solid #d5dae2;
+  border-radius: 6px;
+  min-height: 5.5rem;
+}
+
+.detailTitle {
+  margin: 0;
+  font-size: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.detailMeta {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #5a6270;
+}
+
+.detailBody {
+  margin: 0;
+  color: #3a4048;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.flowList {
+  margin: 0.35rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.flowList li {
+  display: grid;
+  grid-template-columns: 1.5rem 1fr;
+  gap: 0.5rem;
+  align-items: start;
+  font-size: 0.88rem;
+  color: #3a4048;
+  line-height: 1.4;
+}
+
+.flowNum {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 4px;
+  background: #2f5d9f;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edgeFlow {
+    animation: none;
+    stroke-dasharray: none;
+    stroke: #2f5d9f;
+  }
+}

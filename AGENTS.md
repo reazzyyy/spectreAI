@@ -9,10 +9,11 @@
 6. При неопределённости по безопасности, доступу, передаче документов внешнему ИИ, удалению, архитектуре или миграции данных останови затронутую часть и запроси решение.
 7. Для крупной задачи сначала предложи проверяемый поэтапный план.
 
-## Приоритет решений D-008–D-023 и W-001–W-020
+## Приоритет решений D-008–D-024 и W-001–W-020
 При расхождении спецификаций и журнала решений **приоритет у `docs/decisions-log.md`**:
 - **D-008:** стек — Next.js + NestJS + PostgreSQL + Prisma + Redis/BullMQ.
 - **D-023:** frontend (`apps/web`) — Feature-Sliced Design (FSD); слои `app → widgets → features → entities → shared`; канон `docs/21`, ADR-0002.
+- **D-024:** frontend quality bar — SCSS Modules + токены, собственный `shared/ui`, RHF+Zod, TanStack Query, Vitest+RTL + Storybook+Chromatic + Playwright; внедрение срезами; без Loki/обязательного shadcn; ADR-0004.
 - **D-009:** Client и Matter в MVP; связь с Workspace может быть необязательной.
 - **W-001–W-010:** Workspace — отдельная сущность; PERSONAL/TEAM; Matter M:N; Client 0..1; роли OWNER/EDITOR/VIEWER; PRIVATE+WORKSPACE чаты; Org Admin без авто-чтения контента (только grant); dual confirmation на удаление. Детали: `docs/workspace-phase2/`.
 - **W-011–W-014:** вход Email+Password+Organization ID; bootstrap+invite-only; MFA/SSO не в MVP; CSRF до следующих mutating forms.
@@ -74,7 +75,7 @@
 - Для AI Gateway используй `docs/14-ai-provider-and-model-gateway.md`.
 - Для тестирования используй `docs/22-testing-and-quality-strategy.md`.
 - Для логирования, метрик и аудита используй `docs/25-logging-monitoring-and-audit.md`.
-- Для frontend-структуры следуй FSD (**D-023**) и `docs/21-frontend-architecture.md`; не вводи параллельную раскладку вне слоёв.
+- Для frontend-структуры следуй FSD (**D-023**), quality bar (**D-024**) и `docs/21-frontend-architecture.md`; не вводи параллельную раскладку вне слоёв и не подменяй SCSS Modules / тестовую пирамиду устаревшим стеком.
 - Для фактов о текущем коде (AS-IS scaffold) используй `docs/26-codebase-current-state.md` и README в `apps/*` / `packages/*`; не подменяй их целевыми спецификациями MVP.
 - Обязательная документация при изменении кода: `.cursor/rules/07-code-documentation.mdc`.
 - Для security governance (IR, vuln, BCDR, evidence, inventory; **PROPOSED**) смотри `docs/security/` — дополнение, не замена канонов; приоритет: `docs/decisions-log.md` → канон области → `docs/security/`. Классификация данных нормативна как **D0–D4** в `docs/03-data-security.md` (C0–C4 только mapping).

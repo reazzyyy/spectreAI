@@ -34,7 +34,7 @@ pnpm dev:web   # http://localhost:3001
 
 ## Статус подтверждённых решений
 
-Сводка **D-001–D-007** и пакета 2+ (**D-008–D-023**). Полный текст — только в `docs/decisions-log.md`.
+Сводка **D-001–D-007** и пакета 2+ (**D-008–D-024**). Полный текст — только в `docs/decisions-log.md`.
 
 - Рынок запуска — Россия; аудитория — юридические фирмы и команды.
 - Базовый стек MVP (**D-008**): Next.js, NestJS, PostgreSQL, Prisma, Redis/BullMQ.
@@ -77,7 +77,7 @@ pnpm dev:web   # http://localhost:3001
 | `docs/18-legal-research-and-external-sources.md` | Юридическое исследование и внешние источники |
 | `docs/19-conversation-and-workspace-context.md` | Контекст бесед и рабочих пространств |
 | `docs/20-ai-product-workflows.md` | Сквозные продуктовые сценарии |
-| `docs/21-frontend-architecture.md` | Frontend-архитектура; FSD **CONFIRMED (D-023)** |
+| `docs/21-frontend-architecture.md` | Frontend-архитектура; FSD **D-023**; quality bar **D-024** |
 | `docs/22-testing-and-quality-strategy.md` | Стратегия тестирования и качества |
 | `docs/23-deployment-and-infrastructure.md` | Развёртывание, инфраструктура и восстановление |
 | `docs/archive/24-security-and-threat-model-legacy.md` | Архив прежней модели угроз; не нормативный источник |
