@@ -5,6 +5,9 @@ coverage/
 .turbo/
 *.tsbuildinfo
 storybook-static/
+playwright-report/
+test-results/
+blob-report/
 .env
 .env.*
 !.env.example

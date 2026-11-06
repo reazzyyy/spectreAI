@@ -18,8 +18,11 @@
 - [x] Chromatic addon + CLI script
 - [x] Docs / AS-IS; verify build-storybook + lint/test/build
 
+## F4 Playwright smoke
+- [x] Config + Chromium smoke (unauth → login; login → home)
+- [x] Docs / AS-IS; verify test + test:e2e
+
 ## Later
-- [ ] F4 Playwright smoke
 - [ ] F5+ product screens / Workspace list UI / docs/31
 - [ ] Chore: migrate system-map to SCSS Modules
-- [ ] Optional: CI Chromatic when token available
+- [ ] Optional: CI Chromatic / Playwright when ready
