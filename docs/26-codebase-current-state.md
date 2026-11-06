@@ -1,7 +1,7 @@
 # Текущее состояние кодовой базы (AS-IS)
 
 **Статус:** CONFIRMED как снимок scaffold на дату ниже; не заменяет продуктовые спецификации и не утверждает MVP.  
-**Дата снимка кода:** 2026-11-06 (web F1 D-024 foundation + system map + S4c)  
+**Дата снимка кода:** 2026-11-06 (web F2 AppShell/Home + F1 D-024 + system map + S4c)  
 **Сверка статусов решений:** 2026-11-06 (W-001–W-020, W-014a, **D-024**)  
 **Источник истины по решениям:** `docs/decisions-log.md`  
 **План:** `tasks/roadmap.md` / `tasks/plan.md`. S0–S4c в `main`. Полный W-020 / TEAM create / email provider / Workspace UI — ещё нет.
@@ -96,15 +96,15 @@ spectreAI/
 Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities` / `shared`.
 
 - Явная метка synthetic/test: `shared/ui` на `/`, `/login`, `/system` (D-012).
-- `/login` — `features/login` (RHF + Zod) → `POST /auth/login` (email, password, organizationId).
-- `/` — `widgets/session-panel` → `GET /auth/me` через TanStack Query; без сессии → `/login`; `features/logout` → `POST /auth/logout`; ссылка на `/system`.
-- `/system` — `widgets/system-map`: статичная карта AS-IS (слои, сущности, путь запроса, roadmap) без требования сессии; не live health.
+- `/login` — `features/login` (RHF + Zod) → `POST /auth/login` (email, password, organizationId); без product shell.
+- `/` — `widgets/app-shell` + `widgets/home-overview`: Make-подобный chrome; `GET /auth/me` через TanStack Query; 401 → `/login`; logout в сайдбаре; проекты в UI ещё empty/disabled.
+- `/system` — `widgets/system-map`: карта AS-IS без shell; не live health.
 - Сессия: `entities/session` (типы, API, Query options, `SessionMeta`).
 - Browser `fetch` на `/api/v1/*` с `credentials: "same-origin"` + CSRF header на мутациях; rewrite в `next.config.ts` на `API_ORIGIN` (по умолчанию `http://localhost:3000`).
 - Линтеры: ESLint + Steiger FSD + Stylelint (system-map CSS пока в ignore до миграции).
-- Стили AS-IS: глобальные SCSS-токены (`app/styles`); `shared/ui` Button/Input на SCSS Modules; system-map ещё на plain CSS Modules.
-- Тесты AS-IS: Vitest + RTL (Button, loginSchema). Storybook / Chromatic / Playwright — **ещё нет**.
-- Нет регистрации, recovery, MFA, Workspace UI, invite accept UI, загрузки файлов.
+- Стили AS-IS: SCSS-токены Make-aligned; `shared/ui` Button/Input/Icon; shell/home на SCSS Modules; system-map ещё plain CSS Modules.
+- Тесты AS-IS: Vitest + RTL (Button, loginSchema, AppShell). Storybook / Chromatic / Playwright — **ещё нет**.
+- Нет регистрации, recovery, MFA, Workspace list/create UI, invite accept UI, загрузки файлов.
 
 ## 4. Пакеты
 
@@ -223,7 +223,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 | `docs/12` §7 CSRF | **W-014** + **W-014a** | Origin allowlist + double-submit; SameSite=Lax доп. слой | Соответствует scaffold S4a |
 | `docs/21` same-origin API | PROPOSED detail | Next rewrite `/api/v1` → Nest | Соответствует локальному scaffold |
 | `docs/21` / **D-023** FSD | CONFIRMED | Слои app/widgets/features/entities/shared + Steiger/ESLint | Соответствует scaffold login |
-| `docs/21` / **D-024** quality bar | CONFIRMED | SCSS Modules, `shared/ui`, RHF+Zod, Query, Vitest/Storybook/Chromatic/Playwright | F1: Sass/Stylelint/Button/Input/RHF/Zod/Query/Vitest; Storybook/Chromatic/Playwright нет; system-map CSS Modules |
+| `docs/21` / **D-024** quality bar | CONFIRMED | SCSS Modules, `shared/ui`, RHF+Zod, Query, Vitest/Storybook/Chromatic/Playwright | F2: AppShell/Home + F1 bar; Storybook/Chromatic/Playwright нет; system-map CSS Modules |
 | `docs/11` префикс `/api/v1`, коды ошибок | — | `/api/v1`, `UNAUTHENTICATED` / `NOT_FOUND` / `VALIDATION_ERROR` | Согласовано |
 | `docs/11` карта `clients`/`matters` | PROPOSED GET/POST (+ GET by id) | Есть также PATCH; DELETE нет | PATCH — scaffold extension; DELETE OUT OF SCOPE |
 | `docs/06` `created_by` на Client/Matter | PROPOSED | Поля в Prisma нет | OPEN / отложено |

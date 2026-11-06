@@ -3,7 +3,7 @@ import { SyntheticModeBanner } from "@/shared/ui";
 
 export default function LoginPage() {
   return (
-    <main>
+    <main className="page-main">
       <SyntheticModeBanner />
       <h1>Вход</h1>
       <p className="lead">

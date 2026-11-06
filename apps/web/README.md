@@ -6,7 +6,7 @@ Next.js App Router. Port: `3001`.
 Import direction: `app → widgets → features → entities → shared`.
 
 **Quality bar (CONFIRMED D-024 / ADR-0004):** SCSS Modules + CSS tokens, own `shared/ui`, RHF+Zod, TanStack Query, Vitest+RTL + Storybook+Chromatic + Playwright.  
-**AS-IS (F1):** Sass tokens + SCSS Modules for new UI, Stylelint, Button/Input, RHF+Zod login, TanStack Query for session, Vitest+RTL. Storybook / Chromatic / Playwright — not wired yet. `system-map` still uses plain CSS Modules (migrate later).
+**AS-IS (F2):** Sass tokens (Make-aligned) + Stylelint, Button/Input/Icon, RHF+Zod login, TanStack Query session, AppShell + Home empty state, Vitest+RTL. Storybook / Chromatic / Playwright — not wired. `system-map` still plain CSS Modules.
 
 ## Run
 
@@ -14,9 +14,9 @@ Import direction: `app → widgets → features → entities → shared`.
 pnpm --filter @spectre/web dev
 pnpm --filter @spectre/web build
 pnpm --filter @spectre/web test
-pnpm --filter @spectre/web lint         # ESLint (TS + restricted deep imports)
-pnpm --filter @spectre/web lint:fsd     # Steiger FSD boundaries
-pnpm --filter @spectre/web lint:styles  # Stylelint (SCSS/CSS; system-map ignored until migrate)
+pnpm --filter @spectre/web lint
+pnpm --filter @spectre/web lint:fsd
+pnpm --filter @spectre/web lint:styles
 pnpm --filter @spectre/web lint:all
 ```
 
@@ -27,37 +27,34 @@ Set `WEB_ORIGIN=http://localhost:3001` on the API for CSRF Origin allowlist (**W
 
 ```text
 src/
-├── app/                 # routes + global SCSS tokens
+├── app/
+│   ├── (product)/       # AppShell layout + Home
 │   ├── login/
-│   ├── system/          # AS-IS onboarding map (no auth)
-│   └── styles/
+│   ├── system/
+│   └── styles/          # global SCSS tokens
 ├── widgets/
-│   ├── session-panel/
+│   ├── app-shell/
+│   ├── home-overview/
 │   └── system-map/
 ├── features/
-│   ├── login/           # RHF + Zod
+│   ├── login/
 │   └── logout/
 ├── entities/
-│   └── session/         # + TanStack Query options for /auth/me
+│   └── session/
 └── shared/
-    ├── api/             # fetch client + QueryProvider
+    ├── api/
     ├── lib/
-    └── ui/              # SyntheticModeBanner, Button, Input
+    └── ui/
 ```
 
 ## Behaviour
 
-- `/login` — `features/login` (RHF+Zod) → `POST /auth/login`.
-- `/` — `widgets/session-panel` → `GET /auth/me` via TanStack Query; 401 → `/login`; `features/logout` → `POST /auth/logout`; link to `/system`.
-- `/system` — `widgets/system-map`: AS-IS map + interactive system-design board; no session required.
-- Synthetic banner: `shared/ui` (D-012).
-- Rewrite `/api/v1/*` → Nest (`next.config.ts`). Mutating `fetch` sends `X-CSRF-Token` from `spectre_csrf` (**W-014a**).
-- No registration, recovery, MFA, Workspace UI, invite accept UI, or document UI.
+- `/login` — RHF+Zod → `POST /auth/login` (no product shell).
+- `/` — `AppShell` + `HomeOverview`; session via Query; 401 → `/login`; logout in sidebar.
+- Nav: Home active; Projects / Org disabled («скоро»); link to `/system`.
+- Desktop gate below 1280px (Make constraint).
+- `/system` — system-map onboarding (no shell).
+- Synthetic banner in topbar (D-012).
+- No Workspace list/create UI yet (API exists).
 
-Local login needs an existing User + active OrganizationMembership in Postgres. Product entry is **W-011–W-012** (Email+Password+Organization ID; bootstrap + invite-only); **product seed/invite UI is not implemented yet**.
-
-Lint configs: `eslint.config.mjs`, `steiger.config.mjs`, `stylelint.config.mjs`.  
-Tests: `vitest.config.ts`.  
-Cursor rule: `.cursor/rules/08-frontend-fsd.mdc`.  
-Code inventory: `docs/26-codebase-current-state.md`.  
-Plan: `tasks/plan.md` (F1+).
+Local login needs User + OrganizationMembership. Plan: `tasks/plan.md`.
