@@ -23,3 +23,9 @@ export type CreateWorkspaceInput = {
   description?: string | null;
   visibility?: "PERSONAL";
 };
+
+/** PATCH /workspaces/:id — at least one field required by API. */
+export type UpdateWorkspaceInput = {
+  name?: string;
+  description?: string | null;
+};

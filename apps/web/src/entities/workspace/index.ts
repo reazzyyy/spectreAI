@@ -2,8 +2,17 @@ export type {
   Workspace,
   WorkspaceListResponse,
   CreateWorkspaceInput,
+  UpdateWorkspaceInput,
   WorkspaceVisibility,
   WorkspaceStatus,
 } from "./model/types";
-export { listWorkspaces, createWorkspace } from "./api/workspace-api";
-export { workspacesListQueryOptions } from "./api/workspace-queries";
+export {
+  listWorkspaces,
+  fetchWorkspace,
+  createWorkspace,
+  updateWorkspace,
+} from "./api/workspace-api";
+export {
+  workspacesListQueryOptions,
+  workspaceDetailQueryOptions,
+} from "./api/workspace-queries";

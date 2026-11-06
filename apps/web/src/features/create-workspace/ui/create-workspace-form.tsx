@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import {
   createWorkspace,
   workspacesListQueryOptions,
+  type Workspace,
 } from "@/entities/workspace";
 import { isApiError } from "@/shared/api";
 import { Button, Input } from "@/shared/ui";
@@ -16,7 +17,7 @@ import {
 } from "../model/create-workspace-schema";
 
 export interface CreateWorkspaceFormProps {
-  onCreated?: () => void;
+  onCreated?: (workspace: Workspace) => void;
 }
 
 /**
@@ -38,13 +39,13 @@ export function CreateWorkspaceForm({ onCreated }: CreateWorkspaceFormProps) {
 
   const mutation = useMutation({
     mutationFn: createWorkspace,
-    onSuccess: async () => {
+    onSuccess: async (workspace) => {
       await queryClient.invalidateQueries({
         queryKey: workspacesListQueryOptions.queryKey,
       });
       reset();
       setFormError(null);
-      onCreated?.();
+      onCreated?.(workspace);
     },
   });
 

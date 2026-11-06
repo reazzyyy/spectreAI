@@ -55,7 +55,7 @@ export function HomeOverview() {
             <ul className={styles.recentList}>
               {items.slice(0, 5).map((ws) => (
                 <li key={ws.id}>
-                  <Link href="/projects">{ws.name}</Link>
+                  <Link href={`/projects/${ws.id}`}>{ws.name}</Link>
                 </li>
               ))}
             </ul>

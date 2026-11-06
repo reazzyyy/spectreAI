@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { workspacesListQueryOptions } from "@/entities/workspace";
 import { CreateWorkspaceForm } from "@/features/create-workspace";
@@ -13,9 +15,10 @@ const VISIBILITY_LABEL = {
 
 /**
  * Projects list (Make «Все проекты»): GET /workspaces + create PERSONAL.
- * Detail / TEAM create / search — later slices.
+ * Opens detail on create / row click (F5b). TEAM create — later.
  */
 export function WorkspaceList() {
+  const router = useRouter();
   const { data, error, isPending, isError, isFetching } = useQuery(
     workspacesListQueryOptions,
   );
@@ -66,7 +69,9 @@ export function WorkspaceList() {
               {data.items.map((ws) => (
                 <li key={ws.id} className={styles.item}>
                   <div>
-                    <p className={styles.itemName}>{ws.name}</p>
+                    <p className={styles.itemName}>
+                      <Link href={`/projects/${ws.id}`}>{ws.name}</Link>
+                    </p>
                     {ws.description ? (
                       <p className={styles.meta}>{ws.description}</p>
                     ) : null}
@@ -86,7 +91,11 @@ export function WorkspaceList() {
           <h2 id="workspace-create-title" className={styles.sectionTitle}>
             Новый проект
           </h2>
-          <CreateWorkspaceForm />
+          <CreateWorkspaceForm
+            onCreated={(workspace) => {
+              router.push(`/projects/${workspace.id}`);
+            }}
+          />
         </section>
       </div>
     </div>

@@ -41,16 +41,18 @@ F5+ Product screens from Make (projects, chat, …) по docs/31 — отдел�
 
 ### F4 — Playwright smoke ✅ в `main`
 
-### F5a — Workspace list + PERSONAL create (текущий PR)
+### F5a — Workspace list + PERSONAL create ✅ в `main`
 
-**Description:** `/projects` — `GET /workspaces` + `POST /workspaces` (PERSONAL); nav + home preview.
+### F5b — Workspace detail + rename/description (текущий PR)
+
+**Description:** `/projects/[id]` — `GET/PATCH /workspaces/:id` (WS-03/04/05); links from list/home; create → detail.
 
 **Acceptance criteria:**
-- [x] `entities/workspace` + `features/create-workspace` + `widgets/workspace-list`
-- [x] Route `/projects`; nav «Все проекты»; home recent list
+- [x] Detail widget + `features/edit-workspace`
+- [x] Entity fetch/update + detail query
 - [x] Vitest schema; AS-IS / README / plan
 
-**Out of scope F5a:** Workspace detail, TEAM create, members/matters UI, search.
+**Out of scope F5b:** TEAM create, members, Matter/Client link, chat, search.
 
 ## Risks
 
