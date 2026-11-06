@@ -10,6 +10,9 @@ export default {
   rules: {
     "selector-class-pattern": null,
     "custom-property-pattern": null,
+    // CSS Modules + BEM-ish modifiers create false positives with nested .collapsed/.active.
+    "no-descending-specificity": null,
+    "selector-not-notation": null,
     "value-keyword-case": [
       "lower",
       {

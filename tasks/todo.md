@@ -15,13 +15,16 @@
 - [x] AS-IS / web README
 - [x] Verify: test + lint + lint:fsd + lint:styles + build
 
-## Checkpoint F1
-- [x] Login/session wiring на новом баре (ручной e2e с API — по возможности локально)
-- [x] Не объявлены Storybook/Playwright как AS-IS
+## F2 App shell + Home
+- [x] Make-aligned tokens + fonts
+- [x] `widgets/app-shell` (sidebar/topbar/desktop gate)
+- [x] `widgets/home-overview` empty state
+- [x] `(product)` layout; remove unused session-panel
+- [x] Vitest AppShell + docs
+- [x] Verify: test + lint + lint:fsd + lint:styles + build
 
 ## Later
-- [ ] F2 App shell + Home (Make)
 - [ ] F3 Storybook + Chromatic
 - [ ] F4 Playwright smoke
-- [ ] F5+ product screens / docs/31
+- [ ] F5+ product screens / Workspace list UI / docs/31
 - [ ] Chore: migrate system-map to SCSS Modules

@@ -31,24 +31,22 @@ F4  Playwright smoke (login → home / 401)
 F5+ Product screens from Make (projects, chat, …) по docs/31 — отдельные PR
 ```
 
-### F1 — Foundation (этот PR)
+### F1 — Foundation ✅ в `main`
 
-**Description:** Инфраструктура D-024 и вертикальный срез login/session без ломки API.
+**Acceptance criteria:** выполнены (Sass/Stylelint/Button/Input/RHF+Zod/Query/Vitest).
+
+### F2 — App shell + Home (текущий PR)
+
+**Description:** Chrome из Make (sidebar/topbar/desktop gate) + Home empty state без demo-state.
 
 **Acceptance criteria:**
-- [ ] Глобальные SCSS-токены; layout без `globals.css`
-- [ ] Stylelint для SCSS; `lint:styles` скрипт
-- [ ] `shared/ui` Button + Input (SCSS Modules, `interface` props)
-- [ ] Login на RHF + Zod; session panel на TanStack Query
-- [ ] Vitest + RTL: минимум схема login + Button
-- [ ] AS-IS + `apps/web/README` обновлены; не объявлять Storybook/Playwright готовыми
+- [x] Токены ближе к Make; шрифты Golos/Noto
+- [x] `widgets/app-shell` + `(product)` layout
+- [x] Home: greeting/session/empty projects; Projects/Org disabled
+- [x] Vitest на AppShell; AS-IS/README
+- [x] Без mock projects / command palette / create dialog
 
-**Verification:**
-- [ ] `pnpm --filter @spectre/web test`
-- [ ] `pnpm --filter @spectre/web lint` + `lint:fsd` + `lint:styles`
-- [ ] `pnpm --filter @spectre/web build`
-
-**Out of scope F1:** миграция system-map на SCSS; Storybook; Playwright; shell Make; новые маршруты продукта.
+**Out of scope F2:** список Workspace, Storybook, Playwright, миграция system-map.
 
 ## Risks
 

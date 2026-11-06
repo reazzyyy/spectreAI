@@ -4,7 +4,7 @@
  */
 export function SyntheticModeBanner() {
   return (
-    <p role="status">
+    <p role="status" className="synthetic-banner">
       Синтетический режим: AI не отправляет данные во внешний провайдер. Используются
       только тестовые данные.
     </p>
