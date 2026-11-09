@@ -2,6 +2,15 @@
   max-width: 960px;
 }
 
+.membersBlock {
+  margin-bottom: 32px;
+}
+
+.userId {
+  font-family: ui-monospace, monospace;
+  font-size: var(--fs-sm);
+}
+
 .head {
   display: flex;
   flex-wrap: wrap;

@@ -83,7 +83,8 @@ On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` 
 - Create accepts **PERSONAL** (default) or **TEAM**; other `visibility` → `422`.
 - Content list/read uses `WorkspaceAccess` (owner or TEAM member). Member management: Workspace owner or Org Admin (no auto content for Org Admin).
 - Foreign/missing Workspace → identical `404`; foreign Matter on link → `422`.
-- **OUT:** org user directory, hard delete.
+- Org directory: `GET /organizations/:id/members` (same-org; SEC-01).
+- **OUT:** org role change, hard delete.
 
 ## Hard boundaries
 

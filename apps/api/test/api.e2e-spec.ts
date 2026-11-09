@@ -672,6 +672,33 @@ describe("API scaffold", () => {
       expect(revoked.body).toMatchObject({ userId: USER_B, status: "REVOKED" });
     });
 
+    it("lists org members for same org and hides foreign org", async () => {
+      const listed = await agent.get(`/api/v1/organizations/${ORG_A}/members`);
+      expect(listed.status).toBe(200);
+      expect(listed.body.items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            userId: USER_A,
+            email: USER_A_EMAIL,
+            role: "owner",
+            status: "active",
+          }),
+          expect.objectContaining({
+            userId: USER_B,
+            email: USER_B_EMAIL,
+            role: "member",
+            status: "active",
+          }),
+        ]),
+      );
+      expect(JSON.stringify(listed.body)).not.toContain(USER_ORG_B_EMAIL);
+      expect(JSON.stringify(listed.body)).not.toContain("password");
+
+      const foreign = await agent.get(`/api/v1/organizations/${ORG_B}/members`);
+      expect(foreign.status).toBe(404);
+      expect(foreign.body.error.code).toBe("NOT_FOUND");
+    });
+
     it("creates, accepts, and revokes org invitations; rejects owner role and foreign org", async () => {
       const inviteEmail = `invitee-${Date.now()}@localhost`;
       const created = await agent.post(`/api/v1/organizations/${ORG_A}/invitations`).send({

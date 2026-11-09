@@ -6,7 +6,7 @@ Next.js App Router. Port: `3001`.
 Import direction: `app → widgets → features → entities → shared`.
 
 **Quality bar (CONFIRMED D-024 / ADR-0004):** SCSS Modules + CSS tokens, own `shared/ui`, RHF+Zod, TanStack Query, Vitest+RTL + Storybook+Chromatic + Playwright.  
-**AS-IS (F5i):** Workspace PERSONAL|TEAM create + members on TEAM detail, Matter + Client CRUD, links, org invitations + `/invite/accept`, AppShell/Home, Vitest+RTL, Storybook/Chromatic, Playwright auth smoke. `system-map` still plain CSS Modules. Org user directory — not wired.
+**AS-IS (F5j):** Workspace PERSONAL|TEAM + members picker from org directory, Matter + Client CRUD, links, org members (SEC-01) + invitations + `/invite/accept`, AppShell/Home, Vitest+RTL, Storybook/Chromatic, Playwright auth smoke. `system-map` still plain CSS Modules.
 
 ## Run
 
@@ -34,7 +34,7 @@ src/
 ├── app/invite/      # /invite/accept (no shell)
 ├── widgets/         # app-shell, home, workspace-*, matter-*, client-*, organization-invites, system-map
 ├── features/        # login, logout, invitations, workspace|matter|client, members, matters links
-├── entities/        # session, workspace, matter, client, invitation
+├── entities/        # session, workspace, matter, client, invitation, org-member
 └── shared/          # api, lib, ui
 ```
 
@@ -43,10 +43,10 @@ src/
 - `/login` — auth form.
 - `/invite/accept` — accept org invite (token + optional password); no product shell.
 - `/` — home + recent workspaces.
-- `/projects`, `/projects/[id]` — Workspace list/create (PERSONAL|TEAM)/edit + Matter links + TEAM members.
+- `/projects`, `/projects/[id]` — Workspace list/create (PERSONAL|TEAM)/edit + Matter links + TEAM members (org picker).
 - `/matters`, `/matters/[id]` — Matter list/create/edit.
 - `/clients`, `/clients/[id]` — Client list/create/edit.
-- `/organization` — Owner invitations (admin|member); non-owner notice; link to accept when `devToken` present.
+- `/organization` — org members directory; Owner invitations; `devToken` accept link.
 - Nav: Home, проекты, дела, клиенты, Организация, `/system`.
 - Desktop gate below 1280px. Synthetic banner (D-012).
 

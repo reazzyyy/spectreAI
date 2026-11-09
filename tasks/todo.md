@@ -50,8 +50,11 @@
 ## F5i TEAM create + members UI
 - [x] API unlock TEAM create; create visibility; members panel; docs / verify
 
+## F5j Org members directory
+- [x] GET …/members + /organization list + TEAM picker; docs / verify
+
 ## Later
-- [ ] F5j+ org user directory / docs/31 next screens
+- [ ] F5k+ org role change / docs/31 next screens
 - [ ] Chore: migrate system-map to SCSS Modules
 - [ ] Optional: CI Chromatic / Playwright when ready
 - [ ] Roadmap next: documents (Фаза 3) when ready
