@@ -1,12 +1,7 @@
 /** @type {import("stylelint").Config} */
 export default {
   extends: ["stylelint-config-standard-scss", "stylelint-config-pretty-order"],
-  ignoreFiles: [
-    "**/node_modules/**",
-    "**/.next/**",
-    // Pre-D-024 CSS Modules (system-map); migrate in a later chore slice.
-    "**/widgets/system-map/**",
-  ],
+  ignoreFiles: ["**/node_modules/**", "**/.next/**"],
   rules: {
     "selector-class-pattern": null,
     "custom-property-pattern": null,

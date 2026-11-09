@@ -56,7 +56,9 @@
 ## F5k Org role change
 - [x] PATCH …/members/:userId + owner UI; docs / verify
 
+## Chore: system-map SCSS
+- [x] CSS Modules → SCSS Modules; stylelint ignore removed; docs / verify
+
 ## Later
-- [ ] Chore: migrate system-map to SCSS Modules
 - [ ] Optional: CI Chromatic / Playwright when ready
 - [ ] Roadmap next: documents (Фаза 3) / docs/31 next screens when ready

@@ -1,8 +1,8 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
-import styles from "./architecture-diagram.module.css";
-import mapStyles from "./system-map.module.css";
+import styles from "./architecture-diagram.module.scss";
+import mapStyles from "./system-map.module.scss";
 
 type Status = "now" | "partial" | "later";
 type ViewId = "runtime" | "domain" | "login" | "workspace" | "ai";

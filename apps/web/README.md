@@ -6,7 +6,7 @@ Next.js App Router. Port: `3001`.
 Import direction: `app → widgets → features → entities → shared`.
 
 **Quality bar (CONFIRMED D-024 / ADR-0004):** SCSS Modules + CSS tokens, own `shared/ui`, RHF+Zod, TanStack Query, Vitest+RTL + Storybook+Chromatic + Playwright.  
-**AS-IS (F5k):** Workspace PERSONAL|TEAM + members picker, Matter + Client CRUD, links, org members + owner role change (admin|member) + invitations + `/invite/accept`, AppShell/Home, Vitest+RTL, Storybook/Chromatic, Playwright auth smoke. `system-map` still plain CSS Modules.
+**AS-IS (F5k + system-map SCSS):** Workspace PERSONAL|TEAM + members picker, Matter + Client CRUD, links, org members + owner role change + invitations + `/invite/accept`, AppShell/Home, Vitest+RTL, Storybook/Chromatic, Playwright auth smoke. `system-map` on SCSS Modules (D-024).
 
 ## Run
 
