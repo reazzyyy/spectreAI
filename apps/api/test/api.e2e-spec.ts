@@ -499,7 +499,7 @@ describe("API scaffold", () => {
       expect(emptyPatch.status).toBe(422);
     });
 
-    it("creates PERSONAL workspace, lists owned, patches; rejects TEAM create and foreign id", async () => {
+    it("creates PERSONAL and TEAM workspaces, lists owned, patches; rejects bad visibility and foreign id", async () => {
       const created = await agent.post("/api/v1/workspaces").send({
         name: " My Desk ",
         description: "personal notes",
@@ -517,11 +517,23 @@ describe("API scaffold", () => {
       expect(created.body.id).toEqual(expect.any(String));
 
       const teamCreate = await agent.post("/api/v1/workspaces").send({
-        name: "Should fail",
+        name: "Team Desk",
         visibility: "TEAM",
       });
-      expect(teamCreate.status).toBe(422);
-      expect(teamCreate.body.error.code).toBe("VALIDATION_ERROR");
+      expect(teamCreate.status).toBe(201);
+      expect(teamCreate.body).toMatchObject({
+        name: "Team Desk",
+        visibility: "TEAM",
+        ownerUserId: USER_A,
+        organizationId: ORG_A,
+      });
+
+      const badVisibility = await agent.post("/api/v1/workspaces").send({
+        name: "Nope",
+        visibility: "PUBLIC",
+      });
+      expect(badVisibility.status).toBe(422);
+      expect(badVisibility.body.error.code).toBe("VALIDATION_ERROR");
 
       const listed = await agent.get("/api/v1/workspaces");
       expect(listed.status).toBe(200);

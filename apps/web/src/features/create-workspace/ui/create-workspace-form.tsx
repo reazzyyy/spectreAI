@@ -15,15 +15,13 @@ import {
   createWorkspaceSchema,
   type CreateWorkspaceFormValues,
 } from "../model/create-workspace-schema";
+import styles from "./create-workspace-form.module.scss";
 
 export interface CreateWorkspaceFormProps {
   onCreated?: (workspace: Workspace) => void;
 }
 
-/**
- * Creates a PERSONAL Workspace via POST /workspaces (W-002 / S3).
- * TEAM create is out of UI scope until API allows it.
- */
+/** Creates a PERSONAL or TEAM Workspace via POST /workspaces (W-002). */
 export function CreateWorkspaceForm({ onCreated }: CreateWorkspaceFormProps) {
   const queryClient = useQueryClient();
   const [formError, setFormError] = useState<string | null>(null);
@@ -34,7 +32,7 @@ export function CreateWorkspaceForm({ onCreated }: CreateWorkspaceFormProps) {
     formState: { errors, isSubmitting },
   } = useForm<CreateWorkspaceFormValues>({
     resolver: zodResolver(createWorkspaceSchema),
-    defaultValues: { name: "", description: "" },
+    defaultValues: { name: "", description: "", visibility: "PERSONAL" },
   });
 
   const mutation = useMutation({
@@ -43,7 +41,7 @@ export function CreateWorkspaceForm({ onCreated }: CreateWorkspaceFormProps) {
       await queryClient.invalidateQueries({
         queryKey: workspacesListQueryOptions.queryKey,
       });
-      reset();
+      reset({ name: "", description: "", visibility: "PERSONAL" });
       setFormError(null);
       onCreated?.(workspace);
     },
@@ -56,11 +54,11 @@ export function CreateWorkspaceForm({ onCreated }: CreateWorkspaceFormProps) {
       await mutation.mutateAsync({
         name: values.name.trim(),
         description: description ? description : null,
-        visibility: "PERSONAL",
+        visibility: values.visibility,
       });
     } catch (err) {
       if (isApiError(err) && err.code === "VALIDATION_ERROR") {
-        setFormError("Проверьте название и описание.");
+        setFormError("Проверьте название, тип и описание.");
       } else {
         setFormError("Не удалось создать проект. Попробуйте ещё раз.");
       }
@@ -77,12 +75,31 @@ export function CreateWorkspaceForm({ onCreated }: CreateWorkspaceFormProps) {
         error={errors.name?.message}
         {...register("name")}
       />
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="workspace-visibility">
+          Тип
+        </label>
+        <select
+          id="workspace-visibility"
+          className={styles.select}
+          disabled={isSubmitting}
+          {...register("visibility")}
+        >
+          <option value="PERSONAL">Личный</option>
+          <option value="TEAM">Командный</option>
+        </select>
+        {errors.visibility?.message ? (
+          <p role="alert" className="form-error">
+            {errors.visibility.message}
+          </p>
+        ) : null}
+      </div>
       <Input
         id="workspace-description"
         label="Описание"
         autoComplete="off"
         disabled={isSubmitting}
-        hint="Необязательно. Командные проекты появятся позже."
+        hint="Необязательно. Участников можно добавить только в командный проект."
         error={errors.description?.message}
         {...register("description")}
       />
@@ -92,7 +109,7 @@ export function CreateWorkspaceForm({ onCreated }: CreateWorkspaceFormProps) {
         </p>
       ) : null}
       <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Создание…" : "Создать личный проект"}
+        {isSubmitting ? "Создание…" : "Создать проект"}
       </Button>
     </form>
   );

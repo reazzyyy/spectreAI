@@ -39,11 +39,16 @@ export interface WorkspaceMemberRecord {
   status: WorkspaceMemberStatus;
 }
 
-export interface WorkspaceCreatePersonalInput {
+/** Create Workspace input. Default visibility PERSONAL; TEAM allowed (W-002). */
+export interface WorkspaceCreateInput {
   name: string;
   description?: string | null;
   clientId?: string | null;
+  visibility?: WorkspaceVisibility;
 }
+
+/** @deprecated Use WorkspaceCreateInput — kept for call-site compatibility. */
+export type WorkspaceCreatePersonalInput = WorkspaceCreateInput;
 
 export interface WorkspaceUpdateInput {
   name?: string;
@@ -70,7 +75,7 @@ export interface WorkspaceMatterLink {
 export interface WorkspaceStore {
   findById(id: string): Promise<WorkspaceRecord | null>;
   listByOrganization(organizationId: string): Promise<WorkspaceRecord[]>;
-  create(organizationId: string, ownerUserId: string, input: WorkspaceCreatePersonalInput): Promise<WorkspaceRecord>;
+  create(organizationId: string, ownerUserId: string, input: WorkspaceCreateInput): Promise<WorkspaceRecord>;
   update(id: string, input: WorkspaceUpdateInput): Promise<WorkspaceRecord | null>;
   findActiveMember(workspaceId: string, userId: string): Promise<WorkspaceMemberRecord | null>;
   listActiveMembers(workspaceId: string): Promise<WorkspaceMemberRecord[]>;
@@ -208,12 +213,12 @@ export class WorkspaceAccess {
   }
 
   /**
-   * Create PERSONAL workspace only (Phase 2 assumption: TEAM create deferred).
-   * Stamps organizationId + ownerUserId from actor.
+   * Create Workspace (PERSONAL or TEAM). Stamps organizationId + ownerUserId from actor.
+   * Visibility defaults to PERSONAL when omitted.
    */
   async createPersonal(
     actor: WorkspaceActor,
-    input: WorkspaceCreatePersonalInput,
+    input: WorkspaceCreateInput,
   ): Promise<WorkspaceRecord | null> {
     if (!hasOrg(actor)) {
       return null;
@@ -221,11 +226,16 @@ export class WorkspaceAccess {
     if (input.name.trim() === "") {
       return null;
     }
+    const visibility = input.visibility ?? "PERSONAL";
+    if (visibility !== "PERSONAL" && visibility !== "TEAM") {
+      return null;
+    }
 
     return this.store.create(actor.organizationId, actor.userId, {
       name: input.name.trim(),
       description: input.description ?? null,
       clientId: input.clientId ?? null,
+      visibility,
     });
   }
 

@@ -6,7 +6,7 @@ Next.js App Router. Port: `3001`.
 Import direction: `app → widgets → features → entities → shared`.
 
 **Quality bar (CONFIRMED D-024 / ADR-0004):** SCSS Modules + CSS tokens, own `shared/ui`, RHF+Zod, TanStack Query, Vitest+RTL + Storybook+Chromatic + Playwright.  
-**AS-IS (F5h):** Workspace + Matter + Client CRUD, Matter↔Workspace links, Client link on Matter/Workspace edit, org invitations (Owner list/create/resend/revoke) + `/invite/accept`, AppShell/Home, Vitest+RTL, Storybook/Chromatic, Playwright auth smoke. `system-map` still plain CSS Modules. TEAM / members — not wired.
+**AS-IS (F5i):** Workspace PERSONAL|TEAM create + members on TEAM detail, Matter + Client CRUD, links, org invitations + `/invite/accept`, AppShell/Home, Vitest+RTL, Storybook/Chromatic, Playwright auth smoke. `system-map` still plain CSS Modules. Org user directory — not wired.
 
 ## Run
 
@@ -33,7 +33,7 @@ src/
 ├── app/(product)/   # Home, /projects, /matters, /clients, /organization
 ├── app/invite/      # /invite/accept (no shell)
 ├── widgets/         # app-shell, home, workspace-*, matter-*, client-*, organization-invites, system-map
-├── features/        # login, logout, create/edit/accept invitation, workspace|matter|client, matters links
+├── features/        # login, logout, invitations, workspace|matter|client, members, matters links
 ├── entities/        # session, workspace, matter, client, invitation
 └── shared/          # api, lib, ui
 ```
@@ -43,7 +43,7 @@ src/
 - `/login` — auth form.
 - `/invite/accept` — accept org invite (token + optional password); no product shell.
 - `/` — home + recent workspaces.
-- `/projects`, `/projects/[id]` — Workspace list/create/edit + Matter links.
+- `/projects`, `/projects/[id]` — Workspace list/create (PERSONAL|TEAM)/edit + Matter links + TEAM members.
 - `/matters`, `/matters/[id]` — Matter list/create/edit.
 - `/clients`, `/clients/[id]` — Client list/create/edit.
 - `/organization` — Owner invitations (admin|member); non-owner notice; link to accept when `devToken` present.

@@ -5,6 +5,11 @@ export type {
   UpdateWorkspaceInput,
   WorkspaceMatterLink,
   WorkspaceMatterListResponse,
+  WorkspaceMember,
+  WorkspaceMemberListResponse,
+  UpsertWorkspaceMemberInput,
+  WorkspaceMemberRole,
+  WorkspaceMemberStatus,
   WorkspaceVisibility,
   WorkspaceStatus,
 } from "./model/types";
@@ -16,9 +21,13 @@ export {
   listWorkspaceMatters,
   linkWorkspaceMatter,
   unlinkWorkspaceMatter,
+  listWorkspaceMembers,
+  upsertWorkspaceMember,
+  revokeWorkspaceMember,
 } from "./api/workspace-api";
 export {
   workspacesListQueryOptions,
   workspaceDetailQueryOptions,
   workspaceMattersQueryOptions,
+  workspaceMembersQueryOptions,
 } from "./api/workspace-queries";

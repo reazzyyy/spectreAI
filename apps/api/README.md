@@ -38,7 +38,7 @@ Idempotent for the same org name + owner email; refuses replacing an existing di
 - Roles: `admin` | `member` only (not `owner`). Raw token stored as SHA-256; `devToken` returned outside production only.
 - TTL: `INVITE_TTL_HOURS` (**O-011**). Email provider stub — out of this slice (devToken stands in).
 
-E2e seeds organizations, clients, matters, users + memberships, a TEAM Workspace fixture, logs in via cookie, and asserts cross-org Client/Matter/Workspace → `404`, foreign `clientId`/`matterId` → `422`, and TEAM create → `422`.
+E2e seeds organizations, clients, matters, users + memberships, a TEAM Workspace fixture, logs in via cookie, and asserts cross-org Client/Matter/Workspace → `404`, foreign `clientId`/`matterId` → `422`, PERSONAL|TEAM create, bad visibility → `422`.
 
 On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` against a service Postgres (`pgvector/pgvector:pg16`) after `migrate:deploy`.
 
@@ -80,10 +80,10 @@ On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` 
 ## Workspace scaffold (S3)
 
 - Endpoints (session required): `GET/POST /workspaces`, `GET/PATCH /workspaces/:id`, members CRUD-lite, matter link/unlink.
-- Create accepts **PERSONAL only** (`visibility: TEAM` → `422`); TEAM create deferred.
+- Create accepts **PERSONAL** (default) or **TEAM**; other `visibility` → `422`.
 - Content list/read uses `WorkspaceAccess` (owner or TEAM member). Member management: Workspace owner or Org Admin (no auto content for Org Admin).
 - Foreign/missing Workspace → identical `404`; foreign Matter on link → `422`.
-- **OUT:** invitations, CSRF, Workspace UI, TEAM create policy, hard delete.
+- **OUT:** org user directory, hard delete.
 
 ## Hard boundaries
 

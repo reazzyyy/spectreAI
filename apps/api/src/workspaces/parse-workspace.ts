@@ -7,6 +7,7 @@ export interface ParsedWorkspaceCreate {
   name: string;
   description?: string | null;
   clientId?: string | null;
+  visibility?: "PERSONAL" | "TEAM";
 }
 
 export interface ParsedWorkspaceUpdate {
@@ -55,7 +56,7 @@ function parseDescription(value: unknown): string | null | undefined {
 }
 
 /**
- * Parses POST /workspaces. Only PERSONAL is accepted in S3 (visibility TEAM → reject).
+ * Parses POST /workspaces. PERSONAL (default) or TEAM (W-002).
  * organizationId / ownerUserId never taken from the client.
  */
 export function parseWorkspaceCreate(body: unknown): ParsedWorkspaceCreate | null {
@@ -65,8 +66,12 @@ export function parseWorkspaceCreate(body: unknown): ParsedWorkspaceCreate | nul
 
   const record = body as Record<string, unknown>;
 
-  if (record.visibility !== undefined && record.visibility !== "PERSONAL") {
-    return null;
+  let visibility: "PERSONAL" | "TEAM" | undefined;
+  if (record.visibility !== undefined) {
+    if (record.visibility !== "PERSONAL" && record.visibility !== "TEAM") {
+      return null;
+    }
+    visibility = record.visibility;
   }
 
   if (typeof record.name !== "string") {
@@ -93,6 +98,9 @@ export function parseWorkspaceCreate(body: unknown): ParsedWorkspaceCreate | nul
   }
   if (clientId !== undefined) {
     out.clientId = clientId;
+  }
+  if (visibility !== undefined) {
+    out.visibility = visibility;
   }
   return out;
 }

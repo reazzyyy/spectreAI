@@ -77,7 +77,7 @@ function memoryWorkspaceStore(
         ownerUserId,
         name: input.name,
         description: input.description ?? null,
-        visibility: "PERSONAL",
+        visibility: input.visibility ?? "PERSONAL",
         status: "ACTIVE",
         clientId: input.clientId ?? null,
       };
@@ -317,6 +317,16 @@ describe("WorkspaceAccess createPersonal", () => {
       name: "Mine",
       visibility: "PERSONAL",
       status: "ACTIVE",
+    });
+
+    const team = await access.createPersonal(actor(USER_OWNER, ORG_A, "member"), {
+      name: "Squad",
+      visibility: "TEAM",
+    });
+    expect(team).toMatchObject({
+      name: "Squad",
+      visibility: "TEAM",
+      ownerUserId: USER_OWNER,
     });
   });
 
