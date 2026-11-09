@@ -6,7 +6,7 @@ Next.js App Router. Port: `3001`.
 Import direction: `app → widgets → features → entities → shared`.
 
 **Quality bar (CONFIRMED D-024 / ADR-0004):** SCSS Modules + CSS tokens, own `shared/ui`, RHF+Zod, TanStack Query, Vitest+RTL + Storybook+Chromatic + Playwright.  
-**AS-IS (F5d):** login/create/edit Workspace + Matter list/create/edit, Matter↔Workspace links, AppShell/Home, Vitest+RTL, Storybook/Chromatic, Playwright auth smoke. `system-map` still plain CSS Modules. TEAM / members / Client screens — not wired.
+**AS-IS (F5e):** Workspace + Matter + Client list/create/edit, Matter↔Workspace links, AppShell/Home, Vitest+RTL, Storybook/Chromatic, Playwright auth smoke. `system-map` still plain CSS Modules. TEAM / members / Client linking — not wired.
 
 ## Run
 
@@ -14,67 +14,37 @@ Import direction: `app → widgets → features → entities → shared`.
 pnpm --filter @spectre/web dev
 pnpm --filter @spectre/web build
 pnpm --filter @spectre/web test
-pnpm --filter @spectre/web test:e2e          # Playwright; needs Postgres + bootstrap + E2E_ORGANIZATION_ID
+pnpm --filter @spectre/web test:e2e
 pnpm --filter @spectre/web lint
 pnpm --filter @spectre/web lint:fsd
 pnpm --filter @spectre/web lint:styles
 pnpm --filter @spectre/web lint:all
 pnpm --filter @spectre/web storybook
 pnpm --filter @spectre/web build-storybook
-pnpm --filter @spectre/web chromatic   # needs CHROMATIC_PROJECT_TOKEN
+pnpm --filter @spectre/web chromatic
 ```
 
-First Playwright browsers: `pnpm --filter @spectre/web exec playwright install chromium`.
-
-API must be reachable for auth (default rewrite target `http://localhost:3000`). Override with `API_ORIGIN` (see root `.env.example`).  
-Set `WEB_ORIGIN=http://localhost:3001` on the API for CSRF Origin allowlist (**W-014a**). Mutating `fetch` sends `X-CSRF-Token` from `spectre_csrf`.
+API: `API_ORIGIN` (default `http://localhost:3000`). Set `WEB_ORIGIN=http://localhost:3001` on API for CSRF.
 
 ## FSD layout (AS-IS)
 
 ```text
 src/
-├── app/
-│   ├── (product)/       # AppShell + Home + /projects + /matters
-│   ├── login/
-│   ├── system/
-│   └── styles/
-├── widgets/
-│   ├── app-shell/
-│   ├── home-overview/
-│   ├── workspace-list/
-│   ├── workspace-detail/
-│   ├── matter-list/
-│   ├── matter-detail/
-│   └── system-map/
-├── features/
-│   ├── login/
-│   ├── logout/
-│   ├── create-workspace/
-│   ├── edit-workspace/
-│   ├── manage-workspace-matters/
-│   ├── create-matter/
-│   └── edit-matter/
-├── entities/
-│   ├── session/
-│   ├── workspace/
-│   └── matter/
-└── shared/
-    ├── api/
-    ├── lib/
-    └── ui/
+├── app/(product)/   # Home, /projects, /matters, /clients
+├── widgets/         # app-shell, home, workspace-*, matter-*, client-*, system-map
+├── features/        # login, logout, create/edit workspace|matter|client, matters links
+├── entities/        # session, workspace, matter, client
+└── shared/          # api, lib, ui
 ```
 
 ## Behaviour
 
-- `/login` — RHF+Zod → `POST /auth/login` (no product shell).
-- `/` — `AppShell` + `HomeOverview`; session + recent workspaces; 401 → `/login`.
-- `/projects` — list/create PERSONAL Workspace.
-- `/projects/[id]` — detail + edit + Matter link/unlink.
-- `/matters` — list/create Matter.
-- `/matters/[id]` — detail + edit title/status.
-- Nav: Home, Все проекты, Все дела; link to `/system`.
-- Desktop gate below 1280px (Make constraint).
-- `/system` — system-map onboarding (no shell).
-- Synthetic banner in topbar (D-012).
+- `/login` — auth form.
+- `/` — home + recent workspaces.
+- `/projects`, `/projects/[id]` — Workspace list/create/edit + Matter links.
+- `/matters`, `/matters/[id]` — Matter list/create/edit.
+- `/clients`, `/clients/[id]` — Client list/create/edit.
+- Nav: Home, проекты, дела, клиенты, `/system`.
+- Desktop gate below 1280px. Synthetic banner (D-012).
 
-Local login needs User + OrganizationMembership. Plan: `tasks/plan.md`.
+Plan: `tasks/plan.md`.
