@@ -158,9 +158,25 @@ jobs:
       - name: Preflight API login (Origin + bootstrap creds)
         run: |
           set -euo pipefail
-          pnpm --filter @spectre/api dev > /tmp/spectre-api-preflight.log 2>&1 &
+          # Own process group: pnpm → tsx children must die before Playwright (PW_NO_REUSE=1).
+          setsid pnpm --filter @spectre/api dev > /tmp/spectre-api-preflight.log 2>&1 &
           API_PID=$!
-          cleanup() { kill "$API_PID" 2>/dev/null || true; }
+          cleanup() {
+            kill -TERM -"$API_PID" 2>/dev/null || kill -TERM "$API_PID" 2>/dev/null || true
+            sleep 1
+            kill -KILL -"$API_PID" 2>/dev/null || kill -KILL "$API_PID" 2>/dev/null || true
+            if command -v fuser >/dev/null 2>&1; then
+              fuser -k 3000/tcp >/dev/null 2>&1 || true
+            fi
+            for _ in $(seq 1 40); do
+              if ! curl -sf "${API_ORIGIN}/api/v1/health" >/dev/null; then
+                return 0
+              fi
+              sleep 0.5
+            done
+            echo "API still listening on :3000 after preflight cleanup" >&2
+            return 1
+          }
           trap cleanup EXIT
           for _ in $(seq 1 60); do
             if curl -sf "${API_ORIGIN}/api/v1/health" >/dev/null; then
@@ -185,7 +201,6 @@ jobs:
           fi
           cleanup
           trap - EXIT
-          wait "$API_PID" 2>/dev/null || true
 
       - name: Install Playwright Chromium
         run: pnpm --filter @spectre/web exec playwright install --with-deps chromium

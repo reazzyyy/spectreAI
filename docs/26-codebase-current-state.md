@@ -269,7 +269,7 @@ Workflow: `.github/workflows/ci.yml`.
 
 | Триггер | Поведение |
 |---|---|
-| `pull_request` (любой) | job `test`: install → migrate → `pnpm test`; job `web-e2e`: migrate → bootstrap (`BOOTSTRAP_OUT_FILE`) → API login preflight (Origin) → Playwright Chromium smoke |
+| `pull_request` (любой) | job `test`: install → migrate → `pnpm test`; job `web-e2e`: migrate → bootstrap (`BOOTSTRAP_OUT_FILE`) → API login preflight (Origin; tear down :3000) → Playwright Chromium smoke |
 | `push` в `main` | то же |
 
 Сервис: `pgvector/pgvector:pg16` (`spectre` migrator). Env также задаёт `DATABASE_URL_RUNTIME` для `spectre_app` (роль создаётся миграцией S1). Live Redis в CI **не** поднимается. Lint / typecheck / build / Chromatic publish как отдельные gates **ещё не** подключены.
