@@ -25,3 +25,15 @@ export type CreateInvitationInput = {
   email: string;
   role: InvitableRole;
 };
+
+/** POST /invitations/accept — new user needs password; existing needs matching session. */
+export type AcceptInvitationInput = {
+  token: string;
+  password?: string;
+};
+
+export type AcceptInvitationResult = {
+  organizationId: string;
+  userId: string;
+  role: InvitableRole;
+};

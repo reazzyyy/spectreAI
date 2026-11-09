@@ -77,7 +77,8 @@ export function OrganizationInvites() {
           <h1>Организация</h1>
           <p className={styles.lead}>
             Приглашения по email (роли admin или member). Письма в MVP не
-            отправляются — в development API может вернуть dev-токен.
+            отправляются — в development API может вернуть dev-токен и ссылку
+            на /invite/accept.
           </p>
         </div>
       </div>

@@ -44,8 +44,11 @@
 ## F5g Org invitations UI
 - [x] Entity + /organization list/create/resend/revoke; nav; docs / verify
 
+## F5h Invite accept UI
+- [x] /invite/accept + acceptInvitation API; docs / verify
+
 ## Later
-- [ ] F5h+ invite accept UI / TEAM / members / docs/31 next screens
+- [ ] F5i+ TEAM / members / docs/31 next screens
 - [ ] Chore: migrate system-map to SCSS Modules
 - [ ] Optional: CI Chromatic / Playwright when ready
 - [ ] Roadmap next: documents (Фаза 3) when ready
