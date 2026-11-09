@@ -99,15 +99,16 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 - `/login` — `features/login` (RHF + Zod) → `POST /auth/login` (email, password, organizationId); без product shell.
 - `/` — `widgets/app-shell` + `widgets/home-overview`: Make-подобный chrome; `GET /auth/me` + краткий список Workspace; 401 → `/login`; logout в сайдбаре.
 - `/projects` — `widgets/workspace-list` + `features/create-workspace`: `GET/POST /workspaces` (PERSONAL only).
-- `/projects/[workspaceId]` — detail + edit + Matter links (`GET/POST/DELETE …/matters`); members/Client/TEAM create / Matter CRUD UI — ещё нет.
-- `entities/matter` — list `GET /matters` для picker привязки.
+- `/projects/[workspaceId]` — detail + edit + Matter links (`GET/POST/DELETE …/matters`).
+- `/matters`, `/matters/[id]` — list/create/edit Matter (`GET/POST/PATCH`); Client link / CRM full — ещё нет.
+- `entities/matter` — list/detail/create/update.
 - `/system` — `widgets/system-map`: карта AS-IS без shell; не live health.
 - Сессия: `entities/session`. Workspace: `entities/workspace` (типы, API, Query).
 - Browser `fetch` на `/api/v1/*` с `credentials: "same-origin"` + CSRF header на мутациях; rewrite в `next.config.ts` на `API_ORIGIN` (по умолчанию `http://localhost:3000`).
 - Линтеры: ESLint + Steiger FSD + Stylelint (system-map CSS пока в ignore до миграции).
 - Стили AS-IS: SCSS-токены Make-aligned; `shared/ui` Button/Input/Icon; shell/home на SCSS Modules; system-map ещё plain CSS Modules.
 - Тесты AS-IS: Vitest + RTL (Button, loginSchema, AppShell). Storybook 10 + stories `shared/ui`; Chromatic addon/CLI (publish — `CHROMATIC_PROJECT_TOKEN`). Playwright smoke: unauth `/` → `/login`; login → home (нужны Postgres + bootstrap + `E2E_ORGANIZATION_ID`). CI Playwright gate — ещё нет.
-- Нет регистрации, recovery, MFA, TEAM create UI, members/Client UI, Matter/Client CRUD screens, invite accept UI, загрузки файлов.
+- Нет регистрации, recovery, MFA, TEAM create UI, members/Client UI, Client screens, invite accept UI, загрузки файлов.
 
 ## 4. Пакеты
 
@@ -226,7 +227,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 | `docs/12` §7 CSRF | **W-014** + **W-014a** | Origin allowlist + double-submit; SameSite=Lax доп. слой | Соответствует scaffold S4a |
 | `docs/21` same-origin API | PROPOSED detail | Next rewrite `/api/v1` → Nest | Соответствует локальному scaffold |
 | `docs/21` / **D-023** FSD | CONFIRMED | Слои app/widgets/features/entities/shared + Steiger/ESLint | Соответствует scaffold login |
-| `docs/21` / **D-024** quality bar | CONFIRMED | SCSS Modules, `shared/ui`, RHF+Zod, Query, Vitest/Storybook/Chromatic/Playwright | F5c: Workspace↔Matter links UI; CI e2e gate нет; system-map CSS Modules |
+| `docs/21` / **D-024** quality bar | CONFIRMED | SCSS Modules, `shared/ui`, RHF+Zod, Query, Vitest/Storybook/Chromatic/Playwright | F5d: Matter list/create/edit UI; CI e2e gate нет; system-map CSS Modules |
 | `docs/11` префикс `/api/v1`, коды ошибок | — | `/api/v1`, `UNAUTHENTICATED` / `NOT_FOUND` / `VALIDATION_ERROR` | Согласовано |
 | `docs/11` карта `clients`/`matters` | PROPOSED GET/POST (+ GET by id) | Есть также PATCH; DELETE нет | PATCH — scaffold extension; DELETE OUT OF SCOPE |
 | `docs/06` `created_by` на Client/Matter | PROPOSED | Поля в Prisma нет | OPEN / отложено |

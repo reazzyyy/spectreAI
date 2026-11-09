@@ -32,7 +32,10 @@
 ## F5c Workspace ↔ Matter links
 - [x] Link/unlink panel on detail; docs / verify
 
+## F5d Matter list/create/edit
+- [x] /matters CRUD thin + nav; docs / verify
+
 ## Later
-- [ ] F5d+ TEAM / members / Client / Matter CRUD / docs/31
+- [ ] F5e+ Client screens / TEAM / members / docs/31
 - [ ] Chore: migrate system-map to SCSS Modules
 - [ ] Optional: CI Chromatic / Playwright when ready

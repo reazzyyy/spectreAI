@@ -45,16 +45,18 @@ F5+ Product screens from Make (projects, chat, …) по docs/31 — отдел�
 
 ### F5b — Workspace detail + rename/description ✅ в `main`
 
-### F5c — Workspace ↔ Matter links (текущий PR)
+### F5c — Workspace ↔ Matter links ✅ в `main`
 
-**Description:** On `/projects/[id]` — list/link/unlink Matters (WS-08/WS-10 unlink).
+### F5d — Matter list/create/edit (текущий PR)
+
+**Description:** `/matters` + `/matters/[id]` — `GET/POST/PATCH /matters` (CRM-02 thin).
 
 **Acceptance criteria:**
-- [x] `entities/matter` list + workspace matters API/query
-- [x] `features/manage-workspace-matters` on detail
-- [x] AS-IS / README / plan
+- [x] Matter entity create/update + list/detail widgets
+- [x] Nav «Все дела»; empty-state link from Workspace matters panel
+- [x] Vitest schemas; AS-IS / README / plan
 
-**Out of scope F5c:** Matter/Client CRUD screens, TEAM, members, chat.
+**Out of scope F5d:** Client screens, Matter↔Client UI, TEAM, members, chat.
 
 ## Risks
 
