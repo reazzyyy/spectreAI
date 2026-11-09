@@ -1,5 +1,7 @@
 import { apiRequest } from "@/shared/api";
 import type {
+  AcceptInvitationInput,
+  AcceptInvitationResult,
   CreateInvitationInput,
   Invitation,
   InvitationListResponse,
@@ -49,4 +51,18 @@ export function revokeInvitation(
     orgInvitesPath(organizationId, `/${encodeURIComponent(invitationId)}`),
     { method: "DELETE" },
   );
+}
+
+/** POST /invitations/accept — new user + password, or logged-in matching email. */
+export function acceptInvitation(
+  input: AcceptInvitationInput,
+): Promise<AcceptInvitationResult> {
+  const body: AcceptInvitationInput = { token: input.token };
+  if (input.password !== undefined && input.password.length > 0) {
+    body.password = input.password;
+  }
+  return apiRequest<AcceptInvitationResult>("/invitations/accept", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }

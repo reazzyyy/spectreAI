@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -113,6 +114,13 @@ export function CreateInvitationForm({
         <div className={styles.devToken} role="status">
           Dev-токен (только вне production, не логируйте):
           <code>{devToken}</code>
+          <p>
+            <Link
+              href={`/invite/accept?token=${encodeURIComponent(devToken)}`}
+            >
+              Открыть страницу принятия
+            </Link>
+          </p>
         </div>
       ) : null}
       <Button type="submit" disabled={isSubmitting}>
