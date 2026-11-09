@@ -51,6 +51,9 @@ describe("AppShell", () => {
 
     expect(await screen.findByText("Спектр")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Главная/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Организация/i }),
+    ).toBeInTheDocument();
     expect(screen.getByText("Контент")).toBeInTheDocument();
     expect(screen.getByText("lawyer@example.com")).toBeInTheDocument();
   });

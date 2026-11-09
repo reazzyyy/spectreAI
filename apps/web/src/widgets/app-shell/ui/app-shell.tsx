@@ -70,6 +70,8 @@ export function AppShell({ children }: AppShellProps) {
   const projectsActive = pathname === "/projects" || pathname.startsWith("/projects/");
   const mattersActive = pathname === "/matters" || pathname.startsWith("/matters/");
   const clientsActive = pathname === "/clients" || pathname.startsWith("/clients/");
+  const organizationActive =
+    pathname === "/organization" || pathname.startsWith("/organization/");
 
   return (
     <div className={styles.shell}>
@@ -173,15 +175,17 @@ export function AppShell({ children }: AppShellProps) {
         </nav>
 
         <div className={styles.sidebarBottom}>
-          <button
-            type="button"
-            className={styles.navItem}
-            disabled
-            title="Организация — следующий срез"
+          <Link
+            href="/organization"
+            className={classNames(
+              styles.navItem,
+              organizationActive && styles.navItemActive,
+            )}
+            title="Организация"
           >
             <Icon name="users" />
             <span className={styles.navLabel}>Организация</span>
-          </button>
+          </Link>
 
           <div className={styles.profile}>
             <Icon name="user" size={16} />

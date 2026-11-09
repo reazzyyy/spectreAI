@@ -6,7 +6,7 @@ Next.js App Router. Port: `3001`.
 Import direction: `app → widgets → features → entities → shared`.
 
 **Quality bar (CONFIRMED D-024 / ADR-0004):** SCSS Modules + CSS tokens, own `shared/ui`, RHF+Zod, TanStack Query, Vitest+RTL + Storybook+Chromatic + Playwright.  
-**AS-IS (F5f):** Workspace + Matter + Client CRUD, Matter↔Workspace links, Client link on Matter/Workspace edit, AppShell/Home, Vitest+RTL, Storybook/Chromatic, Playwright auth smoke. `system-map` still plain CSS Modules. TEAM / members — not wired.
+**AS-IS (F5g):** Workspace + Matter + Client CRUD, Matter↔Workspace links, Client link on Matter/Workspace edit, org invitations (Owner list/create/resend/revoke), AppShell/Home, Vitest+RTL, Storybook/Chromatic, Playwright auth smoke. `system-map` still plain CSS Modules. TEAM / members / invite accept — not wired.
 
 ## Run
 
@@ -30,10 +30,10 @@ API: `API_ORIGIN` (default `http://localhost:3000`). Set `WEB_ORIGIN=http://loca
 
 ```text
 src/
-├── app/(product)/   # Home, /projects, /matters, /clients
-├── widgets/         # app-shell, home, workspace-*, matter-*, client-*, system-map
-├── features/        # login, logout, create/edit workspace|matter|client, matters links
-├── entities/        # session, workspace, matter, client
+├── app/(product)/   # Home, /projects, /matters, /clients, /organization
+├── widgets/         # app-shell, home, workspace-*, matter-*, client-*, organization-invites, system-map
+├── features/        # login, logout, create/edit workspace|matter|client, invitations, matters links
+├── entities/        # session, workspace, matter, client, invitation
 └── shared/          # api, lib, ui
 ```
 
@@ -44,7 +44,8 @@ src/
 - `/projects`, `/projects/[id]` — Workspace list/create/edit + Matter links.
 - `/matters`, `/matters/[id]` — Matter list/create/edit.
 - `/clients`, `/clients/[id]` — Client list/create/edit.
-- Nav: Home, проекты, дела, клиенты, `/system`.
+- `/organization` — Owner invitations (admin|member); non-owner notice. Accept UI later.
+- Nav: Home, проекты, дела, клиенты, Организация, `/system`.
 - Desktop gate below 1280px. Synthetic banner (D-012).
 
 Plan: `tasks/plan.md`.
