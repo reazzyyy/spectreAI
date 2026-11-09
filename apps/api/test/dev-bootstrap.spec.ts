@@ -1,6 +1,7 @@
 import { createPrismaClient } from "@spectre/db";
 import { afterAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
+import { verifyPassword } from "../src/auth/password.js";
 import {
   assertDevBootstrapAllowed,
   parseDevBootstrapInput,
@@ -74,14 +75,19 @@ describe("runDevBootstrap (migrator DB)", () => {
     expect(first.email).toBe(email);
     expect(first.role).toBe("owner");
 
+    const rotatedPassword = `${password}-rotated`;
     const second = await runDevBootstrap(prisma, {
       orgName,
       ownerEmail: email,
-      ownerPassword: password,
+      ownerPassword: rotatedPassword,
     });
     expect(second.created).toBe(false);
     expect(second.organizationId).toBe(first.organizationId);
     expect(second.userId).toBe(first.userId);
+
+    const user = await prisma.user.findUniqueOrThrow({ where: { id: second.userId } });
+    expect(await verifyPassword(user.passwordHash, rotatedPassword)).toBe(true);
+    expect(await verifyPassword(user.passwordHash, password)).toBe(false);
 
     await expect(
       runDevBootstrap(prisma, {

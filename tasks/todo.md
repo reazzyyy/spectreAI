@@ -59,6 +59,10 @@
 ## Chore: system-map SCSS
 - [x] CSS Modules → SCSS Modules; stylelint ignore removed; docs / verify
 
+## Chore: CI Playwright
+- [x] GitHub Actions `web-e2e` smoke (bootstrap + Chromium)
+- [x] Stabilize login: Zod-valid email + bootstrap JSON + API Origin preflight + ignore Next route-announcer alert
+
 ## Later
-- [ ] Optional: CI Chromatic / Playwright when ready
+- [ ] Optional: CI Chromatic publish when token ready
 - [ ] Roadmap next: documents (Фаза 3) / docs/31 next screens when ready
