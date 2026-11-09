@@ -29,7 +29,7 @@ pnpm --filter @spectre/api bootstrap:dev
 # → prints organizationId / email; login via POST /auth/login or apps/web /login
 ```
 
-Idempotent for the same org name + owner email; refuses replacing an existing different owner on that org; refuses creating another org when that email already owns a different one.
+Idempotent for the same org name + owner email (re-runs refresh the owner password hash to match env). Refuses replacing an existing different owner on that org; refuses creating another org when that email already owns a different one. Optional `BOOTSTRAP_OUT_FILE` writes the same JSON payload for CI.
 
 ### Invitations (S4c)
 

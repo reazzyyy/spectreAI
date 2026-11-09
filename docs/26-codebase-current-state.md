@@ -112,7 +112,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 - Browser `fetch` на `/api/v1/*` с `credentials: "same-origin"` + CSRF header на мутациях; rewrite в `next.config.ts` на `API_ORIGIN` (по умолчанию `http://localhost:3000`).
 - Линтеры: ESLint + Steiger FSD + Stylelint (включая system-map SCSS).
 - Стили AS-IS: SCSS-токены Make-aligned; `shared/ui` Button/Input/Icon; shell/home/system-map на SCSS Modules.
-- Тесты AS-IS: Vitest + RTL (Button, schemas, AppShell). Storybook 10 + stories `shared/ui`; Chromatic addon/CLI (publish — `CHROMATIC_PROJECT_TOKEN`). Playwright smoke: unauth `/` → `/login`; login → home (Postgres + bootstrap + `E2E_ORGANIZATION_ID`). CI job `web-e2e` гоняет smoke; Chromatic publish в CI ещё нет.
+- Тесты AS-IS: Vitest + RTL (Button, schemas, AppShell). Storybook 10 + stories `shared/ui`; Chromatic addon/CLI (publish — `CHROMATIC_PROJECT_TOKEN`). Playwright smoke: unauth `/` → `/login`; login → home (Postgres + bootstrap + `E2E_ORGANIZATION_ID`). CI `web-e2e`: bootstrap JSON file + direct API login preflight before Playwright; Chromatic publish ещё нет.
 - Нет регистрации, recovery, MFA, ownership transfer, загрузки файлов.
 
 ## 4. Пакеты
@@ -269,7 +269,7 @@ Workflow: `.github/workflows/ci.yml`.
 
 | Триггер | Поведение |
 |---|---|
-| `pull_request` (любой) | job `test`: install → migrate → `pnpm test`; job `web-e2e`: migrate → bootstrap → Playwright Chromium smoke |
+| `pull_request` (любой) | job `test`: install → migrate → `pnpm test`; job `web-e2e`: migrate → bootstrap (`BOOTSTRAP_OUT_FILE`) → API login preflight (Origin) → Playwright Chromium smoke |
 | `push` в `main` | то же |
 
 Сервис: `pgvector/pgvector:pg16` (`spectre` migrator). Env также задаёт `DATABASE_URL_RUNTIME` для `spectre_app` (роль создаётся миграцией S1). Live Redis в CI **не** поднимается. Lint / typecheck / build / Chromatic publish как отдельные gates **ещё не** подключены.

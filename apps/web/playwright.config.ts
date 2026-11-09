@@ -43,6 +43,15 @@ export default defineConfig({
       // Local IDE often keeps api/web up; CI runners are clean (set PW_NO_REUSE=1 to force).
       reuseExistingServer: process.env.PW_NO_REUSE !== "1",
       timeout: 120_000,
+      // Explicit CSRF/DB env — do not rely solely on inherited shells in CI.
+      env: {
+        ...process.env,
+        PORT: process.env.PORT ?? "3000",
+        API_ORIGIN,
+        WEB_ORIGIN,
+        DATABASE_URL: process.env.DATABASE_URL ?? "",
+        DATABASE_URL_RUNTIME: process.env.DATABASE_URL_RUNTIME ?? "",
+      },
     },
     {
       name: "web",
@@ -51,6 +60,11 @@ export default defineConfig({
       url: `${WEB_ORIGIN}/login`,
       reuseExistingServer: process.env.PW_NO_REUSE !== "1",
       timeout: 120_000,
+      env: {
+        ...process.env,
+        API_ORIGIN,
+        WEB_ORIGIN,
+      },
     },
   ],
 });

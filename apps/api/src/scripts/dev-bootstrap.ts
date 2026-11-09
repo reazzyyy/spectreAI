@@ -156,6 +156,12 @@ async function ensureOwnerOnOrganization(
         `organization "${organizationName}" already has owner ${owner.user.email}; refuse replacing with ${input.ownerEmail}`,
       );
     }
+    // Refresh hash so re-bootstrap always matches current BOOTSTRAP_OWNER_PASSWORD (CI/e2e).
+    const passwordHash = await hashPassword(input.ownerPassword);
+    await db.user.update({
+      where: { id: owner.userId },
+      data: { passwordHash, status: "active" },
+    });
     return {
       created: false,
       organizationId,

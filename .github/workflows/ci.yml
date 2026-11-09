@@ -143,14 +143,49 @@ jobs:
       - name: Bootstrap org owner for smoke
         run: |
           set -euo pipefail
-          OUT=$(pnpm --filter @spectre/api bootstrap:dev)
-          echo "$OUT"
-          ORG_ID=$(printf '%s\n' "$OUT" | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>{const m=s.match(/\{[\s\S]*\}/); if(!m){process.exit(2)}; const j=JSON.parse(m[0]); if(!j.organizationId) process.exit(3); process.stdout.write(j.organizationId)})")
+          # Pure JSON file — avoid scraping pnpm lifecycle banners for organizationId.
+          BOOTSTRAP_OUT_FILE="$PWD/bootstrap.json" pnpm --filter @spectre/api bootstrap:dev
+          ORG_ID=$(node -e "const j=require('./bootstrap.json'); if(!j.ok||!j.organizationId) process.exit(3); process.stdout.write(String(j.organizationId))")
+          echo "Bootstrapped organizationId length=${#ORG_ID}"
           echo "E2E_ORGANIZATION_ID=$ORG_ID" >> "$GITHUB_ENV"
           # Playwright also loads root .env via loadEnvFile
-          echo "E2E_ORGANIZATION_ID=$ORG_ID" >> .env
-          echo "E2E_EMAIL=e2e-owner@example.com" >> .env
-          echo "E2E_PASSWORD=synthetic-ci-e2e-password-12" >> .env
+          {
+            echo "E2E_ORGANIZATION_ID=$ORG_ID"
+            echo "E2E_EMAIL=e2e-owner@example.com"
+            echo "E2E_PASSWORD=synthetic-ci-e2e-password-12"
+          } >> .env
+
+      - name: Preflight API login (Origin + bootstrap creds)
+        run: |
+          set -euo pipefail
+          pnpm --filter @spectre/api dev > /tmp/spectre-api-preflight.log 2>&1 &
+          API_PID=$!
+          cleanup() { kill "$API_PID" 2>/dev/null || true; }
+          trap cleanup EXIT
+          for _ in $(seq 1 60); do
+            if curl -sf "${API_ORIGIN}/api/v1/health" >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl -sf "${API_ORIGIN}/api/v1/health" >/dev/null
+          CODE=$(curl -sS -o /tmp/spectre-login.json -w '%{http_code}' \
+            -X POST "${API_ORIGIN}/api/v1/auth/login" \
+            -H 'content-type: application/json' \
+            -H "Origin: ${WEB_ORIGIN}" \
+            -d "{\"email\":\"${E2E_EMAIL}\",\"password\":\"${E2E_PASSWORD}\",\"organizationId\":\"${E2E_ORGANIZATION_ID}\"}")
+          echo "preflight login HTTP ${CODE}"
+          if [ "$CODE" != "200" ]; then
+            # Safe: login error envelope has no secrets/tokens.
+            head -c 500 /tmp/spectre-login.json || true
+            echo
+            echo "--- api log (tail) ---"
+            tail -n 80 /tmp/spectre-api-preflight.log || true
+            exit 1
+          fi
+          cleanup
+          trap - EXIT
+          wait "$API_PID" 2>/dev/null || true
 
       - name: Install Playwright Chromium
         run: pnpm --filter @spectre/web exec playwright install --with-deps chromium
