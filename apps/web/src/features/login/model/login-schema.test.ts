@@ -19,4 +19,13 @@ describe("loginSchema", () => {
     });
     expect(parsed.success).toBe(false);
   });
+
+  it("rejects @localhost (CI/bootstrap must use a Zod-valid domain)", () => {
+    const parsed = loginSchema.safeParse({
+      email: "owner@localhost",
+      password: "synthetic-password",
+      organizationId: "11111111-1111-4111-8111-111111111111",
+    });
+    expect(parsed.success).toBe(false);
+  });
 });

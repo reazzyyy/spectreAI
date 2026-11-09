@@ -98,9 +98,10 @@ jobs:
       # Dev-only bootstrap for smoke (W-012). Synthetic CI credentials — not production.
       BOOTSTRAP_DEV: "1"
       BOOTSTRAP_ORG_NAME: CI E2E Org
-      BOOTSTRAP_OWNER_EMAIL: e2e-owner@localhost
+      # Use a Zod-valid email (@localhost is rejected by loginSchema / z.email).
+      BOOTSTRAP_OWNER_EMAIL: e2e-owner@example.com
       BOOTSTRAP_OWNER_PASSWORD: synthetic-ci-e2e-password-12
-      E2E_EMAIL: e2e-owner@localhost
+      E2E_EMAIL: e2e-owner@example.com
       E2E_PASSWORD: synthetic-ci-e2e-password-12
 
     steps:
@@ -132,7 +133,7 @@ jobs:
             echo "WEB_ORIGIN=http://localhost:3001"
             echo "BOOTSTRAP_DEV=1"
             echo "BOOTSTRAP_ORG_NAME=CI E2E Org"
-            echo "BOOTSTRAP_OWNER_EMAIL=e2e-owner@localhost"
+            echo "BOOTSTRAP_OWNER_EMAIL=e2e-owner@example.com"
             echo "BOOTSTRAP_OWNER_PASSWORD=synthetic-ci-e2e-password-12"
           } > .env
 
@@ -148,7 +149,7 @@ jobs:
           echo "E2E_ORGANIZATION_ID=$ORG_ID" >> "$GITHUB_ENV"
           # Playwright also loads root .env via loadEnvFile
           echo "E2E_ORGANIZATION_ID=$ORG_ID" >> .env
-          echo "E2E_EMAIL=e2e-owner@localhost" >> .env
+          echo "E2E_EMAIL=e2e-owner@example.com" >> .env
           echo "E2E_PASSWORD=synthetic-ci-e2e-password-12" >> .env
 
       - name: Install Playwright Chromium

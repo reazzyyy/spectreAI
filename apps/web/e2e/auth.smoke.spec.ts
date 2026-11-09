@@ -21,7 +21,9 @@ test.describe("auth smoke", () => {
     await page.getByLabel("ID организации").fill(creds!.organizationId);
     await page.getByRole("button", { name: "Войти" }).click();
 
-    await expect(page).toHaveURL(/\/$/);
+    // Surface client validation / API errors instead of only waiting on URL.
+    await expect(page.getByRole("alert")).toHaveCount(0);
+    await expect(page).toHaveURL(/\/$/, { timeout: 15_000 });
     const local = creds!.email.split("@")[0] ?? creds!.email;
     await expect(page.getByRole("heading", { level: 1 })).toContainText(local);
   });
