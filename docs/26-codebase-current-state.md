@@ -4,7 +4,7 @@
 **Дата снимка кода:** 2026-11-06 (web F3 Storybook + F2 AppShell/Home + F1 D-024 + system map + S4c)  
 **Сверка статусов решений:** 2026-11-06 (W-001–W-020, W-014a, **D-024**)  
 **Источник истины по решениям:** `docs/decisions-log.md`  
-**План:** `tasks/roadmap.md` / `tasks/plan.md`. S0–S4c в `main`. Полный W-020 / TEAM create / email provider / Workspace UI — ещё нет.
+**План:** `tasks/roadmap.md` / `tasks/plan.md`. S0–S4c в `main`. Полный W-020 / email provider / documents UI — ещё нет.
 
 Этот документ описывает **только то, что реально есть в репозитории**. Спецификации в `docs/00–25` могут описывать целевое MVP шире; если код ещё не реализован — ниже явно указано «не реализовано».
 
@@ -22,7 +22,7 @@
 | Bootstrap первой Org (W-012) | CLI `bootstrap:dev` (dev-only, идемпотентный) |
 | Invitations (W-012 / O-011) | Prisma + HTTP create/list/resend/revoke/accept; TTL `INVITE_TTL_HOURS`; email provider — stub/devToken |
 | MFA / SSO (O-008) | **Не реализовано** (OUT OF SCOPE этой итерации) |
-| Workspace как сущность | Prisma + `WorkspaceAccess` + HTTP CRU/list/members/matter-links (S3); TEAM create / Workspace UI — нет |
+| Workspace как сущность | Prisma + `WorkspaceAccess` + HTTP CRU/list/members/matter-links; PERSONAL+TEAM create + web UI (F5i) |
 | PostgreSQL RLS (W-020) | Tenant-boundary RLS + runtime role `spectre_app`; **неполное** (нет workspace-membership/chat/grant policies) |
 | Загрузка документов / OCR / RAG | Не реализованы |
 | Воркер очереди AI / обработка документов | Не реализованы |
@@ -81,7 +81,7 @@ spectreAI/
 | Prisma | `src/db/prisma.service.ts` | `createPrismaClient` из `@spectre/db`; `$disconnect` на destroy |
 | Очередь | `src/queue/*` | Имя `ai-jobs`, фабрика `createAiJobsQueue`; **воркер не стартует**; в AppModule только имя очереди |
 
-**Хранилище Client/Matter/Workspace в API:** Prisma stores + actor-scoped GUC wrappers + `ClientAccess` / `MatterAccess` / `WorkspaceAccess` (не матрица `docs/07`). E2e: cross-org `404`, чужой `clientId`/`matterId` → `422`, TEAM create → `422`.
+**Хранилище Client/Matter/Workspace в API:** Prisma stores + actor-scoped GUC wrappers + `ClientAccess` / `MatterAccess` / `WorkspaceAccess` (не матрица `docs/07`). E2e: cross-org `404`, чужой `clientId`/`matterId` → `422`, bad visibility → `422`.
 
 **Аутентификация (scaffold subset `docs/12`, не полный MVP):**
 
@@ -98,8 +98,8 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 - Явная метка synthetic/test: `shared/ui` на `/`, `/login`, `/system` (D-012).
 - `/login` — `features/login` (RHF + Zod) → `POST /auth/login` (email, password, organizationId); без product shell.
 - `/` — `widgets/app-shell` + `widgets/home-overview`: Make-подобный chrome; `GET /auth/me` + краткий список Workspace; 401 → `/login`; logout в сайдбаре.
-- `/projects` — `widgets/workspace-list` + `features/create-workspace`: `GET/POST /workspaces` (PERSONAL only).
-- `/projects/[workspaceId]` — detail + edit + Matter links (`GET/POST/DELETE …/matters`).
+- `/projects` — `widgets/workspace-list` + `features/create-workspace`: `GET/POST /workspaces` (PERSONAL|TEAM).
+- `/projects/[workspaceId]` — detail + edit + Matter links + TEAM members (`GET/POST/DELETE …/members`).
 - `/matters`, `/matters/[id]` — list/create/edit Matter (`GET/POST/PATCH`).
 - `/clients`, `/clients/[id]` — list/create/edit Client (`GET/POST/PATCH`).
 - `/organization` — Owner: list/create/resend/revoke invitations; non-owner notice.
@@ -112,7 +112,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 - Линтеры: ESLint + Steiger FSD + Stylelint (system-map CSS пока в ignore до миграции).
 - Стили AS-IS: SCSS-токены Make-aligned; `shared/ui` Button/Input/Icon; shell/home на SCSS Modules; system-map ещё plain CSS Modules.
 - Тесты AS-IS: Vitest + RTL (Button, schemas, AppShell). Storybook 10 + stories `shared/ui`; Chromatic addon/CLI (publish — `CHROMATIC_PROJECT_TOKEN`). Playwright smoke: unauth `/` → `/login`; login → home (нужны Postgres + bootstrap + `E2E_ORGANIZATION_ID`). CI Playwright gate — ещё нет.
-- Нет регистрации, recovery, MFA, TEAM create UI, members UI, загрузки файлов.
+- Нет регистрации, recovery, MFA, org user directory, загрузки файлов.
 
 ## 4. Пакеты
 
@@ -122,7 +122,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 
 - Client/Matter: чужой id → `null`; create штампует `organizationId` актёра.
 - Workspace: content (PERSONAL owner / TEAM owner+member) отдельно от member-management (Workspace Owner **или** Org Owner/Admin без content read, **W-008**).
-- Create Workspace: только PERSONAL; TEAM create отложен.
+- Create Workspace: PERSONAL (default) или TEAM (**W-002**).
 - Hard delete **нет**. Chat/grant ACL — ещё нет.
 
 ### 4.2 `@spectre/ai-gateway`
@@ -165,7 +165,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 | GET | `/matters/:matterId` | сессия | Matter | `401`; `404 NOT_FOUND` |
 | PATCH | `/matters/:matterId` | сессия | Matter | `401`; `404`; `422` |
 | GET | `/workspaces` | сессия | `{ items: Workspace[] }` (content-visible) | `401` |
-| POST | `/workspaces` | сессия + CSRF | Workspace PERSONAL (`201`) | `401`; `403 CSRF_REJECTED`; `422` (в т.ч. `visibility: TEAM`, чужой `clientId`) |
+| POST | `/workspaces` | сессия + CSRF | Workspace PERSONAL\|TEAM (`201`) | `401`; `403 CSRF_REJECTED`; `422` (bad visibility, чужой `clientId`) |
 | GET | `/workspaces/:workspaceId` | сессия | Workspace | `401`; `404 NOT_FOUND` |
 | PATCH | `/workspaces/:workspaceId` | сессия | Workspace (OWNER) | `401`; `404`; `422` |
 | GET | `/workspaces/:workspaceId/members` | сессия | `{ items: Member[] }` | `401`; `404` |
@@ -185,7 +185,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 Тело Matter: `{ id, organizationId, title, clientId, workspaceId, status }` (`status`: `active` \| `archived`).  
 Тело Workspace: `{ id, organizationId, ownerUserId, name, description, visibility, status, clientId }` (`visibility`: `PERSONAL` \| `TEAM`; `status`: `ACTIVE` \| …).  
 Тело Member: `{ id, organizationId, workspaceId, userId, role, status }` (`role`: `EDITOR` \| `VIEWER`; `status`: `ACTIVE` \| `REVOKED`).  
-`organizationId` / `ownerUserId` в теле запроса игнорируются / не принимаются — только из сессии. Hard `DELETE` Client/Matter/Workspace **нет**. TEAM create через API **отклонён** (`422`) до отдельного решения.
+`organizationId` / `ownerUserId` в теле запроса игнорируются / не принимаются — только из сессии. Hard `DELETE` Client/Matter/Workspace **нет**. TEAM create через API **разрешён** (`visibility: TEAM`, W-002).
 
 **CSRF (W-014a):** mutating методы (кроме `POST /auth/login`) при наличии session/CSRF cookie требуют заголовок `X-CSRF-Token` = cookie `spectre_csrf`. Если `Origin`/`Referer` присутствует — должен входить в `WEB_ORIGIN`. Отсутствие обоих заголовков допускается для non-browser tooling (e2e). Ошибка: `403 CSRF_REJECTED`. При `NODE_ENV=production` пустой `WEB_ORIGIN` → процесс не стартует.
 
@@ -231,7 +231,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 | `docs/12` §7 CSRF | **W-014** + **W-014a** | Origin allowlist + double-submit; SameSite=Lax доп. слой | Соответствует scaffold S4a |
 | `docs/21` same-origin API | PROPOSED detail | Next rewrite `/api/v1` → Nest | Соответствует локальному scaffold |
 | `docs/21` / **D-023** FSD | CONFIRMED | Слои app/widgets/features/entities/shared + Steiger/ESLint | Соответствует scaffold login |
-| `docs/21` / **D-024** quality bar | CONFIRMED | SCSS Modules, `shared/ui`, RHF+Zod, Query, Vitest/Storybook/Chromatic/Playwright | F5h: invite accept UI; CI e2e gate нет; system-map CSS Modules; TEAM/members UI нет |
+| `docs/21` / **D-024** quality bar | CONFIRMED | SCSS Modules, `shared/ui`, RHF+Zod, Query, Vitest/Storybook/Chromatic/Playwright | F5i: TEAM create + members UI; CI e2e gate нет; system-map CSS Modules |
 | `docs/11` префикс `/api/v1`, коды ошибок | — | `/api/v1`, `UNAUTHENTICATED` / `NOT_FOUND` / `VALIDATION_ERROR` | Согласовано |
 | `docs/11` карта `clients`/`matters` | PROPOSED GET/POST (+ GET by id) | Есть также PATCH; DELETE нет | PATCH — scaffold extension; DELETE OUT OF SCOPE |
 | `docs/06` `created_by` на Client/Matter | PROPOSED | Поля в Prisma нет | OPEN / отложено |
@@ -253,7 +253,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 |---|---|
 | `packages/access` | Client/Matter org-isolation + WorkspaceAccess content/manage unit tests |
 | `packages/ai-gateway` | Synthetic OK; блок несинтетики; статусы AIJob; нет `fetch` |
-| `apps/api` e2e | health, provider; 401 без cookie; CSRF Origin/header reject; Client/Matter/Workspace CRU+list; members + matter links; чужой id → 404; чужой clientId/matterId → 422; TEAM create → 422; generate/block/validation |
+| `apps/api` e2e | health, provider; 401 без cookie; CSRF Origin/header reject; Client/Matter/Workspace CRU+list; TEAM create; members + matter links; чужой id → 404; чужой clientId/matterId → 422; generate/block/validation |
 | `apps/api` bootstrap unit | guards + idempotent Org/Owner create; refuse foreign owner on same org |
 | `apps/api` queue unit | имя `ai-jobs`, разбор Redis URL |
 | `@spectre/db` | `prisma validate` + RLS harness (`src/rls.tenant.test.ts`) под runtime role |
@@ -278,7 +278,7 @@ Workflow: `.github/workflows/ci.yml`.
 - MFA/SSO (**O-008** / **W-013** — не в MVP), self-registration (**W-012** запрещает public self-reg), email verify, recovery, logout-all, session list.
 - Email delivery provider для invitations; audit events; rate limit каркас.
 - Полный `docs/12` (audit events, password policy product confirmation, idle timeout).
-- Hard delete Client/Matter/Workspace; `created_by`; TEAM Workspace create; полный W-020 (сверх tenant RLS); ACL матрица `docs/07`; admin grant; Workspace web UI.
+- Hard delete Client/Matter/Workspace; `created_by`; полный W-020 (сверх tenant RLS); ACL матрица `docs/07`; admin grant; org user directory.
 - Загрузка файлов, хранилище, OCR, парсинг (D-010/D-017, H-002).
 - BullMQ worker, сущность/жизненный цикл AIJob в БД.
 - RAG / pgvector индексы в приложении (D-018 — решение есть, кода поиска нет).

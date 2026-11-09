@@ -16,7 +16,7 @@ Foreign or missing records → `null` (HTTP maps to identical `NOT_FOUND`).
 - **Content:** PERSONAL → owner only; TEAM → owner or active EDITOR/VIEWER member.
 - **Org Admin does not read content** via these helpers (admin grant is a later slice).
 - **Member management:** Workspace Owner **or** Org Owner/Admin (`W-008`) — without implying content read.
-- **Create:** PERSONAL only in this phase (TEAM create deferred).
+- **Create:** PERSONAL (default) or TEAM (**W-002**).
 - Cannot attach membership to Workspace owner; cannot manage members on PERSONAL.
 - VIEWER cannot mutate content; EDITOR/OWNER can (`canMutateContent`).
 

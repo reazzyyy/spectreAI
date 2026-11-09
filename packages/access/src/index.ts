@@ -11,6 +11,7 @@ export {
   type WorkspaceRecord,
   type WorkspaceMemberRecord,
   type WorkspaceStore,
+  type WorkspaceCreateInput,
   type WorkspaceCreatePersonalInput,
   type WorkspaceUpdateInput,
   type WorkspaceMemberUpsertInput,

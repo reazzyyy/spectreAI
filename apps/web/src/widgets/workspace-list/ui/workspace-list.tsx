@@ -14,8 +14,8 @@ const VISIBILITY_LABEL = {
 } as const;
 
 /**
- * Projects list (Make «Все проекты»): GET /workspaces + create PERSONAL.
- * Opens detail on create / row click (F5b). TEAM create — later.
+ * Projects list (Make «Все проекты»): GET /workspaces + create PERSONAL|TEAM.
+ * Opens detail on create / row click (F5b/F5i).
  */
 export function WorkspaceList() {
   const router = useRouter();
@@ -29,8 +29,8 @@ export function WorkspaceList() {
         <div>
           <h1>Проекты</h1>
           <p className={styles.lead}>
-            Пространства организации, к которым у вас есть доступ. Сейчас можно
-            создать личный проект; командный — позже.
+            Пространства организации, к которым у вас есть доступ. Можно создать
+            личный или командный проект; участников — на карточке командного.
           </p>
         </div>
       </div>
@@ -60,7 +60,7 @@ export function WorkspaceList() {
 
           {data && data.items.length === 0 ? (
             <div className={styles.empty}>
-              Пока нет проектов. Создайте личный справа.
+              Пока нет проектов. Создайте справа.
             </div>
           ) : null}
 

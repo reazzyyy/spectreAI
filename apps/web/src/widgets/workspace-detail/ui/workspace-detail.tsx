@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { workspaceDetailQueryOptions } from "@/entities/workspace";
 import { EditWorkspaceForm } from "@/features/edit-workspace";
+import { WorkspaceMembersPanel } from "@/features/manage-workspace-members";
 import { WorkspaceMattersPanel } from "@/features/manage-workspace-matters";
 import { isApiError } from "@/shared/api";
 import styles from "./workspace-detail.module.scss";
@@ -18,8 +19,8 @@ export interface WorkspaceDetailProps {
 }
 
 /**
- * Workspace card (WS-03/04/05 + WS-08 matters): detail, edit, Matter links.
- * Members / Client / TEAM create / chat — later slices.
+ * Workspace card (WS-03/04/05 + WS-08 matters + members): detail, edit, Matter links, TEAM members.
+ * Chat — later slices.
  */
 export function WorkspaceDetail({ workspaceId }: WorkspaceDetailProps) {
   const { data, error, isPending, isError } = useQuery(
@@ -77,6 +78,12 @@ export function WorkspaceDetail({ workspaceId }: WorkspaceDetailProps) {
         </h2>
         <EditWorkspaceForm workspace={data} />
       </section>
+
+      <WorkspaceMembersPanel
+        workspaceId={workspaceId}
+        visibility={data.visibility}
+        ownerUserId={data.ownerUserId}
+      />
 
       <WorkspaceMattersPanel workspaceId={workspaceId} />
     </div>

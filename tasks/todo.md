@@ -47,8 +47,11 @@
 ## F5h Invite accept UI
 - [x] /invite/accept + acceptInvitation API; docs / verify
 
+## F5i TEAM create + members UI
+- [x] API unlock TEAM create; create visibility; members panel; docs / verify
+
 ## Later
-- [ ] F5i+ TEAM / members / docs/31 next screens
+- [ ] F5j+ org user directory / docs/31 next screens
 - [ ] Chore: migrate system-map to SCSS Modules
 - [ ] Optional: CI Chromatic / Playwright when ready
 - [ ] Roadmap next: documents (Фаза 3) when ready

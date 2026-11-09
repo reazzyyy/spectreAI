@@ -71,13 +71,14 @@ export function createPrismaWorkspaceStore(prisma: Db): WorkspaceStore {
     },
 
     async create(organizationId, ownerUserId, input: WorkspaceCreatePersonalInput) {
+      const visibility = input.visibility ?? "PERSONAL";
       const row = await prisma.workspace.create({
         data: {
           organizationId,
           ownerUserId,
           name: input.name,
           description: input.description ?? null,
-          visibility: "PERSONAL",
+          visibility,
           status: "ACTIVE",
           clientId: input.clientId ?? null,
         },

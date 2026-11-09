@@ -17,11 +17,33 @@ export type WorkspaceListResponse = {
   items: Workspace[];
 };
 
-/** POST /workspaces — only PERSONAL accepted by API (S3). */
+/** POST /workspaces — PERSONAL (default) or TEAM (W-002). */
 export type CreateWorkspaceInput = {
   name: string;
   description?: string | null;
-  visibility?: "PERSONAL";
+  visibility?: WorkspaceVisibility;
+  clientId?: string | null;
+};
+
+export type WorkspaceMemberRole = "EDITOR" | "VIEWER";
+export type WorkspaceMemberStatus = "ACTIVE" | "REVOKED";
+
+export type WorkspaceMember = {
+  id: string;
+  organizationId: string;
+  workspaceId: string;
+  userId: string;
+  role: WorkspaceMemberRole;
+  status: WorkspaceMemberStatus;
+};
+
+export type WorkspaceMemberListResponse = {
+  items: WorkspaceMember[];
+};
+
+export type UpsertWorkspaceMemberInput = {
+  userId: string;
+  role: WorkspaceMemberRole;
 };
 
 /** PATCH /workspaces/:id — at least one field required by API. */

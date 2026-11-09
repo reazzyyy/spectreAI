@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-/** Client create payload — aligned with POST /workspaces (PERSONAL only). */
+/** Client create payload — aligned with POST /workspaces (PERSONAL|TEAM). */
 export const createWorkspaceSchema = z.object({
   name: z
     .string()
@@ -11,6 +11,7 @@ export const createWorkspaceSchema = z.object({
     .string()
     .max(2000, "Описание не длиннее 2000 символов.")
     .optional(),
+  visibility: z.enum(["PERSONAL", "TEAM"]),
 });
 
 export type CreateWorkspaceFormValues = z.infer<typeof createWorkspaceSchema>;
