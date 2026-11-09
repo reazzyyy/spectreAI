@@ -1,6 +1,6 @@
 import { SyntheticModeBanner } from "@/shared/ui";
 import { ArchitectureDiagram } from "./architecture-diagram";
-import styles from "./system-map.module.css";
+import styles from "./system-map.module.scss";
 
 /**
  * Onboarding map of Spectre AS-IS for frontend-minded readers.
