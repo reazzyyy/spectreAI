@@ -43,13 +43,9 @@ test.describe("auth smoke", () => {
       `POST /auth/login failed: status=${loginResponse.status()} body=${loginBody.slice(0, 500)}`,
     ).toBe(200);
 
-    const alerts = page.getByRole("alert");
-    const alertCount = await alerts.count();
-    if (alertCount > 0) {
-      throw new Error(
-        `Unexpected alert(s) after login: ${(await alerts.allTextContents()).join(" | ")}`,
-      );
-    }
+    // Do not assert getByRole("alert"): Next.js App Router announcer uses role=alert
+    // with an empty string and is a false positive. Form errors use .form-error.
+    await expect(page.locator(".form-error")).toHaveCount(0);
 
     await expect(page).toHaveURL(/\/$/, { timeout: 15_000 });
     const local = creds!.email.split("@")[0] ?? creds!.email;

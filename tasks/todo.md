@@ -61,7 +61,7 @@
 
 ## Chore: CI Playwright
 - [x] GitHub Actions `web-e2e` smoke (bootstrap + Chromium)
-- [ ] Stabilize login: Zod-valid email + bootstrap JSON file + API Origin preflight
+- [x] Stabilize login: Zod-valid email + bootstrap JSON + API Origin preflight + ignore Next route-announcer alert
 
 ## Later
 - [ ] Optional: CI Chromatic publish when token ready
