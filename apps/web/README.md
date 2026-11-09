@@ -6,7 +6,7 @@ Next.js App Router. Port: `3001`.
 Import direction: `app → widgets → features → entities → shared`.
 
 **Quality bar (CONFIRMED D-024 / ADR-0004):** SCSS Modules + CSS tokens, own `shared/ui`, RHF+Zod, TanStack Query, Vitest+RTL + Storybook+Chromatic + Playwright.  
-**AS-IS (F5e):** Workspace + Matter + Client list/create/edit, Matter↔Workspace links, AppShell/Home, Vitest+RTL, Storybook/Chromatic, Playwright auth smoke. `system-map` still plain CSS Modules. TEAM / members / Client linking — not wired.
+**AS-IS (F5f):** Workspace + Matter + Client CRUD, Matter↔Workspace links, Client link on Matter/Workspace edit, AppShell/Home, Vitest+RTL, Storybook/Chromatic, Playwright auth smoke. `system-map` still plain CSS Modules. TEAM / members — not wired.
 
 ## Run
 

@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
+import { clientsListQueryOptions } from "@/entities/client";
 import {
   matterDetailQueryOptions,
   mattersListQueryOptions,
@@ -22,9 +23,10 @@ export interface EditMatterFormProps {
   matter: Matter;
 }
 
-/** Edit Matter title/status via PATCH /matters/:id. */
+/** Edit Matter title/status/client via PATCH /matters/:id (F5f). */
 export function EditMatterForm({ matter }: EditMatterFormProps) {
   const queryClient = useQueryClient();
+  const clientsQuery = useQuery(clientsListQueryOptions);
   const [formError, setFormError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const status =
@@ -37,21 +39,27 @@ export function EditMatterForm({ matter }: EditMatterFormProps) {
     formState: { errors, isSubmitting, isDirty },
   } = useForm<EditMatterFormValues>({
     resolver: zodResolver(editMatterSchema),
-    defaultValues: { title: matter.title, status },
+    defaultValues: {
+      title: matter.title,
+      status,
+      clientId: matter.clientId ?? "",
+    },
   });
 
   useEffect(() => {
     reset({
       title: matter.title,
       status: matter.status === "archived" ? "archived" : "active",
+      clientId: matter.clientId ?? "",
     });
-  }, [matter.id, matter.title, matter.status, reset]);
+  }, [matter.id, matter.title, matter.status, matter.clientId, reset]);
 
   const mutation = useMutation({
     mutationFn: (values: EditMatterFormValues) =>
       updateMatter(matter.id, {
         title: values.title.trim(),
         status: values.status,
+        clientId: values.clientId === "" ? null : values.clientId,
       }),
     onSuccess: async (updated) => {
       queryClient.setQueryData(
@@ -64,6 +72,7 @@ export function EditMatterForm({ matter }: EditMatterFormProps) {
       reset({
         title: updated.title,
         status: updated.status === "archived" ? "archived" : "active",
+        clientId: updated.clientId ?? "",
       });
       setFormError(null);
       setSaved(true);
@@ -79,12 +88,14 @@ export function EditMatterForm({ matter }: EditMatterFormProps) {
       if (isApiError(err) && (err.status === 404 || err.code === "NOT_FOUND")) {
         setFormError("Дело не найдено или недоступно.");
       } else if (isApiError(err) && err.code === "VALIDATION_ERROR") {
-        setFormError("Проверьте название и статус.");
+        setFormError("Проверьте название, статус и клиента.");
       } else {
         setFormError("Не удалось сохранить. Попробуйте ещё раз.");
       }
     }
   }
+
+  const clients = clientsQuery.data?.items ?? [];
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate>
@@ -109,9 +120,32 @@ export function EditMatterForm({ matter }: EditMatterFormProps) {
           <option value="active">active</option>
           <option value="archived">archived</option>
         </select>
-        {errors.status?.message ? (
+      </div>
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="edit-matter-client">
+          Клиент
+        </label>
+        <select
+          id="edit-matter-client"
+          className={styles.select}
+          disabled={isSubmitting || clientsQuery.isPending}
+          {...register("clientId")}
+        >
+          <option value="">Без клиента</option>
+          {clients.map((client) => (
+            <option key={client.id} value={client.id}>
+              {client.name}
+            </option>
+          ))}
+        </select>
+        {clients.length === 0 && !clientsQuery.isPending ? (
+          <p className={styles.saved}>
+            Клиентов пока нет — создайте на странице «Все клиенты».
+          </p>
+        ) : null}
+        {errors.clientId?.message ? (
           <p role="alert" className="form-error">
-            {errors.status.message}
+            {errors.clientId.message}
           </p>
         ) : null}
       </div>
