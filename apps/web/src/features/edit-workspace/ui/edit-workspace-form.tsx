@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
+import { clientsListQueryOptions } from "@/entities/client";
 import {
   updateWorkspace,
   workspaceDetailQueryOptions,
@@ -23,11 +24,11 @@ export interface EditWorkspaceFormProps {
 }
 
 /**
- * Owner rename / description edit (WS-04 / WS-05) via PATCH /workspaces/:id.
- * Client/Matter linking stays out of this slice.
+ * Owner edit name/description/client (WS-04/05/07) via PATCH /workspaces/:id.
  */
 export function EditWorkspaceForm({ workspace }: EditWorkspaceFormProps) {
   const queryClient = useQueryClient();
+  const clientsQuery = useQuery(clientsListQueryOptions);
   const [formError, setFormError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const {
@@ -40,6 +41,7 @@ export function EditWorkspaceForm({ workspace }: EditWorkspaceFormProps) {
     defaultValues: {
       name: workspace.name,
       description: workspace.description ?? "",
+      clientId: workspace.clientId ?? "",
     },
   });
 
@@ -47,8 +49,15 @@ export function EditWorkspaceForm({ workspace }: EditWorkspaceFormProps) {
     reset({
       name: workspace.name,
       description: workspace.description ?? "",
+      clientId: workspace.clientId ?? "",
     });
-  }, [workspace.id, workspace.name, workspace.description, reset]);
+  }, [
+    workspace.id,
+    workspace.name,
+    workspace.description,
+    workspace.clientId,
+    reset,
+  ]);
 
   const mutation = useMutation({
     mutationFn: (values: EditWorkspaceFormValues) => {
@@ -56,6 +65,7 @@ export function EditWorkspaceForm({ workspace }: EditWorkspaceFormProps) {
       return updateWorkspace(workspace.id, {
         name: values.name.trim(),
         description: description.length > 0 ? description : null,
+        clientId: values.clientId === "" ? null : values.clientId,
       });
     },
     onSuccess: async (updated) => {
@@ -69,6 +79,7 @@ export function EditWorkspaceForm({ workspace }: EditWorkspaceFormProps) {
       reset({
         name: updated.name,
         description: updated.description ?? "",
+        clientId: updated.clientId ?? "",
       });
       setFormError(null);
       setSaved(true);
@@ -84,7 +95,7 @@ export function EditWorkspaceForm({ workspace }: EditWorkspaceFormProps) {
       if (isApiError(err) && (err.status === 404 || err.code === "NOT_FOUND")) {
         setFormError("Проект не найден или недоступен.");
       } else if (isApiError(err) && err.code === "VALIDATION_ERROR") {
-        setFormError("Проверьте название и описание.");
+        setFormError("Проверьте название, описание и клиента.");
       } else if (isApiError(err) && err.status === 403) {
         setFormError("Недостаточно прав для изменения проекта.");
       } else {
@@ -92,6 +103,8 @@ export function EditWorkspaceForm({ workspace }: EditWorkspaceFormProps) {
       }
     }
   }
+
+  const clients = clientsQuery.data?.items ?? [];
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate>
@@ -111,6 +124,34 @@ export function EditWorkspaceForm({ workspace }: EditWorkspaceFormProps) {
         error={errors.description?.message}
         {...register("description")}
       />
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="edit-workspace-client">
+          Клиент
+        </label>
+        <select
+          id="edit-workspace-client"
+          className={styles.select}
+          disabled={isSubmitting || clientsQuery.isPending}
+          {...register("clientId")}
+        >
+          <option value="">Без клиента</option>
+          {clients.map((client) => (
+            <option key={client.id} value={client.id}>
+              {client.name}
+            </option>
+          ))}
+        </select>
+        {clients.length === 0 && !clientsQuery.isPending ? (
+          <p className={styles.saved}>
+            Клиентов пока нет — создайте на странице «Все клиенты».
+          </p>
+        ) : null}
+        {errors.clientId?.message ? (
+          <p role="alert" className="form-error">
+            {errors.clientId.message}
+          </p>
+        ) : null}
+      </div>
       {formError ? (
         <p role="alert" className="form-error">
           {formError}

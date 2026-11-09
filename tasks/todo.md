@@ -38,7 +38,11 @@
 ## F5e Client list/create/edit
 - [x] /clients CRUD thin + nav; docs / verify
 
+## F5f Client links on Matter / Workspace
+- [x] clientId picker on edit forms; docs / verify
+
 ## Later
-- [ ] F5f+ Matter↔Client / Workspace↔Client / TEAM / members
+- [ ] F5g+ TEAM / members / docs/31 next screens
 - [ ] Chore: migrate system-map to SCSS Modules
 - [ ] Optional: CI Chromatic / Playwright when ready
+- [ ] Roadmap next: documents (Фаза 3) when ready

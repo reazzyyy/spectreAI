@@ -49,15 +49,17 @@ F5+ Product screens from Make (projects, chat, …) по docs/31 — отдел�
 
 ### F5d — Matter list/create/edit ✅ в `main`
 
-### F5e — Client list/create/edit (текущий PR)
+### F5e — Client list/create/edit ✅ в `main`
 
-**Description:** `/clients` + `/clients/[id]` — `GET/POST/PATCH /clients` (CRM-01 thin).
+### F5f — Client links on Matter / Workspace (текущий PR)
+
+**Description:** Edit forms set/clear `clientId` via PATCH (WS-07 + Matter↔Client).
 
 **Acceptance criteria:**
-- [x] Client entity + list/detail widgets + nav
-- [x] Vitest schemas; AS-IS / README / plan
+- [x] Client picker on edit-matter and edit-workspace
+- [x] Schema tests; AS-IS / README / plan
 
-**Out of scope F5e:** Matter↔Client / Workspace↔Client link UI, TEAM, members, chat.
+**Out of scope F5f:** TEAM create, members UI, chat, documents.
 
 ## Risks
 

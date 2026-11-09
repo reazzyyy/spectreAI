@@ -28,6 +28,7 @@ export type CreateWorkspaceInput = {
 export type UpdateWorkspaceInput = {
   name?: string;
   description?: string | null;
+  clientId?: string | null;
 };
 
 /** Matter link from GET/POST /workspaces/:id/matters. */
