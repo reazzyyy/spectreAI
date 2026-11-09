@@ -69,6 +69,7 @@ export function AppShell({ children }: AppShellProps) {
   const homeActive = pathname === "/";
   const projectsActive = pathname === "/projects" || pathname.startsWith("/projects/");
   const mattersActive = pathname === "/matters" || pathname.startsWith("/matters/");
+  const clientsActive = pathname === "/clients" || pathname.startsWith("/clients/");
 
   return (
     <div className={styles.shell}>
@@ -152,6 +153,16 @@ export function AppShell({ children }: AppShellProps) {
           >
             <Icon name="folder" />
             <span className={styles.navLabel}>Все дела</span>
+          </Link>
+
+          <p className={styles.navGroup}>Клиенты</p>
+          <Link
+            href="/clients"
+            className={classNames(styles.navItem, clientsActive && styles.navItemActive)}
+            title="Все клиенты"
+          >
+            <Icon name="users" />
+            <span className={styles.navLabel}>Все клиенты</span>
           </Link>
 
           <p className={styles.navGroup}>Служебное</p>

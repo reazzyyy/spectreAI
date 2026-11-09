@@ -35,7 +35,10 @@
 ## F5d Matter list/create/edit
 - [x] /matters CRUD thin + nav; docs / verify
 
+## F5e Client list/create/edit
+- [x] /clients CRUD thin + nav; docs / verify
+
 ## Later
-- [ ] F5e+ Client screens / TEAM / members / docs/31
+- [ ] F5f+ Matter↔Client / Workspace↔Client / TEAM / members
 - [ ] Chore: migrate system-map to SCSS Modules
 - [ ] Optional: CI Chromatic / Playwright when ready
