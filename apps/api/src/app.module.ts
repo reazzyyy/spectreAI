@@ -27,6 +27,8 @@ import {
   OrganizationInvitationsController,
 } from "./invitations/invitations.controller.js";
 import { InvitationsService } from "./invitations/invitations.service.js";
+import { OrganizationMembersController } from "./organizations/organization-members.controller.js";
+import { OrganizationMembersService } from "./organizations/organization-members.service.js";
 import { WorkspacesController } from "./workspaces/workspaces.controller.js";
 import { WorkspacesService } from "./workspaces/workspaces.service.js";
 
@@ -38,6 +40,7 @@ import { WorkspacesService } from "./workspaces/workspaces.service.js";
     MattersController,
     WorkspacesController,
     OrganizationInvitationsController,
+    OrganizationMembersController,
     InvitationAcceptController,
     AiController,
   ],
@@ -78,6 +81,7 @@ import { WorkspacesService } from "./workspaces/workspaces.service.js";
     MattersService,
     WorkspacesService,
     InvitationsService,
+    OrganizationMembersService,
     { provide: AiGateway, useFactory: () => new AiGateway() },
     { provide: "AI_JOBS_QUEUE_NAME", useValue: AI_JOBS_QUEUE },
     { provide: APP_FILTER, useClass: ApiExceptionFilter },

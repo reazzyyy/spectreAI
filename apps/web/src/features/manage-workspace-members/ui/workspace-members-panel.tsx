@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { orgMembersListQueryOptions } from "@/entities/org-member";
+import { sessionMeQueryOptions } from "@/entities/session";
 import {
   revokeWorkspaceMember,
   upsertWorkspaceMember,
@@ -13,9 +15,6 @@ import { isApiError } from "@/shared/api";
 import { Button } from "@/shared/ui";
 import styles from "./workspace-members-panel.module.scss";
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
 export interface WorkspaceMembersPanelProps {
   workspaceId: string;
   visibility: WorkspaceVisibility;
@@ -24,7 +23,7 @@ export interface WorkspaceMembersPanelProps {
 
 /**
  * Workspace members (W-006/W-008). Add/revoke only for TEAM; PERSONAL shows notice.
- * Invitee identified by userId UUID until org directory exists.
+ * Candidates come from org directory (SEC-01 / F5j).
  */
 export function WorkspaceMembersPanel({
   workspaceId,
@@ -33,13 +32,48 @@ export function WorkspaceMembersPanel({
 }: WorkspaceMembersPanelProps) {
   const queryClient = useQueryClient();
   const isTeam = visibility === "TEAM";
+  const sessionQuery = useQuery(sessionMeQueryOptions);
+  const organizationId = sessionQuery.data?.organization.id ?? "";
+
   const membersQuery = useQuery({
     ...workspaceMembersQueryOptions(workspaceId),
     enabled: isTeam,
   });
+  const orgMembersQuery = useQuery({
+    ...orgMembersListQueryOptions(organizationId),
+    enabled: isTeam && organizationId.length > 0,
+  });
+
   const [userId, setUserId] = useState("");
   const [role, setRole] = useState<WorkspaceMemberRole>("EDITOR");
   const [formError, setFormError] = useState<string | null>(null);
+
+  const emailByUserId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const member of orgMembersQuery.data?.items ?? []) {
+      map.set(member.userId, member.email);
+    }
+    return map;
+  }, [orgMembersQuery.data]);
+
+  const alreadyMemberIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const member of membersQuery.data?.items ?? []) {
+      if (member.status === "ACTIVE") {
+        set.add(member.userId);
+      }
+    }
+    set.add(ownerUserId);
+    return set;
+  }, [membersQuery.data, ownerUserId]);
+
+  const candidates = useMemo(
+    () =>
+      (orgMembersQuery.data?.items ?? []).filter(
+        (m) => m.status === "active" && !alreadyMemberIds.has(m.userId),
+      ),
+    [orgMembersQuery.data, alreadyMemberIds],
+  );
 
   async function invalidate(): Promise<void> {
     await queryClient.invalidateQueries({
@@ -72,13 +106,8 @@ export function WorkspaceMembersPanel({
   async function onAdd(event: FormEvent) {
     event.preventDefault();
     setFormError(null);
-    const trimmed = userId.trim();
-    if (!UUID_RE.test(trimmed)) {
-      setFormError("Укажите UUID пользователя.");
-      return;
-    }
-    if (trimmed.toLowerCase() === ownerUserId.toLowerCase()) {
-      setFormError("Владелец проекта не добавляется как участник.");
+    if (!userId) {
+      setFormError("Выберите сотрудника.");
       return;
     }
     try {
@@ -87,7 +116,7 @@ export function WorkspaceMembersPanel({
       if (isApiError(err) && (err.status === 404 || err.code === "NOT_FOUND")) {
         setFormError("Нет прав или пользователь недоступен.");
       } else if (isApiError(err) && err.code === "VALIDATION_ERROR") {
-        setFormError("Проверьте UUID и роль (EDITOR или VIEWER).");
+        setFormError("Проверьте сотрудника и роль (EDITOR или VIEWER).");
       } else {
         setFormError("Не удалось добавить участника.");
       }
@@ -143,7 +172,9 @@ export function WorkspaceMembersPanel({
           {activeItems.map((member) => (
             <li key={member.id} className={styles.item}>
               <div>
-                <p className={styles.title}>{member.userId}</p>
+                <p className={styles.title}>
+                  {emailByUserId.get(member.userId) ?? member.userId}
+                </p>
                 <span className={styles.meta}>{member.role}</span>
               </div>
               <Button
@@ -163,18 +194,27 @@ export function WorkspaceMembersPanel({
         <form className={styles.form} onSubmit={(e) => void onAdd(e)} noValidate>
           <div className={styles.field}>
             <label className={styles.label} htmlFor="member-user-id">
-              User ID
+              Сотрудник
             </label>
-            <input
+            <select
               id="member-user-id"
               className={styles.control}
               value={userId}
-              disabled={busy}
-              autoComplete="off"
-              spellCheck={false}
-              placeholder="UUID пользователя в организации"
+              disabled={busy || orgMembersQuery.isPending}
               onChange={(e) => setUserId(e.target.value)}
-            />
+            >
+              <option value="">Выберите…</option>
+              {candidates.map((member) => (
+                <option key={member.userId} value={member.userId}>
+                  {member.email} ({member.role})
+                </option>
+              ))}
+            </select>
+            {candidates.length === 0 && !orgMembersQuery.isPending ? (
+              <p className={styles.notice}>
+                Нет доступных сотрудников. Пригласите через «Организация».
+              </p>
+            ) : null}
           </div>
           <div className={`${styles.field} ${styles.fieldNarrow}`}>
             <label className={styles.label} htmlFor="member-role">
@@ -191,7 +231,7 @@ export function WorkspaceMembersPanel({
               <option value="VIEWER">VIEWER</option>
             </select>
           </div>
-          <Button type="submit" disabled={busy}>
+          <Button type="submit" disabled={busy || !userId}>
             {upsert.isPending ? "Добавление…" : "Добавить"}
           </Button>
         </form>

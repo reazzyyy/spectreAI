@@ -74,7 +74,8 @@ spectreAI/
 | Auth | `src/auth/*` | login / logout / me; SessionService; REQUEST-scoped `ACTOR_CONTEXT` |
 | Clients | `src/clients/*` | list/create/get/patch под `ActorGuard`; Prisma store + `ClientAccess` |
 | Matters | `src/matters/*` | list/create/get/patch под `ActorGuard`; Prisma store + `MatterAccess` |
-| Workspaces | `src/workspaces/*` | list/create PERSONAL/get/patch, members, matter links под `ActorGuard` + `WorkspaceAccess` |
+| Workspaces | `src/workspaces/*` | list/create PERSONAL\|TEAM/get/patch, members, matter links под `ActorGuard` + `WorkspaceAccess` |
+| Org members | `src/organizations/*` | `GET …/members` same-org directory (SEC-01); runtime RLS |
 | Invitations | `src/invitations/*` | Org Owner invite CRUD-lite + accept; migrator store; TTL config |
 | AI | `src/ai/*` | `GET /api/v1/ai/provider`, `POST /api/v1/ai/generate` |
 | Ошибки | `src/http/api-exception.filter.ts` | Единый JSON `{ error: { code, message, requestId } }` |
@@ -102,17 +103,17 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 - `/projects/[workspaceId]` — detail + edit + Matter links + TEAM members (`GET/POST/DELETE …/members`).
 - `/matters`, `/matters/[id]` — list/create/edit Matter (`GET/POST/PATCH`).
 - `/clients`, `/clients/[id]` — list/create/edit Client (`GET/POST/PATCH`).
-- `/organization` — Owner: list/create/resend/revoke invitations; non-owner notice.
+- `/organization` — member directory (SEC-01) for any org member; Owner: invitations list/create/resend/revoke.
 - `/invite/accept` — принять приглашение (токен + пароль для нового пользователя; существующий — с сессией, без пароля); без product shell.
 - Matter/Workspace edit forms: optional `clientId` link/unlink (CRM + WS-07).
-- `entities/matter`, `entities/client`, `entities/invitation` — list/detail/create/update (+ invite mutate).
+- `entities/matter`, `entities/client`, `entities/invitation`, `entities/org-member` — list/detail/create/update (+ invite mutate).
 - `/system` — `widgets/system-map`: карта AS-IS без shell; не live health.
 - Сессия: `entities/session`. Workspace: `entities/workspace` (типы, API, Query).
 - Browser `fetch` на `/api/v1/*` с `credentials: "same-origin"` + CSRF header на мутациях; rewrite в `next.config.ts` на `API_ORIGIN` (по умолчанию `http://localhost:3000`).
 - Линтеры: ESLint + Steiger FSD + Stylelint (system-map CSS пока в ignore до миграции).
 - Стили AS-IS: SCSS-токены Make-aligned; `shared/ui` Button/Input/Icon; shell/home на SCSS Modules; system-map ещё plain CSS Modules.
 - Тесты AS-IS: Vitest + RTL (Button, schemas, AppShell). Storybook 10 + stories `shared/ui`; Chromatic addon/CLI (publish — `CHROMATIC_PROJECT_TOKEN`). Playwright smoke: unauth `/` → `/login`; login → home (нужны Postgres + bootstrap + `E2E_ORGANIZATION_ID`). CI Playwright gate — ещё нет.
-- Нет регистрации, recovery, MFA, org user directory, загрузки файлов.
+- Нет регистрации, recovery, MFA, org role change UI, загрузки файлов.
 
 ## 4. Пакеты
 
@@ -175,6 +176,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 | GET | `/workspaces/:workspaceId/matters` | сессия | `{ items: [{ matterId }] }` | `401`; `404` |
 | POST | `/workspaces/:workspaceId/matters` | сессия | `{ matterId }` (`201`) | `401`; `404`; `422` (чужой/missing matter) |
 | DELETE | `/workspaces/:workspaceId/matters/:matterId` | сессия | `{ ok: true }` | `401`; `404` |
+| GET | `/organizations/:organizationId/members` | сессия (same org) | `{ items: OrgMember[] }` | `401`; `404` |
 | GET | `/organizations/:organizationId/invitations` | сессия Owner | `{ items }` | `401`; `404` |
 | POST | `/organizations/:organizationId/invitations` | сессия Owner + CSRF | Invitation (`201`, optional `devToken`) | `401`; `404`; `422` |
 | POST | `/organizations/:organizationId/invitations/:id/resend` | сессия Owner + CSRF | Invitation | `401`; `404` |
@@ -231,7 +233,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 | `docs/12` §7 CSRF | **W-014** + **W-014a** | Origin allowlist + double-submit; SameSite=Lax доп. слой | Соответствует scaffold S4a |
 | `docs/21` same-origin API | PROPOSED detail | Next rewrite `/api/v1` → Nest | Соответствует локальному scaffold |
 | `docs/21` / **D-023** FSD | CONFIRMED | Слои app/widgets/features/entities/shared + Steiger/ESLint | Соответствует scaffold login |
-| `docs/21` / **D-024** quality bar | CONFIRMED | SCSS Modules, `shared/ui`, RHF+Zod, Query, Vitest/Storybook/Chromatic/Playwright | F5i: TEAM create + members UI; CI e2e gate нет; system-map CSS Modules |
+| `docs/21` / **D-024** quality bar | CONFIRMED | SCSS Modules, `shared/ui`, RHF+Zod, Query, Vitest/Storybook/Chromatic/Playwright | F5j: org members directory; CI e2e gate нет; system-map CSS Modules |
 | `docs/11` префикс `/api/v1`, коды ошибок | — | `/api/v1`, `UNAUTHENTICATED` / `NOT_FOUND` / `VALIDATION_ERROR` | Согласовано |
 | `docs/11` карта `clients`/`matters` | PROPOSED GET/POST (+ GET by id) | Есть также PATCH; DELETE нет | PATCH — scaffold extension; DELETE OUT OF SCOPE |
 | `docs/06` `created_by` на Client/Matter | PROPOSED | Поля в Prisma нет | OPEN / отложено |
@@ -278,7 +280,7 @@ Workflow: `.github/workflows/ci.yml`.
 - MFA/SSO (**O-008** / **W-013** — не в MVP), self-registration (**W-012** запрещает public self-reg), email verify, recovery, logout-all, session list.
 - Email delivery provider для invitations; audit events; rate limit каркас.
 - Полный `docs/12` (audit events, password policy product confirmation, idle timeout).
-- Hard delete Client/Matter/Workspace; `created_by`; полный W-020 (сверх tenant RLS); ACL матрица `docs/07`; admin grant; org user directory.
+- Hard delete Client/Matter/Workspace; `created_by`; полный W-020 (сверх tenant RLS); ACL матрица `docs/07`; admin grant; org role change.
 - Загрузка файлов, хранилище, OCR, парсинг (D-010/D-017, H-002).
 - BullMQ worker, сущность/жизненный цикл AIJob в БД.
 - RAG / pgvector индексы в приложении (D-018 — решение есть, кода поиска нет).
