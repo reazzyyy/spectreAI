@@ -6,7 +6,7 @@ Next.js App Router. Port: `3001`.
 Import direction: `app → widgets → features → entities → shared`.
 
 **Quality bar (CONFIRMED D-024 / ADR-0004):** SCSS Modules + CSS tokens, own `shared/ui`, RHF+Zod, TanStack Query, Vitest+RTL + Storybook+Chromatic + Playwright.  
-**AS-IS (F5c):** Sass tokens + Stylelint, Button/Input/Icon, RHF+Zod login/create/edit Workspace, Query session/workspaces/matters, AppShell/Home, `/projects` list + PERSONAL create, `/projects/[id]` detail + edit + Matter link/unlink, Vitest+RTL, Storybook 10 + Chromatic, Playwright auth smoke. `system-map` still plain CSS Modules. TEAM / members / Matter CRUD screens — not wired.
+**AS-IS (F5d):** login/create/edit Workspace + Matter list/create/edit, Matter↔Workspace links, AppShell/Home, Vitest+RTL, Storybook/Chromatic, Playwright auth smoke. `system-map` still plain CSS Modules. TEAM / members / Client screens — not wired.
 
 ## Run
 
@@ -34,22 +34,26 @@ Set `WEB_ORIGIN=http://localhost:3001` on the API for CSRF Origin allowlist (**W
 ```text
 src/
 ├── app/
-│   ├── (product)/       # AppShell layout + Home + /projects
+│   ├── (product)/       # AppShell + Home + /projects + /matters
 │   ├── login/
 │   ├── system/
-│   └── styles/          # global SCSS tokens
+│   └── styles/
 ├── widgets/
 │   ├── app-shell/
 │   ├── home-overview/
 │   ├── workspace-list/
 │   ├── workspace-detail/
+│   ├── matter-list/
+│   ├── matter-detail/
 │   └── system-map/
 ├── features/
 │   ├── login/
 │   ├── logout/
 │   ├── create-workspace/
 │   ├── edit-workspace/
-│   └── manage-workspace-matters/
+│   ├── manage-workspace-matters/
+│   ├── create-matter/
+│   └── edit-matter/
 ├── entities/
 │   ├── session/
 │   ├── workspace/
@@ -64,9 +68,11 @@ src/
 
 - `/login` — RHF+Zod → `POST /auth/login` (no product shell).
 - `/` — `AppShell` + `HomeOverview`; session + recent workspaces; 401 → `/login`.
-- `/projects` — list `GET /workspaces` + create PERSONAL `POST /workspaces`.
-- `/projects/[id]` — detail `GET` + edit `PATCH` + Matter link/unlink.
-- Nav: Home, Все проекты; Личные/Команда disabled; link to `/system`.
+- `/projects` — list/create PERSONAL Workspace.
+- `/projects/[id]` — detail + edit + Matter link/unlink.
+- `/matters` — list/create Matter.
+- `/matters/[id]` — detail + edit title/status.
+- Nav: Home, Все проекты, Все дела; link to `/system`.
 - Desktop gate below 1280px (Make constraint).
 - `/system` — system-map onboarding (no shell).
 - Synthetic banner in topbar (D-012).

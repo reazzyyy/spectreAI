@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { mattersListQueryOptions } from "@/entities/matter";
 import {
@@ -148,7 +149,8 @@ export function WorkspaceMattersPanel({ workspaceId }: WorkspaceMattersPanelProp
 
       {mattersQuery.data && mattersQuery.data.items.length === 0 ? (
         <p className={styles.empty}>
-          В организации ещё нет дел. Создание дел появится в следующем срезе.
+          В организации ещё нет дел. Создайте на странице{" "}
+          <Link href="/matters">Все дела</Link>.
         </p>
       ) : null}
 
