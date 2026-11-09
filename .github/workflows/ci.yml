@@ -1,4 +1,4 @@
-# Quality gate for every PR: install → migrate → test.
+# Quality gate for every PR: unit tests + web Playwright smoke.
 # Postgres matches local docker-compose credentials (CI-only DB, not production).
 name: CI
 
@@ -65,3 +65,94 @@ jobs:
 
       - name: Run tests
         run: pnpm test
+
+  web-e2e:
+    name: Web e2e (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: spectre
+          POSTGRES_PASSWORD: spectre
+          POSTGRES_DB: spectre
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U spectre -d spectre"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://spectre:spectre@localhost:5432/spectre
+      DATABASE_URL_RUNTIME: postgresql://spectre_app:spectre_app@localhost:5432/spectre
+      REDIS_URL: redis://localhost:6379
+      PORT: "3000"
+      API_ORIGIN: http://localhost:3000
+      WEB_ORIGIN: http://localhost:3001
+      CI: true
+      PW_NO_REUSE: "1"
+      # Dev-only bootstrap for smoke (W-012). Synthetic CI credentials — not production.
+      BOOTSTRAP_DEV: "1"
+      BOOTSTRAP_ORG_NAME: CI E2E Org
+      BOOTSTRAP_OWNER_EMAIL: e2e-owner@localhost
+      BOOTSTRAP_OWNER_PASSWORD: synthetic-ci-e2e-password-12
+      E2E_EMAIL: e2e-owner@localhost
+      E2E_PASSWORD: synthetic-ci-e2e-password-12
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Write .env for tsx --env-file (api/web scripts)
+        run: |
+          {
+            echo "DATABASE_URL=postgresql://spectre:spectre@localhost:5432/spectre"
+            echo "DATABASE_URL_RUNTIME=postgresql://spectre_app:spectre_app@localhost:5432/spectre"
+            echo "REDIS_URL=redis://localhost:6379"
+            echo "PORT=3000"
+            echo "API_ORIGIN=http://localhost:3000"
+            echo "WEB_ORIGIN=http://localhost:3001"
+            echo "BOOTSTRAP_DEV=1"
+            echo "BOOTSTRAP_ORG_NAME=CI E2E Org"
+            echo "BOOTSTRAP_OWNER_EMAIL=e2e-owner@localhost"
+            echo "BOOTSTRAP_OWNER_PASSWORD=synthetic-ci-e2e-password-12"
+          } > .env
+
+      - name: Apply Prisma migrations
+        run: pnpm --filter @spectre/db migrate:deploy
+
+      - name: Bootstrap org owner for smoke
+        run: |
+          set -euo pipefail
+          OUT=$(pnpm --filter @spectre/api bootstrap:dev)
+          echo "$OUT"
+          ORG_ID=$(printf '%s\n' "$OUT" | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>{const m=s.match(/\{[\s\S]*\}/); if(!m){process.exit(2)}; const j=JSON.parse(m[0]); if(!j.organizationId) process.exit(3); process.stdout.write(j.organizationId)})")
+          echo "E2E_ORGANIZATION_ID=$ORG_ID" >> "$GITHUB_ENV"
+          # Playwright also loads root .env via loadEnvFile
+          echo "E2E_ORGANIZATION_ID=$ORG_ID" >> .env
+          echo "E2E_EMAIL=e2e-owner@localhost" >> .env
+          echo "E2E_PASSWORD=synthetic-ci-e2e-password-12" >> .env
+
+      - name: Install Playwright Chromium
+        run: pnpm --filter @spectre/web exec playwright install --with-deps chromium
+
+      - name: Run Playwright smoke
+        run: pnpm --filter @spectre/web test:e2e

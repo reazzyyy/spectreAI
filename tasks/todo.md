@@ -59,6 +59,9 @@
 ## Chore: system-map SCSS
 - [x] CSS Modules → SCSS Modules; stylelint ignore removed; docs / verify
 
+## Chore: CI Playwright
+- [x] GitHub Actions `web-e2e` smoke (bootstrap + Chromium)
+
 ## Later
-- [ ] Optional: CI Chromatic / Playwright when ready
+- [ ] Optional: CI Chromatic publish when token ready
 - [ ] Roadmap next: documents (Фаза 3) / docs/31 next screens when ready

@@ -112,7 +112,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 - Browser `fetch` на `/api/v1/*` с `credentials: "same-origin"` + CSRF header на мутациях; rewrite в `next.config.ts` на `API_ORIGIN` (по умолчанию `http://localhost:3000`).
 - Линтеры: ESLint + Steiger FSD + Stylelint (включая system-map SCSS).
 - Стили AS-IS: SCSS-токены Make-aligned; `shared/ui` Button/Input/Icon; shell/home/system-map на SCSS Modules.
-- Тесты AS-IS: Vitest + RTL (Button, schemas, AppShell). Storybook 10 + stories `shared/ui`; Chromatic addon/CLI (publish — `CHROMATIC_PROJECT_TOKEN`). Playwright smoke: unauth `/` → `/login`; login → home (нужны Postgres + bootstrap + `E2E_ORGANIZATION_ID`). CI Playwright gate — ещё нет.
+- Тесты AS-IS: Vitest + RTL (Button, schemas, AppShell). Storybook 10 + stories `shared/ui`; Chromatic addon/CLI (publish — `CHROMATIC_PROJECT_TOKEN`). Playwright smoke: unauth `/` → `/login`; login → home (Postgres + bootstrap + `E2E_ORGANIZATION_ID`). CI job `web-e2e` гоняет smoke; Chromatic publish в CI ещё нет.
 - Нет регистрации, recovery, MFA, ownership transfer, загрузки файлов.
 
 ## 4. Пакеты
@@ -234,7 +234,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 | `docs/12` §7 CSRF | **W-014** + **W-014a** | Origin allowlist + double-submit; SameSite=Lax доп. слой | Соответствует scaffold S4a |
 | `docs/21` same-origin API | PROPOSED detail | Next rewrite `/api/v1` → Nest | Соответствует локальному scaffold |
 | `docs/21` / **D-023** FSD | CONFIRMED | Слои app/widgets/features/entities/shared + Steiger/ESLint | Соответствует scaffold login |
-| `docs/21` / **D-024** quality bar | CONFIRMED | SCSS Modules, `shared/ui`, RHF+Zod, Query, Vitest/Storybook/Chromatic/Playwright | system-map → SCSS; CI e2e gate нет |
+| `docs/21` / **D-024** quality bar | CONFIRMED | SCSS Modules, `shared/ui`, RHF+Zod, Query, Vitest/Storybook/Chromatic/Playwright | CI Playwright smoke; Chromatic publish gate нет |
 | `docs/11` префикс `/api/v1`, коды ошибок | — | `/api/v1`, `UNAUTHENTICATED` / `NOT_FOUND` / `VALIDATION_ERROR` | Согласовано |
 | `docs/11` карта `clients`/`matters` | PROPOSED GET/POST (+ GET by id) | Есть также PATCH; DELETE нет | PATCH — scaffold extension; DELETE OUT OF SCOPE |
 | `docs/06` `created_by` на Client/Matter | PROPOSED | Поля в Prisma нет | OPEN / отложено |
@@ -269,10 +269,10 @@ Workflow: `.github/workflows/ci.yml`.
 
 | Триггер | Поведение |
 |---|---|
-| `pull_request` (любой) | job `test`: pnpm install → `migrate:deploy` → `pnpm test` |
+| `pull_request` (любой) | job `test`: install → migrate → `pnpm test`; job `web-e2e`: migrate → bootstrap → Playwright Chromium smoke |
 | `push` в `main` | то же |
 
-Сервис: `pgvector/pgvector:pg16` (`spectre` migrator). Env также задаёт `DATABASE_URL_RUNTIME` для `spectre_app` (роль создаётся миграцией S1). Live Redis в CI **не** поднимается. Lint / typecheck / build как отдельные gates **ещё не** подключены.
+Сервис: `pgvector/pgvector:pg16` (`spectre` migrator). Env также задаёт `DATABASE_URL_RUNTIME` для `spectre_app` (роль создаётся миграцией S1). Live Redis в CI **не** поднимается. Lint / typecheck / build / Chromatic publish как отдельные gates **ещё не** подключены.
 
 ## 8. Явно не реализовано (ожидаемо по спецификациям, отсутствует в коде)
 
