@@ -13,3 +13,10 @@ export type OrgMember = {
 export type OrgMemberListResponse = {
   items: OrgMember[];
 };
+
+/** PATCH …/members/:userId — owner assigns admin|member only. */
+export type AssignableOrgRole = "admin" | "member";
+
+export type UpdateOrgMemberRoleInput = {
+  role: AssignableOrgRole;
+};

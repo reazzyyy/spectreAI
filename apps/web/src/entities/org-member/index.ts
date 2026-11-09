@@ -3,6 +3,8 @@ export type {
   OrgMemberListResponse,
   OrgMemberRole,
   OrgMemberStatus,
+  AssignableOrgRole,
+  UpdateOrgMemberRoleInput,
 } from "./model/types";
-export { listOrgMembers } from "./api/org-member-api";
+export { listOrgMembers, updateOrgMemberRole } from "./api/org-member-api";
 export { orgMembersListQueryOptions } from "./api/org-member-queries";
