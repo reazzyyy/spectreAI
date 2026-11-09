@@ -672,7 +672,7 @@ describe("API scaffold", () => {
       expect(revoked.body).toMatchObject({ userId: USER_B, status: "REVOKED" });
     });
 
-    it("lists org members for same org and hides foreign org", async () => {
+    it("lists org members and lets owner patch admin|member roles", async () => {
       const listed = await agent.get(`/api/v1/organizations/${ORG_A}/members`);
       expect(listed.status).toBe(200);
       expect(listed.body.items).toEqual(
@@ -697,6 +697,37 @@ describe("API scaffold", () => {
       const foreign = await agent.get(`/api/v1/organizations/${ORG_B}/members`);
       expect(foreign.status).toBe(404);
       expect(foreign.body.error.code).toBe("NOT_FOUND");
+
+      const promoted = await agent
+        .patch(`/api/v1/organizations/${ORG_A}/members/${USER_B}`)
+        .send({ role: "admin" });
+      expect(promoted.status).toBe(200);
+      expect(promoted.body).toMatchObject({
+        userId: USER_B,
+        role: "admin",
+        status: "active",
+      });
+
+      const demoted = await agent
+        .patch(`/api/v1/organizations/${ORG_A}/members/${USER_B}`)
+        .send({ role: "member" });
+      expect(demoted.status).toBe(200);
+      expect(demoted.body).toMatchObject({ userId: USER_B, role: "member" });
+
+      const ownerTarget = await agent
+        .patch(`/api/v1/organizations/${ORG_A}/members/${USER_A}`)
+        .send({ role: "admin" });
+      expect(ownerTarget.status).toBe(422);
+
+      const badRole = await agent
+        .patch(`/api/v1/organizations/${ORG_A}/members/${USER_B}`)
+        .send({ role: "owner" });
+      expect(badRole.status).toBe(422);
+
+      const foreignPatch = await agent
+        .patch(`/api/v1/organizations/${ORG_B}/members/${USER_ORG_B}`)
+        .send({ role: "admin" });
+      expect(foreignPatch.status).toBe(404);
     });
 
     it("creates, accepts, and revokes org invitations; rejects owner role and foreign org", async () => {

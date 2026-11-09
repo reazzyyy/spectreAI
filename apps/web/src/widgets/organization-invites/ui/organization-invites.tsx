@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { invitationsListQueryOptions, type Invitation } from "@/entities/invitation";
 import { orgMembersListQueryOptions } from "@/entities/org-member";
 import { sessionMeQueryOptions } from "@/entities/session";
+import { ChangeOrgMemberRole } from "@/features/change-org-member-role";
 import { CreateInvitationForm } from "@/features/create-invitation";
 import { InvitationActions } from "@/features/manage-invitations";
 import { isApiError } from "@/shared/api";
@@ -65,8 +66,8 @@ export function OrganizationInvites() {
         <div>
           <h1>Организация</h1>
           <p className={styles.lead}>
-            Состав организации (SEC-01). Приглашения создаёт только владелец
-            (owner).
+            Состав организации (SEC-01). Владелец меняет роли admin|member и
+            создаёт приглашения.
           </p>
         </div>
       </div>
@@ -106,13 +107,20 @@ export function OrganizationInvites() {
                 <div className={styles.itemMain}>
                   <p className={styles.itemEmail}>{member.email}</p>
                   <div className={styles.meta}>
-                    <span>{member.role}</span>
                     <span>{member.status}</span>
                     <span className={styles.userId} title={member.userId}>
                       {member.userId}
                     </span>
                   </div>
                 </div>
+                {isOwner ? (
+                  <ChangeOrgMemberRole
+                    organizationId={organizationId}
+                    member={member}
+                  />
+                ) : (
+                  <span className={styles.meta}>{member.role}</span>
+                )}
               </li>
             ))}
           </ul>
@@ -122,7 +130,7 @@ export function OrganizationInvites() {
       {!isOwner ? (
         <p className={styles.notice} role="status">
           Ваша роль: {sessionQuery.data?.organization.role ?? "—"}. Приглашать
-          новых сотрудников может только owner.
+          и менять роли может только owner.
         </p>
       ) : (
         <div className={styles.layout}>

@@ -84,7 +84,8 @@ On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` 
 - Content list/read uses `WorkspaceAccess` (owner or TEAM member). Member management: Workspace owner or Org Admin (no auto content for Org Admin).
 - Foreign/missing Workspace → identical `404`; foreign Matter on link → `422`.
 - Org directory: `GET /organizations/:id/members` (same-org; SEC-01).
-- **OUT:** org role change, hard delete.
+- Org roles: `PATCH /organizations/:id/members/:userId` — Owner sets `admin`|`member` only (not owner/self).
+- **OUT:** ownership transfer, hard delete.
 
 ## Hard boundaries
 

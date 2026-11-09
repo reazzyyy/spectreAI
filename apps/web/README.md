@@ -6,7 +6,7 @@ Next.js App Router. Port: `3001`.
 Import direction: `app → widgets → features → entities → shared`.
 
 **Quality bar (CONFIRMED D-024 / ADR-0004):** SCSS Modules + CSS tokens, own `shared/ui`, RHF+Zod, TanStack Query, Vitest+RTL + Storybook+Chromatic + Playwright.  
-**AS-IS (F5j):** Workspace PERSONAL|TEAM + members picker from org directory, Matter + Client CRUD, links, org members (SEC-01) + invitations + `/invite/accept`, AppShell/Home, Vitest+RTL, Storybook/Chromatic, Playwright auth smoke. `system-map` still plain CSS Modules.
+**AS-IS (F5k):** Workspace PERSONAL|TEAM + members picker, Matter + Client CRUD, links, org members + owner role change (admin|member) + invitations + `/invite/accept`, AppShell/Home, Vitest+RTL, Storybook/Chromatic, Playwright auth smoke. `system-map` still plain CSS Modules.
 
 ## Run
 
@@ -46,7 +46,7 @@ src/
 - `/projects`, `/projects/[id]` — Workspace list/create (PERSONAL|TEAM)/edit + Matter links + TEAM members (org picker).
 - `/matters`, `/matters/[id]` — Matter list/create/edit.
 - `/clients`, `/clients/[id]` — Client list/create/edit.
-- `/organization` — org members directory; Owner invitations; `devToken` accept link.
+- `/organization` — org members directory; Owner role change + invitations; `devToken` accept link.
 - Nav: Home, проекты, дела, клиенты, Организация, `/system`.
 - Desktop gate below 1280px. Synthetic banner (D-012).
 
