@@ -41,8 +41,11 @@
 ## F5f Client links on Matter / Workspace
 - [x] clientId picker on edit forms; docs / verify
 
+## F5g Org invitations UI
+- [x] Entity + /organization list/create/resend/revoke; nav; docs / verify
+
 ## Later
-- [ ] F5g+ TEAM / members / docs/31 next screens
+- [ ] F5h+ invite accept UI / TEAM / members / docs/31 next screens
 - [ ] Chore: migrate system-map to SCSS Modules
 - [ ] Optional: CI Chromatic / Playwright when ready
 - [ ] Roadmap next: documents (Фаза 3) when ready
