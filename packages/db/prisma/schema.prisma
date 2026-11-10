@@ -1,8 +1,8 @@
-// Scaffold + Workspace Phase 2 S1 subset (W-001–W-004, W-006, W-020 foundation).
+// Scaffold + Workspace Phase 2 + Phase 3 document metadata (D-010/D-017 thin).
 // Organization, Client, Matter, User, OrganizationMembership, Session,
-// Workspace, WorkspaceMember, WorkspaceMatter.
+// Workspace, WorkspaceMember, WorkspaceMatter, Document.
 // Matter.workspaceId remains legacy nullable without FK until a later contract drop (W-003).
-// MFA/SSO (O-008) / chat / grant — out of this schema slice.
+// MFA/SSO (O-008) / chat / grant / DocumentVersion / AIJob — out of this schema slice.
 
 generator client {
   provider = "prisma-client"
@@ -73,6 +73,19 @@ enum WorkspaceMemberStatus {
   @@map("workspace_member_status")
 }
 
+/// Lifecycle for uploaded files (docs/06 §5.1). Processing/OCR — later phase.
+enum DocumentStatus {
+  uploaded
+  processing
+  ready
+  processing_failed
+  archived
+  deletion_pending
+  deleted
+
+  @@map("document_status")
+}
+
 model Organization {
   id           String                     @id @default(uuid()) @db.Uuid
   name         String
@@ -85,6 +98,7 @@ model Organization {
   sessions     Session[]
   workspaces   Workspace[]
   invitations  OrganizationInvitation[]
+  documents    Document[]
 
   @@map("organizations")
 }
@@ -139,6 +153,7 @@ model User {
   workspaceMatters   WorkspaceMatter[]        @relation("WorkspaceMatterCreator")
   addedMembers       WorkspaceMember[]        @relation("WorkspaceMemberAdder")
   invitationsSent    OrganizationInvitation[]  @relation("InvitationInviter")
+  uploadedDocuments  Document[]                @relation("DocumentUploader")
 
   @@map("users")
 }
@@ -221,6 +236,7 @@ model Workspace {
   archivedAt     DateTime?           @map("archived_at")
   members        WorkspaceMember[]
   matterLinks    WorkspaceMatter[]
+  documents      Document[]
 
   @@unique([organizationId, id])
   @@index([organizationId, status, updatedAt])
@@ -266,4 +282,30 @@ model WorkspaceMatter {
   @@index([organizationId, workspaceId])
   @@index([organizationId, matterId])
   @@map("workspace_matters")
+}
+
+/// Uploaded file metadata (Phase 3 thin). Binary lives in private object storage by storageKey.
+/// Flattened single version for this slice; DocumentVersion table later.
+model Document {
+  id               String         @id @default(uuid()) @db.Uuid
+  organizationId   String         @map("organization_id") @db.Uuid
+  organization     Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  workspaceId      String         @map("workspace_id") @db.Uuid
+  workspace        Workspace      @relation(fields: [organizationId, workspaceId], references: [organizationId, id], onDelete: Cascade)
+  title            String
+  status           DocumentStatus @default(uploaded)
+  originalFileName String         @map("original_file_name")
+  mimeType         String         @map("mime_type")
+  byteSize         Int            @map("byte_size")
+  checksumSha256   String         @map("checksum_sha256")
+  storageKey       String         @map("storage_key")
+  uploadedByUserId String         @map("uploaded_by_user_id") @db.Uuid
+  uploadedBy       User           @relation("DocumentUploader", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  @@unique([organizationId, id])
+  @@index([organizationId, workspaceId, createdAt])
+  @@index([organizationId, status])
+  @@map("documents")
 }

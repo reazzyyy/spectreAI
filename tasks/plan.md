@@ -1,74 +1,49 @@
-# Implementation Plan: Frontend quality bar (D-024) + product UI foundation
+# Implementation Plan: Phase 3 — document upload (thin slice)
 
-> **Статус:** в работе (старт 2026-11-06).  
-> **Предыдущий план:** Phase 2 Workspace membership (S0–S4c) — **закрыт** в `main`; детали остаются в git history / `tasks/roadmap.md`.  
-> **Канон:** **D-023**, **D-024** / ADR-0004, `docs/21`, `docs/22`, AS-IS `docs/26`.  
-> **Эталон:** `interview-platform` (стек) + дисциплина декомпозиции из `ulbi`.  
-> **Не цель этого плана:** полный перенос 11 экранов Figma Make; Storybook/Chromatic/Playwright wiring (отдельные срезы после F1–F2).
+> **Статус:** в работе (старт 2026-11-09).  
+> **Предыдущий план:** Frontend D-024 + F5a–F5k — **закрыт** в `main` (см. git history / `tasks/todo.md`).  
+> **Канон:** D-010 / D-017, `docs/13`, Workspace W-005, AS-IS `docs/26`.  
+> **Не цель этого плана:** OCR/worker (Фаза 4), chat, RAG, OpenAI, export, hard delete, выбор production object storage (**O-003**).
 
 ---
 
 ## Overview
 
-Поднять в `apps/web` целевой бар **D-024** срезами, сохранив рабочий login/session, затем переносить shell и экраны из Figma Make под FSD + SCSS Modules.
+Первый вертикальный срез Фазы 3: метаданные Document в PostgreSQL, приватный **локальный** storage adapter (scaffold, не хостер), upload/list/get/download HTTP с проверкой Workspace content ACL, негативные тесты формата/размера/org isolation, тонкий web UI библиотеки.
 
 ## Architecture Decisions
 
-- **Стили:** SCSS Modules + глобальные CSS variables; `sass` + Stylelint. Существующий CSS Modules (system-map) мигрирует отдельно, не блокирует F1.
-- **UI-kit:** свой `shared/ui` (Button, Input первым срезом); без shadcn.
-- **Формы:** RHF + Zod на login.
-- **Данные:** TanStack Query для `GET /auth/me` (session panel).
-- **Тесты F1:** Vitest + RTL на UI/схему; Storybook/Chromatic/Playwright — F3+.
-- **Макет:** токены F1 совместимы с текущим scaffold; визуальное выравнивание с Make — в срезе shell (F2).
+- **Принадлежность:** Document → Organization + Workspace (W-005 content via `WorkspaceAccess`).
+- **Версии:** в этом срезе одна «версия» flattened на Document (`storageKey`, mime, size, checksum); отдельная `DocumentVersion` — позже.
+- **Storage:** `LocalObjectStorage` под `DOCUMENT_STORAGE_ROOT` (default `.data/documents`); ключ не публичный URL; знание `storageKey` ≠ доступ.
+- **Статус:** после upload — `uploaded` (обработка/OCR — Фаза 4; скан без текста не обещается — ворота E).
+- **Лимиты:** PDF/DOCX/TXT; ≤ 25 МБ/файл; ≤ 10 файлов/запрос; magic-bytes + extension; ZIP/exe/макросы отклонять (DOCX — zip-based, отдельная проверка структуры).
+- **Доступ:** list/get/download — `canReadContent`; upload — `canMutateContent` (OWNER/EDITOR); чужой org/workspace → `404`.
+- **RLS:** tenant org GUC на `documents` (как clients/workspaces); workspace-membership policies — долг W-020 (`tasks/phase2-debt.md`).
 
-## Task List (slices → отдельные PR в `main`)
+## Task List (slices → PR в `main`)
 
 ```text
-F1  Foundation: Sass/tokens/Stylelint + Button/Input + Vitest + login RHF/Zod + Query session
-F2  App shell (sidebar/topbar) + Home по Make (hash→App Router routes)
-F3  Storybook + Chromatic wiring (stories на shared/ui)
-F4  Playwright smoke (login → home / 401)
-F5+ Product screens from Make (projects, chat, …) по docs/31 — отдельные PR
+D3a  Prisma Document + migration + tenant RLS + LocalObjectStorage
+D3b  DocumentAccess + HTTP upload/list/get/download + e2e isolation/validation
+D3c  Web: entity + /documents list/upload thin UI + nav
+Docs AS-IS / README / todo sync
 ```
 
-### F1 — Foundation ✅ в `main`
+### Acceptance (D3a–D3c)
 
-**Acceptance criteria:** выполнены (Sass/Stylelint/Button/Input/RHF+Zod/Query/Vitest).
+- [x] Upload TXT/PDF/DOCX в доступный Workspace → метаданные + файл на диске
+- [x] List только content-visible workspace; чужой documentId → 404
+- [x] >25 МБ / bad type / >10 files → 422
+- [x] UI: выбрать workspace, загрузить, увидеть список (без preview/OCR)
+- [x] AS-IS + READMEs обновлены; storage root не в git
 
-### F2 — App shell + Home ✅ в `main`
+### Out of scope
 
-### F3 — Storybook + Chromatic ✅ в `main`
-
-### F4 — Playwright smoke ✅ в `main`
-
-### F5a — Workspace list + PERSONAL create ✅ в `main`
-
-### F5b — Workspace detail + rename/description ✅ в `main`
-
-### F5c — Workspace ↔ Matter links ✅ в `main`
-
-### F5d — Matter list/create/edit ✅ в `main`
-
-### F5e — Client list/create/edit ✅ в `main`
-
-### F5f — Client links on Matter / Workspace (текущий PR)
-
-**Description:** Edit forms set/clear `clientId` via PATCH (WS-07 + Matter↔Client).
-
-**Acceptance criteria:**
-- [x] Client picker on edit-matter and edit-workspace
-- [x] Schema tests; AS-IS / README / plan
-
-**Out of scope F5f:** TEAM create, members UI, chat, documents.
+Worker/AIJob, extracted text, download UI polish, soft-delete/purge D-019, S3 provider, Chromatic.
 
 ## Risks
 
-- Next 16 + Vitest: держать unit-тесты в jsdom без browser-mode в F1.
-- system-map остаётся на `.module.css` до отдельного chore — допустимый долг AS-IS.
-- Не тащить demo-state из Figma Make в prod-путь.
-
-## Checkpoint after F1
-
-- [ ] Login/logout/`/auth/me` работают как раньше
-- [ ] CI/local lint+test+build green
-- [ ] Review перед F2 (shell)
+- DOCX = ZIP: нельзя отклонять все PK-файлы; нужна проверка openxml-структуры.
+- Local disk ≠ production storage; AS-IS помечает scaffold до O-003.
+- Не логировать имена/пути клиентских документов сверх id/status.

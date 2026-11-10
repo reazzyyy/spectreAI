@@ -50,6 +50,7 @@ On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` 
 | `src/app.module.ts` | Controllers + DI wiring |
 | `src/db/` | Dual Prisma (`migrator` auth/seed, `runtime` + GUC); actor-scoped Client/Matter/Workspace stores |
 | `src/workspaces/` | Prisma WorkspaceStore + HTTP list/create/get/patch, members, matter links (S3) |
+| `src/documents/` | Document metadata + local private storage; upload/list/get/download (Phase 3 thin) |
 | `src/health/` | Liveness |
 | `src/auth/` | Login/logout/me, SessionService, REQUEST-scoped `ACTOR_CONTEXT`, `ActorGuard` |
 | `src/clients/` | Client list/create/get/patch via Prisma + `ClientAccess` |
@@ -76,6 +77,14 @@ On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` 
 - `workspaceId` accepted without Workspace FK validation (**D-009**).
 - Status values: `active` | `archived` (no hard delete in this slice).
 - Access model: org-membership isolation via `@spectre/access` — **not** full `docs/07` ACL.
+
+## Documents (Phase 3 thin)
+
+- `GET/POST /workspaces/:workspaceId/documents` — list / multipart `files` (≤10, PDF/DOCX/TXT, ≤25 МБ).
+- `GET /documents/:id`, `GET /documents/:id/download` — metadata / binary; `storageKey` never in JSON.
+- Access: Workspace `canReadContent` / `canMutateContent`; foreign workspace → `404`.
+- Storage: `LocalObjectStorage` under `DOCUMENT_STORAGE_ROOT` (default `.data/documents`) — local scaffold, not O-003 hoster.
+- Status after upload: `uploaded` (no worker/OCR in this slice).
 
 ## Workspace scaffold (S3)
 

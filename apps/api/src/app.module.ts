@@ -1,6 +1,11 @@
 import { Module, Scope } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD, REQUEST } from "@nestjs/core";
-import { ClientAccess, MatterAccess, WorkspaceAccess } from "@spectre/access";
+import {
+  ClientAccess,
+  DocumentAccess,
+  MatterAccess,
+  WorkspaceAccess,
+} from "@spectre/access";
 import { AiGateway } from "@spectre/ai-gateway";
 import type { Request } from "express";
 import { AiController } from "./ai/ai.controller.js";
@@ -12,10 +17,17 @@ import { ClientsController } from "./clients/clients.controller.js";
 import { ClientsService } from "./clients/clients.service.js";
 import {
   createActorScopedClientStore,
+  createActorScopedDocumentStore,
   createActorScopedMatterStore,
   createActorScopedWorkspaceStore,
 } from "./db/actor-scoped-stores.js";
 import { PrismaService } from "./db/prisma.service.js";
+import { DocumentsController } from "./documents/documents.controller.js";
+import { DocumentsService } from "./documents/documents.service.js";
+import {
+  createLocalObjectStorageFromEnv,
+  LocalObjectStorage,
+} from "./documents/local-object-storage.js";
 import { HealthController } from "./health/health.controller.js";
 import { ApiExceptionFilter } from "./http/api-exception.filter.js";
 import { CsrfGuard } from "./http/csrf.guard.js";
@@ -39,6 +51,7 @@ import { WorkspacesService } from "./workspaces/workspaces.service.js";
     ClientsController,
     MattersController,
     WorkspacesController,
+    DocumentsController,
     OrganizationInvitationsController,
     OrganizationMembersController,
     InvitationAcceptController,
@@ -77,9 +90,21 @@ import { WorkspacesService } from "./workspaces/workspaces.service.js";
       useFactory: (prisma: PrismaService, actor: ActorContext | null) =>
         new WorkspaceAccess(createActorScopedWorkspaceStore(prisma, actor)),
     },
+    {
+      provide: DocumentAccess,
+      scope: Scope.REQUEST,
+      inject: [PrismaService, ACTOR_CONTEXT],
+      useFactory: (prisma: PrismaService, actor: ActorContext | null) =>
+        new DocumentAccess(createActorScopedDocumentStore(prisma, actor)),
+    },
+    {
+      provide: LocalObjectStorage,
+      useFactory: () => createLocalObjectStorageFromEnv(),
+    },
     ClientsService,
     MattersService,
     WorkspacesService,
+    DocumentsService,
     InvitationsService,
     OrganizationMembersService,
     { provide: AiGateway, useFactory: () => new AiGateway() },

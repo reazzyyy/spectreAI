@@ -10,7 +10,13 @@ const CSRF_HEADER_NAME = "X-CSRF-Token";
  */
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
-  if (init.body !== undefined && !headers.has("Content-Type")) {
+  const isFormData =
+    typeof FormData !== "undefined" && init.body instanceof FormData;
+  if (
+    init.body !== undefined &&
+    !isFormData &&
+    !headers.has("Content-Type")
+  ) {
     headers.set("Content-Type", "application/json");
   }
 

@@ -6,7 +6,7 @@ Next.js App Router. Port: `3001`.
 Import direction: `app → widgets → features → entities → shared`.
 
 **Quality bar (CONFIRMED D-024 / ADR-0004):** SCSS Modules + CSS tokens, own `shared/ui`, RHF+Zod, TanStack Query, Vitest+RTL + Storybook+Chromatic + Playwright.  
-**AS-IS (F5k + system-map SCSS + CI e2e):** Workspace PERSONAL|TEAM + members picker, Matter + Client CRUD, links, org members + owner role change + invitations + `/invite/accept`, AppShell/Home, Vitest+RTL, Storybook/Chromatic, Playwright auth smoke (CI `web-e2e`). `system-map` on SCSS Modules (D-024).
+**AS-IS (F5k + Phase 3 documents thin + CI e2e):** Workspace PERSONAL|TEAM + members picker, Matter + Client CRUD, links, `/documents` library upload, org members + owner role change + invitations + `/invite/accept`, AppShell/Home, Vitest+RTL, Storybook/Chromatic, Playwright auth smoke (CI `web-e2e`). `system-map` on SCSS Modules (D-024).
 
 ## Run
 
@@ -30,11 +30,11 @@ API: `API_ORIGIN` (default `http://localhost:3000`). Set `WEB_ORIGIN=http://loca
 
 ```text
 src/
-├── app/(product)/   # Home, /projects, /matters, /clients, /organization
+├── app/(product)/   # Home, /projects, /matters, /clients, /documents, /organization
 ├── app/invite/      # /invite/accept (no shell)
-├── widgets/         # app-shell, home, workspace-*, matter-*, client-*, organization-invites, system-map
-├── features/        # login, logout, invitations, workspace|matter|client, members, matters links
-├── entities/        # session, workspace, matter, client, invitation, org-member
+├── widgets/         # app-shell, home, workspace-*, matter-*, client-*, document-list, organization-invites, system-map
+├── features/        # login, logout, invitations, workspace|matter|client, upload-document, members, matters links
+├── entities/        # session, workspace, matter, client, document, invitation, org-member
 └── shared/          # api, lib, ui
 ```
 
@@ -46,8 +46,9 @@ src/
 - `/projects`, `/projects/[id]` — Workspace list/create (PERSONAL|TEAM)/edit + Matter links + TEAM members (org picker).
 - `/matters`, `/matters/[id]` — Matter list/create/edit.
 - `/clients`, `/clients/[id]` — Client list/create/edit.
+- `/documents` — Workspace-scoped list + multipart upload (PDF/DOCX/TXT); no OCR/preview.
 - `/organization` — org members directory; Owner role change + invitations; `devToken` accept link.
-- Nav: Home, проекты, дела, клиенты, Организация, `/system`.
+- Nav: Home, проекты, дела, клиенты, документы, Организация, `/system`.
 - Desktop gate below 1280px. Synthetic banner (D-012).
 
 Plan: `tasks/plan.md`.
