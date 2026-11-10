@@ -1,9 +1,9 @@
 # Глобальный план реализации
 
 **Статус:** живой рабочий план. Его можно менять и дополнять. Это не подтверждённое продуктовое решение и не описание уже написанного кода.  
-**Дата редакции:** 2026-11-03  
-**Опора:** `docs/decisions-log.md` (D-001–D-023, W-001–W-020, O-001–O-013, H-001–H-005), `docs/05-mvp-acceptance.md`, AS-IS `docs/26-codebase-current-state.md`.  
-**Детальный срез:** `tasks/plan.md` / `tasks/todo.md` — Фаза 2: S0–S4b в `main`; **S4c** invitations на `feature/workspace-phase2-s4c-invitations`.
+**Дата редакции:** 2026-11-09  
+**Опора:** `docs/decisions-log.md` (D-001–D-024, W-001–W-020, O-001–O-013, H-001–H-005), `docs/05-mvp-acceptance.md`, AS-IS `docs/26-codebase-current-state.md`.  
+**Детальный срез:** `tasks/plan.md` / `tasks/todo.md` — **Фаза 3 documents** (upload thin). Фаза 2 S0–S4c + web F5k + CI e2e **в `main`**; остаточный долг — `tasks/phase2-debt.md`.
 
 Если журнал решений и этот план расходятся, приоритет у журнала. Новое CONFIRMED сначала попадает в `docs/decisions-log.md`, затем сюда сдвигается соответствующее ворота.
 
@@ -17,14 +17,15 @@
 
 ## Что уже есть
 
-Scaffold на 2026-10-29, подробно в `docs/26-codebase-current-state.md`:
+Снимок на 2026-11-09, подробно в `docs/26-codebase-current-state.md`:
 
 - монорепо Next.js + NestJS + PostgreSQL/Prisma + Redis/BullMQ (**D-008**);
-- Organization, Client, Matter, User, Membership, Session; login cookie, актёр только из сессии;
-- HTTP CRU+list Client/Matter с изоляцией по организации;
-- `SyntheticAIProvider` и тонкий `POST /ai/generate` без сети;
-- имя очереди `ai-jobs` без воркера;
-- web: `/login` + session panel к существующим auth endpoints, метка synthetic/test; без Workspace/документов.
+- Organization, Client, Matter, User, Membership, Session, Workspace (+ members/matter links), invitations;
+- login cookie + CSRF (**W-014a**); актёр только из сессии; bootstrap + invite-only (**W-012**);
+- HTTP CRU+list Client/Matter/Workspace с org isolation + WorkspaceAccess; tenant RLS foundation (**W-020** partial);
+- `SyntheticAIProvider` и тонкий `POST /ai/generate` без сети; имя очереди `ai-jobs` без воркера;
+- web FSD (**D-023**) + quality bar (**D-024**): login, shell/home, projects/matters/clients/organization/invite accept; CI Playwright smoke;
+- документы / OCR / chat / grant — **ещё нет** (Фаза 3+).
 
 Это база. Дальше план её наращивает, а не заменяет стек.
 
@@ -106,13 +107,15 @@ Scaffold на 2026-10-29, подробно в `docs/26-codebase-current-state.md
 
 Фазы 2+ могут планироваться/стартовать. Перед кодом — audit по `docs/CURSOR-INSTRUCTIONS-WORKSPACE-PHASE2.md` (план slices, не giant PR). Остаточные **O-011–O-013**, **O-009**, **O-010** не блокируют каркас Workspace/RLS, но блокируют соответствующие узкие поведения.
 
-### Фаза 2. Пространство и членство
+### Фаза 2. Пространство и членство — каркас + UI в `main`
 
 **Цель.** Участник видит только свои пространства. Чужой UUID пространства, клиента и дела не даёт доступ. Админ организации управляет составом в рамках решения ворот A и не получает содержимое автоматически (**D-006**).
 
-**Выход.** Негативные тесты: другая организация; участник организации без членства в пространстве; подмена id. Матрица `docs/07` для реализованных ячеек совпадает с журналом. Незакрытые ячейки остаются OPEN и не «додумываются» в коде.
+**Факт (2026-11-09).** S0–S4c API + web F5a–F5k + CI e2e в `main`. Остаточный долг (полный W-020, delete workspace, email provider, O-012/O-013 и др.) — `tasks/phase2-debt.md`; не блокирует старт Фазы 3.
 
-### Фаза 3. Приём файлов
+**Выход (целевой).** Негативные тесты: другая организация; участник организации без членства в пространстве; подмена id. Матрица `docs/07` для реализованных ячеек совпадает с журналом. Незакрытые ячейки остаются OPEN и не «додумываются» в коде.
+
+### Фаза 3. Приём файлов — текущий срез (`tasks/plan.md`)
 
 **Цель.** Загрузка в пространство: PDF, DOCX, TXT; 25 МБ; не больше 10 файлов за операцию; архивы, исполняемые, макросы и парольные файлы отклоняются, в том числе при подмене расширения (**D-010**, **D-017**). Оригинал лежит в приватном хранилище, не в публичном URL.
 

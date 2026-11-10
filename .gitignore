@@ -12,4 +12,5 @@ blob-report/
 .env.*
 !.env.example
 *.log
+.data/
 packages/db/src/generated/

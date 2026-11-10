@@ -1,4 +1,7 @@
 import "reflect-metadata";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import { createPrismaClient } from "@spectre/db";
@@ -28,6 +31,10 @@ import {
   USER_ORG_B_EMAIL,
 } from "./matter-fixtures.js";
 
+process.env.DOCUMENT_STORAGE_ROOT = mkdtempSync(
+  path.join(tmpdir(), "spectre-docs-e2e-"),
+);
+
 function extractCookieValue(
   setCookie: string | string[] | undefined,
   name: string,
@@ -51,6 +58,9 @@ async function seedFixtures(): Promise<void> {
       where: { userId: { in: [USER_A, USER_B, USER_ORG_B] } },
     });
     await prisma.organizationInvitation.deleteMany({
+      where: { organizationId: { in: [ORG_A, ORG_B] } },
+    });
+    await prisma.document.deleteMany({
       where: { organizationId: { in: [ORG_A, ORG_B] } },
     });
     await prisma.workspaceMember.deleteMany({
@@ -795,6 +805,97 @@ describe("API scaffold", () => {
           password: "synthetic-invitee-password",
         });
       expect(acceptRevoked.status).toBe(404);
+    });
+  });
+
+  describe("documents upload", () => {
+    let app: INestApplication;
+    let agent: ReturnType<typeof request.agent>;
+
+    beforeAll(async () => {
+      app = await createApp();
+      agent = request.agent(app.getHttpServer());
+      const login = await agent.post("/api/v1/auth/login").send({
+        email: USER_A_EMAIL,
+        password: USER_A_PASSWORD,
+        organizationId: ORG_A,
+      });
+      expect(login.status).toBe(200);
+      const csrf = extractCookieValue(login.headers["set-cookie"], CSRF_COOKIE_NAME);
+      agent.set(CSRF_HEADER_NAME, csrf!);
+    });
+
+    afterAll(async () => {
+      await app.close();
+    });
+
+    it("uploads TXT, lists, gets, downloads; rejects foreign workspace and bad type", async () => {
+      const upload = await agent
+        .post(`/api/v1/workspaces/${TEAM_WORKSPACE_A}/documents`)
+        .attach("files", Buffer.from("synthetic counsel note\n", "utf8"), {
+          filename: "note.txt",
+          contentType: "text/plain",
+        });
+
+      expect(upload.status).toBe(201);
+      expect(upload.body.items).toHaveLength(1);
+      expect(upload.body.items[0]).toEqual(
+        expect.objectContaining({
+          workspaceId: TEAM_WORKSPACE_A,
+          organizationId: ORG_A,
+          status: "uploaded",
+          originalFileName: "note.txt",
+          mimeType: "text/plain; charset=utf-8",
+        }),
+      );
+      expect(upload.body.items[0].storageKey).toBeUndefined();
+
+      const documentId = upload.body.items[0].id as string;
+
+      const listed = await agent.get(
+        `/api/v1/workspaces/${TEAM_WORKSPACE_A}/documents`,
+      );
+      expect(listed.status).toBe(200);
+      expect(listed.body.items.map((row: { id: string }) => row.id)).toContain(
+        documentId,
+      );
+
+      const detail = await agent.get(`/api/v1/documents/${documentId}`);
+      expect(detail.status).toBe(200);
+      expect(detail.body.id).toBe(documentId);
+
+      const downloaded = await agent.get(
+        `/api/v1/documents/${documentId}/download`,
+      );
+      expect(downloaded.status).toBe(200);
+      expect(downloaded.text).toContain("synthetic counsel note");
+
+      const foreignWs = await agent
+        .post(`/api/v1/workspaces/${TEAM_WORKSPACE_B}/documents`)
+        .attach("files", Buffer.from("x\n", "utf8"), "leak.txt");
+      expect(foreignWs.status).toBe(404);
+
+      const badType = await agent
+        .post(`/api/v1/workspaces/${TEAM_WORKSPACE_A}/documents`)
+        .attach("files", Buffer.from([0x4d, 0x5a]), "malware.exe");
+      expect(badType.status).toBe(422);
+
+      const orgMemberNoWs = request.agent(app.getHttpServer());
+      const loginB = await orgMemberNoWs.post("/api/v1/auth/login").send({
+        email: USER_B_EMAIL,
+        password: USER_B_PASSWORD,
+        organizationId: ORG_A,
+      });
+      expect(loginB.status).toBe(200);
+      const csrfB = extractCookieValue(
+        loginB.headers["set-cookie"],
+        CSRF_COOKIE_NAME,
+      );
+      orgMemberNoWs.set(CSRF_HEADER_NAME, csrfB!);
+      const denied = await orgMemberNoWs.get(
+        `/api/v1/workspaces/${TEAM_WORKSPACE_A}/documents`,
+      );
+      expect(denied.status).toBe(404);
     });
   });
 

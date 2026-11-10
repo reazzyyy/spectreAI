@@ -5,12 +5,13 @@ Prisma 7 schema, migrations, and runtime client factory (**D-009**, auth scaffol
 ## Models in schema
 
 `Organization`, `Client`, `Matter`, `User`, `OrganizationMembership`, `Session`,  
-`Workspace`, `WorkspaceMember`, `WorkspaceMatter`.
+`Workspace`, `WorkspaceMember`, `WorkspaceMatter`, `Document`, `OrganizationInvitation`.
 
 - Workspace PERSONAL/TEAM (**W-002**); Matter link via `WorkspaceMatter` M:N (**W-003**).
 - `Matter.workspaceId` optional legacy, **no FK** — prefer join table; drop later after backfill.
 - Matter→Client and Workspace→Client FKs are composite on `(organizationId, clientId)`.
-- No Document, AIJob, Audit, Invitation, Chat, or MFA/SSO models yet.
+- Document metadata (Phase 3 thin); binary in private storage by `storageKey`.
+- No AIJob, Audit, Chat, DocumentVersion, or MFA/SSO models yet.
 
 ## Public API
 
@@ -23,7 +24,7 @@ Prisma 7 schema, migrations, and runtime client factory (**D-009**, auth scaffol
 ## RLS (S1)
 
 Tenant-boundary policies (`organization_id` = GUC) + `FORCE ROW LEVEL SECURITY` on:  
-`clients`, `matters`, `organization_memberships`, `workspaces`, `workspace_members`, `workspace_matters`.
+`clients`, `matters`, `organization_memberships`, `workspaces`, `workspace_members`, `workspace_matters`, `documents`.
 
 Runtime role `spectre_app` (no BYPASSRLS). **Incomplete W-020:** workspace-membership / chat / grant policies come in later slices — AS-IS must not claim full RLS.
 

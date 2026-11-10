@@ -13,12 +13,14 @@ export type {
   Workspace,
   WorkspaceMember,
   WorkspaceMatter,
+  Document,
 } from "./generated/client.js";
 export {
   WorkspaceVisibility,
   WorkspaceStatus,
   WorkspaceMemberRole,
   WorkspaceMemberStatus,
+  DocumentStatus,
 } from "./generated/enums.js";
 export {
   withActorContext,

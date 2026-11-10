@@ -1,10 +1,10 @@
 # Текущее состояние кодовой базы (AS-IS)
 
 **Статус:** CONFIRMED как снимок scaffold на дату ниже; не заменяет продуктовые спецификации и не утверждает MVP.  
-**Дата снимка кода:** 2026-11-06 (web F3 Storybook + F2 AppShell/Home + F1 D-024 + system map + S4c)  
-**Сверка статусов решений:** 2026-11-06 (W-001–W-020, W-014a, **D-024**)  
+**Дата снимка кода:** 2026-11-09 (web F1–F5k + CI Playwright; Phase 2 Workspace UI closed; documents — см. текущий `tasks/plan.md`)  
+**Сверка статусов решений:** 2026-11-09 (W-001–W-020, W-014a, **D-024**)  
 **Источник истины по решениям:** `docs/decisions-log.md`  
-**План:** `tasks/roadmap.md` / `tasks/plan.md`. S0–S4c в `main`. Полный W-020 / email provider / documents UI — ещё нет.
+**План:** `tasks/roadmap.md` / `tasks/plan.md`. S0–S4c + F5k + CI e2e в `main`. Долги Фазы 2: `tasks/phase2-debt.md`. Полный W-020 / email provider — ещё нет.
 
 Этот документ описывает **только то, что реально есть в репозитории**. Спецификации в `docs/00–25` могут описывать целевое MVP шире; если код ещё не реализован — ниже явно указано «не реализовано».
 
@@ -24,8 +24,8 @@
 | MFA / SSO (O-008) | **Не реализовано** (OUT OF SCOPE этой итерации) |
 | Workspace как сущность | Prisma + `WorkspaceAccess` + HTTP CRU/list/members/matter-links; PERSONAL+TEAM create + web UI (F5i) |
 | PostgreSQL RLS (W-020) | Tenant-boundary RLS + runtime role `spectre_app`; **неполное** (нет workspace-membership/chat/grant policies) |
-| Загрузка документов / OCR / RAG | Не реализованы |
-| Воркер очереди AI / обработка документов | Не реализованы |
+| Загрузка документов (Phase 3 thin) | Prisma Document + local private storage + HTTP upload/list/get/download + web `/documents`; OCR/RAG — нет |
+| Воркер очереди AI / извлечение текста | Не реализованы (статус после upload — `uploaded`) |
 | Admin content-grant | Не реализован |
 
 ## 2. Структура монорепо
@@ -75,6 +75,7 @@ spectreAI/
 | Clients | `src/clients/*` | list/create/get/patch под `ActorGuard`; Prisma store + `ClientAccess` |
 | Matters | `src/matters/*` | list/create/get/patch под `ActorGuard`; Prisma store + `MatterAccess` |
 | Workspaces | `src/workspaces/*` | list/create PERSONAL\|TEAM/get/patch, members, matter links под `ActorGuard` + `WorkspaceAccess` |
+| Documents | `src/documents/*` | list/upload under workspace; get/download by id; `DocumentAccess` + Workspace content ACL; `LocalObjectStorage` |
 | Org members | `src/organizations/*` | `GET …/members` (SEC-01); `PATCH …/members/:userId` owner→admin\|member (SEC-03 thin); runtime RLS |
 | Invitations | `src/invitations/*` | Org Owner invite CRUD-lite + accept; migrator store; TTL config |
 | AI | `src/ai/*` | `GET /api/v1/ai/provider`, `POST /api/v1/ai/generate` |
@@ -103,27 +104,29 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 - `/projects/[workspaceId]` — detail + edit + Matter links + TEAM members (`GET/POST/DELETE …/members`).
 - `/matters`, `/matters/[id]` — list/create/edit Matter (`GET/POST/PATCH`).
 - `/clients`, `/clients/[id]` — list/create/edit Client (`GET/POST/PATCH`).
+- `/documents` — library + multipart upload в выбранный Workspace (DOC-01/02 thin); без preview/OCR.
 - `/organization` — member directory (SEC-01); Owner: role patch admin|member + invitations.
 - `/invite/accept` — принять приглашение (токен + пароль для нового пользователя; существующий — с сессией, без пароля); без product shell.
 - Matter/Workspace edit forms: optional `clientId` link/unlink (CRM + WS-07).
-- `entities/matter`, `entities/client`, `entities/invitation`, `entities/org-member` — list/detail/create/update (+ invite mutate).
+- `entities/matter`, `entities/client`, `entities/document`, `entities/invitation`, `entities/org-member` — list/detail/create/update (+ invite mutate / upload).
 - `/system` — `widgets/system-map`: карта AS-IS без shell; не live health.
 - Сессия: `entities/session`. Workspace: `entities/workspace` (типы, API, Query).
-- Browser `fetch` на `/api/v1/*` с `credentials: "same-origin"` + CSRF header на мутациях; rewrite в `next.config.ts` на `API_ORIGIN` (по умолчанию `http://localhost:3000`).
+- Browser `fetch` на `/api/v1/*` с `credentials: "same-origin"` + CSRF header на мутациях; FormData upload без JSON Content-Type; rewrite в `next.config.ts` на `API_ORIGIN` (по умолчанию `http://localhost:3000`).
 - Линтеры: ESLint + Steiger FSD + Stylelint (включая system-map SCSS).
 - Стили AS-IS: SCSS-токены Make-aligned; `shared/ui` Button/Input/Icon; shell/home/system-map на SCSS Modules.
 - Тесты AS-IS: Vitest + RTL (Button, schemas, AppShell). Storybook 10 + stories `shared/ui`; Chromatic addon/CLI (publish — `CHROMATIC_PROJECT_TOKEN`). Playwright smoke: unauth `/` → `/login`; login → home (Postgres + bootstrap + `E2E_ORGANIZATION_ID`). CI `web-e2e`: bootstrap JSON file + direct API login preflight before Playwright; Chromatic publish ещё нет.
-- Нет регистрации, recovery, MFA, ownership transfer, загрузки файлов.
+- Нет регистрации, recovery, MFA, ownership transfer, OCR/worker, chat.
 
 ## 4. Пакеты
 
 ### 4.1 `@spectre/access`
 
-Публичный API: Client/Matter org-isolation + **`WorkspaceAccess`** (S2).
+Публичный API: Client/Matter org-isolation + **`WorkspaceAccess`** (S2) + **`DocumentAccess`** (Phase 3).
 
 - Client/Matter: чужой id → `null`; create штампует `organizationId` актёра.
 - Workspace: content (PERSONAL owner / TEAM owner+member) отдельно от member-management (Workspace Owner **или** Org Owner/Admin без content read, **W-008**).
 - Create Workspace: PERSONAL (default) или TEAM (**W-002**).
+- Document: org isolation на store; Workspace content ACL применяет API (`canReadContent` / `canMutateContent`) до list/upload/download.
 - Hard delete **нет**. Chat/grant ACL — ещё нет.
 
 ### 4.2 `@spectre/ai-gateway`
@@ -137,13 +140,13 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 
 - Prisma 7, URL в `prisma.config.ts`, клиент генерируется в `src/generated`.
 - `createPrismaClient({ purpose: "migrator" | "runtime" })` + `withActorContext` (GUC в interactive tx).
-- Модели: Organization, Client, Matter, User, OrganizationMembership, Session, **Workspace, WorkspaceMember, WorkspaceMatter**.
+- Модели: Organization, Client, Matter, User, OrganizationMembership, Session, **Workspace, WorkspaceMember, WorkspaceMatter**, **Document**, OrganizationInvitation.
 - `Matter.workspaceId` legacy nullable без FK; связи Matter↔Workspace — `WorkspaceMatter` (backfill в миграции S1).
-- Миграции: init, auth, **`20261103220000_workspace_rls_foundation`** (tables + `spectre_app` + tenant RLS).
-- RLS FORCE на clients/matters/organization_memberships/workspaces/workspace_members/workspace_matters (только org GUC).
-- Auth bootstrap / e2e seed — migrator URL; Client/Matter API — runtime + GUC.
-- Document / AIJob / Audit / Chat — **в схеме нет**. `OrganizationInvitation` — есть (S4c).
-- Поле `created_by` из `docs/06` на Client/Matter **ещё нет** (OPEN / отложено).
+- Миграции: init, auth, workspace RLS foundation, invitations, **`20261109120000_documents`** (Document + tenant RLS).
+- RLS FORCE на clients/matters/organization_memberships/workspaces/workspace_members/workspace_matters/documents (только org GUC).
+- Auth bootstrap / e2e seed — migrator URL; tenant API — runtime + GUC.
+- AIJob / Audit / Chat / DocumentVersion — **в схеме нет**.
+- Поле `created_by` из `docs/06` на Client/Matter **ещё нет** (OPEN / отложено). Document имеет `uploadedByUserId`.
 
 ## 5. HTTP-контракт scaffold (фактический)
 
@@ -183,12 +186,18 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 | POST | `/organizations/:organizationId/invitations/:id/resend` | сессия Owner + CSRF | Invitation | `401`; `404` |
 | DELETE | `/organizations/:organizationId/invitations/:id` | сессия Owner + CSRF | Invitation revoked | `401`; `404` |
 | POST | `/invitations/accept` | CSRF if session; new user: password | `{ organizationId, userId, role }` | `404`; `403`; `422` |
+| GET | `/workspaces/:workspaceId/documents` | сессия + content read | `{ items: Document[] }` | `401`; `404` |
+| POST | `/workspaces/:workspaceId/documents` | сессия + CSRF + content mutate; multipart `files` | `{ items: Document[] }` (`201`) | `401`; `403 CSRF`; `404`; `422` (type/size/count) |
+| GET | `/documents/:documentId` | сессия + content read | Document (без `storageKey`) | `401`; `404` |
+| GET | `/documents/:documentId/download` | сессия + content read | binary + disposition | `401`; `404` |
 
 Тело Client: `{ id, organizationId, name, status }` (`status`: `active` \| `archived`).  
 Тело Matter: `{ id, organizationId, title, clientId, workspaceId, status }` (`status`: `active` \| `archived`).  
 Тело Workspace: `{ id, organizationId, ownerUserId, name, description, visibility, status, clientId }` (`visibility`: `PERSONAL` \| `TEAM`; `status`: `ACTIVE` \| …).  
 Тело Member: `{ id, organizationId, workspaceId, userId, role, status }` (`role`: `EDITOR` \| `VIEWER`; `status`: `ACTIVE` \| `REVOKED`).  
-`organizationId` / `ownerUserId` в теле запроса игнорируются / не принимаются — только из сессии. Hard `DELETE` Client/Matter/Workspace **нет**. TEAM create через API **разрешён** (`visibility: TEAM`, W-002).
+Тело Document: `{ id, organizationId, workspaceId, title, status, originalFileName, mimeType, byteSize, checksumSha256, uploadedByUserId, createdAt, updatedAt }` (`status` после upload: `uploaded`). `storageKey` **не** отдаётся клиенту.  
+`organizationId` / `ownerUserId` в теле запроса игнорируются / не принимаются — только из сессии. Hard `DELETE` Client/Matter/Workspace/Document **нет**. TEAM create через API **разрешён** (`visibility: TEAM`, W-002).  
+Локальный storage: `DOCUMENT_STORAGE_ROOT` (default `.data/documents`) — scaffold, не выбор хостера (**O-003**).
 
 **CSRF (W-014a):** mutating методы (кроме `POST /auth/login`) при наличии session/CSRF cookie требуют заголовок `X-CSRF-Token` = cookie `spectre_csrf`. Если `Origin`/`Referer` присутствует — должен входить в `WEB_ORIGIN`. Отсутствие обоих заголовков допускается для non-browser tooling (e2e). Ошибка: `403 CSRF_REJECTED`. При `NODE_ENV=production` пустой `WEB_ORIGIN` → процесс не стартует.
 
@@ -248,7 +257,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 - Postgres: образ `pgvector/pgvector:pg16`, user/password/db `spectre`, порт `5432`.
 - Redis: `redis:7-alpine`, порт `6379`.
 
-`.env.example`: `DATABASE_URL` (migrator), `DATABASE_URL_RUNTIME` (`spectre_app`), `REDIS_URL`, `PORT`, `API_ORIGIN`, `WEB_ORIGIN` (CSRF), optional `BOOTSTRAP_*` (dev-only W-012). Файл `.env` не коммитится. Пароли compose/runtime/bootstrap — не для shared/production. Opaque DB sessions (без отдельного signing secret).
+`.env.example`: `DATABASE_URL` (migrator), `DATABASE_URL_RUNTIME` (`spectre_app`), `REDIS_URL`, `PORT`, `API_ORIGIN`, `WEB_ORIGIN` (CSRF), optional `BOOTSTRAP_*` (dev-only W-012), optional `DOCUMENT_STORAGE_ROOT`. Файл `.env` не коммитится. Каталог `.data/` в `.gitignore`. Пароли compose/runtime/bootstrap — не для shared/production. Opaque DB sessions (без отдельного signing secret).
 
 ## 7. Тесты (что покрыто)
 
@@ -256,7 +265,8 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 |---|---|
 | `packages/access` | Client/Matter org-isolation + WorkspaceAccess content/manage unit tests |
 | `packages/ai-gateway` | Synthetic OK; блок несинтетики; статусы AIJob; нет `fetch` |
-| `apps/api` e2e | health, provider; 401 без cookie; CSRF Origin/header reject; Client/Matter/Workspace CRU+list; TEAM create; members + matter links; чужой id → 404; чужой clientId/matterId → 422; generate/block/validation |
+| `apps/api` e2e | health, provider; 401 без cookie; CSRF Origin/header reject; Client/Matter/Workspace CRU+list; TEAM create; members + matter links; Document upload/list/download; чужой workspace/document → 404; bad type → 422; чужой clientId/matterId → 422; generate/block/validation |
+| `apps/api` unit | file magic/limits (PDF/DOCX/TXT); bootstrap; queue name |
 | `apps/api` bootstrap unit | guards + idempotent Org/Owner create; refuse foreign owner on same org |
 | `apps/api` queue unit | имя `ai-jobs`, разбор Redis URL |
 | `@spectre/db` | `prisma validate` + RLS harness (`src/rls.tenant.test.ts`) под runtime role |
@@ -282,7 +292,7 @@ Workflow: `.github/workflows/ci.yml`.
 - Email delivery provider для invitations; audit events; rate limit каркас.
 - Полный `docs/12` (audit events, password policy product confirmation, idle timeout).
 - Hard delete Client/Matter/Workspace; `created_by`; полный W-020 (сверх tenant RLS); ACL матрица `docs/07`; admin grant; ownership transfer.
-- Загрузка файлов, хранилище, OCR, парсинг (D-010/D-017, H-002).
+- OCR, извлечение текста, DocumentVersion, production object storage (**O-003**) — после thin upload.
 - BullMQ worker, сущность/жизненный цикл AIJob в БД.
 - RAG / pgvector индексы в приложении (D-018 — решение есть, кода поиска нет).
 - OpenAI adapter (запрещён до O-002; целевой провайдер D-015).

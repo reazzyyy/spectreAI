@@ -1,6 +1,12 @@
-import type { ClientStore, MatterStore, WorkspaceStore } from "@spectre/access";
+import type {
+  ClientStore,
+  DocumentStore,
+  MatterStore,
+  WorkspaceStore,
+} from "@spectre/access";
 import type { ActorDbContext } from "@spectre/db";
 import { createPrismaClientStore } from "../clients/prisma-client-store.js";
+import { createPrismaDocumentStore } from "../documents/prisma-document-store.js";
 import { createPrismaMatterStore } from "../matters/prisma-matter-store.js";
 import { createPrismaWorkspaceStore } from "../workspaces/prisma-workspace-store.js";
 import type { PrismaService } from "./prisma.service.js";
@@ -148,6 +154,33 @@ export function createActorScopedWorkspaceStore(
       if (!actor) return false;
       return prisma.withActor(actor, (tx) =>
         createPrismaWorkspaceStore(tx).unlinkMatter(workspaceId, matterId),
+      );
+    },
+  };
+}
+
+/** DocumentStore with RLS GUC on every call. */
+export function createActorScopedDocumentStore(
+  prisma: PrismaService,
+  actor: ActorDbContext | null,
+): DocumentStore {
+  return {
+    async findById(id) {
+      if (!actor) return null;
+      return prisma.withActor(actor, (tx) => createPrismaDocumentStore(tx).findById(id));
+    },
+    async listByWorkspace(organizationId, workspaceId) {
+      if (!actor) return [];
+      return prisma.withActor(actor, (tx) =>
+        createPrismaDocumentStore(tx).listByWorkspace(organizationId, workspaceId),
+      );
+    },
+    async create(organizationId, workspaceId, input) {
+      if (!actor) {
+        throw new Error("Authenticated actor required to create Document");
+      }
+      return prisma.withActor(actor, (tx) =>
+        createPrismaDocumentStore(tx).create(organizationId, workspaceId, input),
       );
     },
   };
