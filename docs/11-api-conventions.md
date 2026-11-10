@@ -886,13 +886,13 @@ Rate limiting и квоты — разные механизмы.
 | ID | Вопрос | Почему важно |
 |---|---|---|
 | API-001 | Использовать ли `/api/v1` как окончательный префикс? | Стабильность URL |
-| API-002 | Какой механизм аутентификации используется? | Cookie, CSRF и защита сессий. **AS-IS scaffold:** opaque HttpOnly cookie `spectre_sid` + Postgres `Session` (`docs/26`); CSRF token / Origin gate и продуктовое утверждение метода входа ещё **OPEN** (не закрывает O-008 MFA/SSO). |
-| API-003 | Использовать ли единый формат ошибок на основе RFC 9457 или собственный? | Совместимость и инструменты |
-| API-004 | Где нужен cursor pagination? | Производительность списков |
-| API-005 | Какие операции требуют idempotency key? | Дублирование задач и расходов |
+| API-002 | Какой механизм аутентификации используется? | **Частично CONFIRMED:** вход W-011–W-014a; AS-IS cookie `spectre_sid` + CSRF Origin+double-submit (`docs/26`). MFA/SSO — **O-008** пост-MVP. Полный OpenAPI auth profile — ещё OPEN. |
+| API-003 | Использовать ли единый формат ошибок на основе RFC 9457 или собственный? | Совместимость и инструменты; AS-IS — custom `{ error: { code, message, requestId } }` |
+| API-004 | Где нужен cursor pagination? | **CONFIRMED (D-026):** cursor `(createdAt, id)` для workspaces/documents/jobs/chats; offset только для малых справочников |
+| API-005 | Какие операции требуют idempotency key? | **CONFIRMED (D-027):** AIJob / extract enqueue; upload batch — optional |
 | API-006 | Как реализовать streaming и восстановление? | UX и инфраструктура |
-| API-007 | Каковы лимиты загрузки файлов? | Безопасность и ресурсы |
-| API-008 | Какие квоты действуют для AI-задач? | Контроль расходов |
+| API-007 | Каковы лимиты загрузки файлов? | **CONFIRMED (D-010 / D-017):** 25 МБ, PDF/DOCX/TXT, max 10 |
+| API-008 | Какие квоты действуют для AI-задач? | Тарифы — W-019 не в MVP; technical caps — **D-030** / **O-007** |
 | API-009 | Как хранить и версионировать OpenAPI? | Контракт frontend/backend |
 | API-010 | Какие поля ответов считаются публичными? | Изоляция внутренней модели |
 

@@ -1,6 +1,13 @@
 # 15. AI Jobs and Background Processing
 
-**Статус:** PROPOSED по деталям реализации; **CONFIRMED (D-008):** Redis + BullMQ; **CONFIRMED (D-011):** статусы AIJob.
+**Статус:** PROPOSED по деталям реализации; **CONFIRMED (D-008):** Redis + BullMQ; **CONFIRMED (D-011):** статусы AIJob; **CONFIRMED (D-025):** extracted text в PostgreSQL (Phase 4); **CONFIRMED (D-027):** idempotency для job-creating ops; **CONFIRMED (D-030):** scaffold extract caps; **CONFIRMED (D-031):** scan-without-text → failed до O-004.
+
+**Phase 4 thin contract (2026-11-10):**
+- Source of truth job state — PostgreSQL `AIJob` (очередь BullMQ только доставка).
+- Extract idempotency key: `documentId:extract:v1` (или клиентский `Idempotency-Key` → тот же эффект, **D-027**).
+- Успех extract пишет строку extraction в PG (**D-025**); оригинал в object storage.
+- Скан / PDF без текста → AIJob `failed`, документ не «ready» (**D-031**).
+- Caps: **D-030** (300 pages / 2M chars / 120s / maxAttempts 3).
 
 **Связанные документы:**
 - `docs/06-data-model.md` — модель данных.

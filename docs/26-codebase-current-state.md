@@ -1,10 +1,12 @@
 # Текущее состояние кодовой базы (AS-IS)
 
 **Статус:** CONFIRMED как снимок scaffold на дату ниже; не заменяет продуктовые спецификации и не утверждает MVP.  
-**Дата снимка кода:** 2026-11-09 (web F1–F5k + CI Playwright; Phase 2 Workspace UI closed; documents — см. текущий `tasks/plan.md`)  
-**Сверка статусов решений:** 2026-11-09 (W-001–W-020, W-014a, **D-024**)  
+**Дата снимка кода:** 2026-11-09 (web F1–F5k + CI Playwright; Phase 2 Workspace UI closed; documents thin upload в `main`)  
+**Сверка статусов решений:** 2026-11-10 (W-001–W-020, W-014a, **D-024**, **D-025–D-031**)  
 **Источник истины по решениям:** `docs/decisions-log.md`  
-**План:** `tasks/roadmap.md` / `tasks/plan.md`. S0–S4c + F5k + CI e2e в `main`. Долги Фазы 2: `tasks/phase2-debt.md`. Полный W-020 / email provider — ещё нет.
+**План:** `tasks/roadmap.md` / `tasks/plan.md` — hardening + Phase 4 extract. Долги Фазы 2: `tasks/phase2-debt.md`. Полный W-020+ / email provider / worker — в работе или ещё нет (см. §ниже после срезов).
+
+**Канон Phase 4 (решения, код может отставать):** текст extract в PostgreSQL (**D-025**); cursor lists (**D-026**); job idempotency (**D-027**); invite TTL default 72h (**D-028**); EDITOR delete own (**D-029**); extract caps (**D-030**); scan → failed (**D-031**).
 
 Этот документ описывает **только то, что реально есть в репозитории**. Спецификации в `docs/00–25` могут описывать целевое MVP шире; если код ещё не реализован — ниже явно указано «не реализовано».
 

@@ -1,49 +1,46 @@
-# Implementation Plan: Phase 3 — document upload (thin slice)
+# Implementation Plan: Hardening + Phase 4 extract
 
-> **Статус:** в работе (старт 2026-11-09).  
-> **Предыдущий план:** Frontend D-024 + F5a–F5k — **закрыт** в `main` (см. git history / `tasks/todo.md`).  
-> **Канон:** D-010 / D-017, `docs/13`, Workspace W-005, AS-IS `docs/26`.  
-> **Не цель этого плана:** OCR/worker (Фаза 4), chat, RAG, OpenAI, export, hard delete, выбор production object storage (**O-003**).
+> **Статус:** в работе (2026-11-10).  
+> **Предыдущий план:** Phase 3 document upload — **закрыт** (`tasks/todo.md`).  
+> **Канон:** D-010/D-017, **D-025–D-031**, D-011, D-012, W-005/W-020, `docs/13`, `docs/15`, AS-IS `docs/26`.  
+> **Не цель:** OCR promise (O-004), OpenAI (O-002), chat, RAG chunks (FILE-009), production object storage (O-003), workspace delete (O-012).
 
 ---
 
 ## Overview
 
-Первый вертикальный срез Фазы 3: метаданные Document в PostgreSQL, приватный **локальный** storage adapter (scaffold, не хостер), upload/list/get/download HTTP с проверкой Workspace content ACL, негативные тесты формата/размера/org isolation, тонкий web UI библиотеки.
+1. **Docs pack** — CONFIRMED D-025–D-031 (закрыт в journal).
+2. **Hardening** — upload atomicity, validation, rate limit, AI auth, cursor lists, workspace RLS on documents.
+3. **Phase 4 thin** — AIJob + DocumentExtraction in PG, BullMQ worker, extract TXT/DOCX/digital PDF; scan → failed (D-031).
+4. **Backlog parallel** — thin audit_events, streaming upload; AV remains OPEN (FILE-010).
 
-## Architecture Decisions
+## Architecture Decisions (locked)
 
-- **Принадлежность:** Document → Organization + Workspace (W-005 content via `WorkspaceAccess`).
-- **Версии:** в этом срезе одна «версия» flattened на Document (`storageKey`, mime, size, checksum); отдельная `DocumentVersion` — позже.
-- **Storage:** `LocalObjectStorage` под `DOCUMENT_STORAGE_ROOT` (default `.data/documents`); ключ не публичный URL; знание `storageKey` ≠ доступ.
-- **Статус:** после upload — `uploaded` (обработка/OCR — Фаза 4; скан без текста не обещается — ворота E).
-- **Лимиты:** PDF/DOCX/TXT; ≤ 25 МБ/файл; ≤ 10 файлов/запрос; magic-bytes + extension; ZIP/exe/макросы отклонять (DOCX — zip-based, отдельная проверка структуры).
-- **Доступ:** list/get/download — `canReadContent`; upload — `canMutateContent` (OWNER/EDITOR); чужой org/workspace → `404`.
-- **RLS:** tenant org GUC на `documents` (как clients/workspaces); workspace-membership policies — долг W-020 (`tasks/phase2-debt.md`).
+- Extracted text in **PostgreSQL** (D-025).
+- Cursor pagination (D-026); Idempotency-Key / `documentId:extract:v1` (D-027).
+- Caps D-030; scan policy D-031.
+- EDITOR delete own only (D-029) — apply when delete HTTP exists; no workspace delete without O-012.
 
-## Task List (slices → PR в `main`)
+## Task slices
 
 ```text
-D3a  Prisma Document + migration + tenant RLS + LocalObjectStorage
-D3b  DocumentAccess + HTTP upload/list/get/download + e2e isolation/validation
-D3c  Web: entity + /documents list/upload thin UI + nav
-Docs AS-IS / README / todo sync
+A   Docs: D-025–D-031 + docs/11/13/15/07 + debt/todo sync
+B   Hardening: two-phase upload, DOCX/PDF harden, Redis rate limit,
+    AI ActorGuard, visible-workspace SQL + cursor, documents RLS membership
+C   Phase 4: AIJob + DocumentExtraction + worker + enqueue + tests + AS-IS
+D   audit_events thin + streaming upload; FILE-010 note; O-012 untouched
 ```
 
-### Acceptance (D3a–D3c)
+### Acceptance
 
-- [x] Upload TXT/PDF/DOCX в доступный Workspace → метаданные + файл на диске
-- [x] List только content-visible workspace; чужой documentId → 404
-- [x] >25 МБ / bad type / >10 files → 422
-- [x] UI: выбрать workspace, загрузить, увидеть список (без preview/OCR)
-- [x] AS-IS + READMEs обновлены; storage root не в git
+- [ ] Upload: DB row before blob finalize; orphans swept; encrypted PDF / bad DOCX rejected
+- [ ] Rate limit on login/upload/ai; `/ai/generate` requires session; dataClass server synthetic
+- [ ] List documents/workspaces support cursor; no N+1 content ACL for workspace list
+- [ ] RLS: non-member cannot SELECT documents of TEAM workspace even with org GUC
+- [ ] Upload → AIJob extract → text in PG or failed for scan; idempotent re-enqueue
+- [ ] Audit events for login/upload/download without content
+- [ ] AS-IS + READMEs updated
 
 ### Out of scope
 
-Worker/AIJob, extracted text, download UI polish, soft-delete/purge D-019, S3 provider, Chromatic.
-
-## Risks
-
-- DOCX = ZIP: нельзя отклонять все PK-файлы; нужна проверка openxml-структуры.
-- Local disk ≠ production storage; AS-IS помечает scaffold до O-003.
-- Не логировать имена/пути клиентских документов сверх id/status.
+OCR success path, embeddings, chat, grant, hard delete workspace, ClamAV product, Chromatic.
