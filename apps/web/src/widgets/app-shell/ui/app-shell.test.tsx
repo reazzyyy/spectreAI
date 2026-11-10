@@ -6,6 +6,7 @@ import { AppShell } from "./app-shell";
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn(), refresh: vi.fn() }),
   usePathname: () => "/",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock("@/entities/session", async () => {
@@ -51,6 +52,16 @@ describe("AppShell", () => {
 
     expect(await screen.findByText("Спектр")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Главная/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Создать проект/i }),
+    ).toHaveAttribute("href", "/projects?create=1");
+    expect(screen.getByRole("link", { name: /^Личные$/i })).toHaveAttribute(
+      "href",
+      "/projects?visibility=PERSONAL",
+    );
+    expect(
+      screen.getByRole("link", { name: /Проекты команды/i }),
+    ).toHaveAttribute("href", "/projects?visibility=TEAM");
     expect(
       screen.getByRole("link", { name: /Организация/i }),
     ).toBeInTheDocument();
