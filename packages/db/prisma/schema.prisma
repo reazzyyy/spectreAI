@@ -73,8 +73,9 @@ enum WorkspaceMemberStatus {
   @@map("workspace_member_status")
 }
 
-/// Lifecycle for uploaded files (docs/06 §5.1). Processing/OCR — later phase.
+/// Lifecycle for uploaded files (docs/06 §5.1). `uploading` = two-phase put (hardening).
 enum DocumentStatus {
+  uploading
   uploaded
   processing
   ready
@@ -84,6 +85,18 @@ enum DocumentStatus {
   deleted
 
   @@map("document_status")
+}
+
+/// AIJob statuses — CONFIRMED D-011 only.
+enum AiJobStatus {
+  queued
+  running
+  succeeded
+  failed
+  cancelled
+  timed_out
+
+  @@map("ai_job_status")
 }
 
 model Organization {
@@ -99,6 +112,9 @@ model Organization {
   workspaces   Workspace[]
   invitations  OrganizationInvitation[]
   documents    Document[]
+  aiJobs       AiJob[]
+  extractions  DocumentExtraction[]
+  auditEvents  AuditEvent[]
 
   @@map("organizations")
 }
@@ -154,6 +170,7 @@ model User {
   addedMembers       WorkspaceMember[]        @relation("WorkspaceMemberAdder")
   invitationsSent    OrganizationInvitation[]  @relation("InvitationInviter")
   uploadedDocuments  Document[]                @relation("DocumentUploader")
+  createdAiJobs      AiJob[]                   @relation("AiJobCreator")
 
   @@map("users")
 }
@@ -284,28 +301,94 @@ model WorkspaceMatter {
   @@map("workspace_matters")
 }
 
-/// Uploaded file metadata (Phase 3 thin). Binary lives in private object storage by storageKey.
-/// Flattened single version for this slice; DocumentVersion table later.
+/// Uploaded file metadata. Binary lives in private object storage by storageKey.
+/// Flattened single version; DocumentVersion table later.
 model Document {
-  id               String         @id @default(uuid()) @db.Uuid
-  organizationId   String         @map("organization_id") @db.Uuid
-  organization     Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  workspaceId      String         @map("workspace_id") @db.Uuid
-  workspace        Workspace      @relation(fields: [organizationId, workspaceId], references: [organizationId, id], onDelete: Cascade)
+  id               String              @id @default(uuid()) @db.Uuid
+  organizationId   String              @map("organization_id") @db.Uuid
+  organization     Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  workspaceId      String              @map("workspace_id") @db.Uuid
+  workspace        Workspace           @relation(fields: [organizationId, workspaceId], references: [organizationId, id], onDelete: Cascade)
   title            String
-  status           DocumentStatus @default(uploaded)
-  originalFileName String         @map("original_file_name")
-  mimeType         String         @map("mime_type")
-  byteSize         Int            @map("byte_size")
-  checksumSha256   String         @map("checksum_sha256")
-  storageKey       String         @map("storage_key")
-  uploadedByUserId String         @map("uploaded_by_user_id") @db.Uuid
-  uploadedBy       User           @relation("DocumentUploader", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
-  createdAt        DateTime       @default(now()) @map("created_at")
-  updatedAt        DateTime       @updatedAt @map("updated_at")
+  status           DocumentStatus      @default(uploaded)
+  originalFileName String              @map("original_file_name")
+  mimeType         String              @map("mime_type")
+  byteSize         Int                 @map("byte_size")
+  checksumSha256   String              @map("checksum_sha256")
+  storageKey       String              @map("storage_key")
+  uploadedByUserId String              @map("uploaded_by_user_id") @db.Uuid
+  uploadedBy       User                @relation("DocumentUploader", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+  aiJobs           AiJob[]
+  extraction       DocumentExtraction?
 
   @@unique([organizationId, id])
   @@index([organizationId, workspaceId, createdAt])
   @@index([organizationId, status])
   @@map("documents")
+}
+
+/// Background job source of truth (D-011 / D-027). BullMQ is delivery only.
+model AiJob {
+  id              String       @id @default(uuid()) @db.Uuid
+  organizationId  String       @map("organization_id") @db.Uuid
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  workspaceId     String?      @map("workspace_id") @db.Uuid
+  documentId      String?      @map("document_id") @db.Uuid
+  document        Document?    @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  createdByUserId String       @map("created_by_user_id") @db.Uuid
+  createdBy       User         @relation("AiJobCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  type            String
+  status          AiJobStatus  @default(queued)
+  idempotencyKey  String       @map("idempotency_key")
+  attemptCount    Int          @default(0) @map("attempt_count")
+  maxAttempts     Int          @default(3) @map("max_attempts")
+  lastErrorCode   String?      @map("last_error_code")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+  startedAt       DateTime?    @map("started_at")
+  completedAt     DateTime?    @map("completed_at")
+  extractions     DocumentExtraction[]
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, status, createdAt])
+  @@index([documentId])
+  @@map("ai_jobs")
+}
+
+/// Extracted text in PostgreSQL (D-025). No document body in logs.
+model DocumentExtraction {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  documentId     String       @unique @map("document_id") @db.Uuid
+  document       Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  aiJobId        String?      @map("ai_job_id") @db.Uuid
+  aiJob          AiJob?       @relation(fields: [aiJobId], references: [id], onDelete: SetNull)
+  charCount      Int          @map("char_count")
+  pageCount      Int?         @map("page_count")
+  extractor      String
+  textContent    String       @map("text_content") @db.Text
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@index([organizationId, documentId])
+  @@map("document_extractions")
+}
+
+/// Thin audit without document/prompt content (D-021 direction; Gate H later).
+model AuditEvent {
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String?       @map("organization_id") @db.Uuid
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  actorUserId    String?       @map("actor_user_id") @db.Uuid
+  action         String
+  objectType     String?       @map("object_type")
+  objectId       String?       @map("object_id") @db.Uuid
+  requestId      String?       @map("request_id")
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  @@index([organizationId, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_events")
 }

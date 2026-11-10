@@ -92,6 +92,12 @@ export function createActorScopedWorkspaceStore(
         createPrismaWorkspaceStore(tx).listByOrganization(organizationId),
       );
     },
+    async listContentVisible(organizationId, userId, options) {
+      if (!actor) return { items: [], nextCursor: null };
+      return prisma.withActor(actor, (tx) =>
+        createPrismaWorkspaceStore(tx).listContentVisible(organizationId, userId, options),
+      );
+    },
     async create(organizationId, ownerUserId, input) {
       if (!actor) {
         throw new Error("Authenticated actor required to create Workspace");
@@ -169,10 +175,10 @@ export function createActorScopedDocumentStore(
       if (!actor) return null;
       return prisma.withActor(actor, (tx) => createPrismaDocumentStore(tx).findById(id));
     },
-    async listByWorkspace(organizationId, workspaceId) {
-      if (!actor) return [];
+    async listByWorkspace(organizationId, workspaceId, options) {
+      if (!actor) return { items: [], nextCursor: null };
       return prisma.withActor(actor, (tx) =>
-        createPrismaDocumentStore(tx).listByWorkspace(organizationId, workspaceId),
+        createPrismaDocumentStore(tx).listByWorkspace(organizationId, workspaceId, options),
       );
     },
     async create(organizationId, workspaceId, input) {
@@ -182,6 +188,16 @@ export function createActorScopedDocumentStore(
       return prisma.withActor(actor, (tx) =>
         createPrismaDocumentStore(tx).create(organizationId, workspaceId, input),
       );
+    },
+    async updateStatus(id, status) {
+      if (!actor) return null;
+      return prisma.withActor(actor, (tx) =>
+        createPrismaDocumentStore(tx).updateStatus(id, status),
+      );
+    },
+    async deleteById(id) {
+      if (!actor) return false;
+      return prisma.withActor(actor, (tx) => createPrismaDocumentStore(tx).deleteById(id));
     },
   };
 }

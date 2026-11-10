@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { DocumentAccess, type DocumentRecord, type DocumentStore } from "./document.js";
+import {
+  DocumentAccess,
+  type DocumentListPage,
+  type DocumentRecord,
+  type DocumentStore,
+} from "./document.js";
 
 function doc(partial: Partial<DocumentRecord> & Pick<DocumentRecord, "id" | "organizationId">): DocumentRecord {
   return {
@@ -28,11 +33,12 @@ class MemoryStore implements DocumentStore {
   async listByWorkspace(
     organizationId: string,
     workspaceId: string,
-  ): Promise<DocumentRecord[]> {
-    return [...this.rows.values()].filter(
+  ): Promise<DocumentListPage> {
+    const items = [...this.rows.values()].filter(
       (row) =>
         row.organizationId === organizationId && row.workspaceId === workspaceId,
     );
+    return { items, nextCursor: null };
   }
 
   async create(
@@ -51,6 +57,21 @@ class MemoryStore implements DocumentStore {
     });
     this.rows.set(record.id, record);
     return record;
+  }
+
+  async updateStatus(
+    id: string,
+    status: DocumentRecord["status"],
+  ): Promise<DocumentRecord | null> {
+    const existing = this.rows.get(id);
+    if (!existing) return null;
+    const updated = { ...existing, status, updatedAt: new Date() };
+    this.rows.set(id, updated);
+    return updated;
+  }
+
+  async deleteById(id: string): Promise<boolean> {
+    return this.rows.delete(id);
   }
 }
 
@@ -94,6 +115,6 @@ describe("DocumentAccess", () => {
       uploadedByUserId: "u",
     });
     const listed = await access.listForWorkspace("org-a", "ws-1");
-    expect(listed.map((row) => row.title)).toEqual(["one"]);
+    expect(listed.items.map((row) => row.title)).toEqual(["one"]);
   });
 });

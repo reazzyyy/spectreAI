@@ -1,12 +1,10 @@
 # Текущее состояние кодовой базы (AS-IS)
 
 **Статус:** CONFIRMED как снимок scaffold на дату ниже; не заменяет продуктовые спецификации и не утверждает MVP.  
-**Дата снимка кода:** 2026-11-09 (web F1–F5k + CI Playwright; Phase 2 Workspace UI closed; documents thin upload в `main`)  
+**Дата снимка кода:** 2026-11-10 (hardening + Phase 4 extract worker; web F1–F5k + documents UI)  
 **Сверка статусов решений:** 2026-11-10 (W-001–W-020, W-014a, **D-024**, **D-025–D-031**)  
 **Источник истины по решениям:** `docs/decisions-log.md`  
-**План:** `tasks/roadmap.md` / `tasks/plan.md` — hardening + Phase 4 extract. Долги Фазы 2: `tasks/phase2-debt.md`. Полный W-020+ / email provider / worker — в работе или ещё нет (см. §ниже после срезов).
-
-**Канон Phase 4 (решения, код может отставать):** текст extract в PostgreSQL (**D-025**); cursor lists (**D-026**); job idempotency (**D-027**); invite TTL default 72h (**D-028**); EDITOR delete own (**D-029**); extract caps (**D-030**); scan → failed (**D-031**).
+**План:** `tasks/roadmap.md` / `tasks/plan.md`. Долги Фазы 2: `tasks/phase2-debt.md` (O-012, email, Chromatic…).
 
 Этот документ описывает **только то, что реально есть в репозитории**. Спецификации в `docs/00–25` могут описывать целевое MVP шире; если код ещё не реализован — ниже явно указано «не реализовано».
 
@@ -22,13 +20,15 @@
 | Сессии / User / Membership | Scaffold: email+password login, HttpOnly cookie, `ACTOR_CONTEXT` из Session |
 | CSRF (W-014 / W-014a) | Origin allowlist (`WEB_ORIGIN`) + double-submit (`spectre_csrf` + `X-CSRF-Token`); login выдаёт CSRF cookie |
 | Bootstrap первой Org (W-012) | CLI `bootstrap:dev` (dev-only, идемпотентный) |
-| Invitations (W-012 / O-011) | Prisma + HTTP create/list/resend/revoke/accept; TTL `INVITE_TTL_HOURS`; email provider — stub/devToken |
-| MFA / SSO (O-008) | **Не реализовано** (OUT OF SCOPE этой итерации) |
-| Workspace как сущность | Prisma + `WorkspaceAccess` + HTTP CRU/list/members/matter-links; PERSONAL+TEAM create + web UI (F5i) |
-| PostgreSQL RLS (W-020) | Tenant-boundary RLS + runtime role `spectre_app`; **неполное** (нет workspace-membership/chat/grant policies) |
-| Загрузка документов (Phase 3 thin) | Prisma Document + local private storage + HTTP upload/list/get/download + web `/documents`; OCR/RAG — нет |
-| Воркер очереди AI / извлечение текста | Не реализованы (статус после upload — `uploaded`) |
-| Admin content-grant | Не реализован |
+| Invitations (W-012 / D-028) | Prisma + HTTP create/list/resend/revoke/accept; TTL `INVITE_TTL_HOURS` default 72h; email stub/devToken |
+| MFA / SSO (O-008) | **Не реализовано** |
+| Workspace как сущность | Prisma + `WorkspaceAccess` + HTTP; content-visible list — single SQL; cursor pagination (**D-026**) |
+| PostgreSQL RLS (W-020) | Org GUC на tenant tables; **documents** — org + workspace owner/member (**W-020+ partial**); chat/grant policies нет |
+| Загрузка документов | Two-phase `uploading`→blob→`uploaded`; disk temp multipart; DOCX CD walk + PDF `/Encrypt` reject; enqueue extract |
+| AIJob + extract worker | Prisma `AIJob` / `DocumentExtraction`; BullMQ `ai-jobs`; `pnpm --filter @spectre/api worker:extract`; scan → failed (**D-031**) |
+| Rate limit / audit | Redis sliding window (login/upload/ai/invite); thin `audit_events` (login/logout/upload/download, без content) |
+| Admin content-grant | **Не реализован** |
+| FILE-010 AV / O-012 delete confirmer | **Не реализованы** (OPEN) |
 
 ## 2. Структура монорепо
 
@@ -77,7 +77,9 @@ spectreAI/
 | Clients | `src/clients/*` | list/create/get/patch под `ActorGuard`; Prisma store + `ClientAccess` |
 | Matters | `src/matters/*` | list/create/get/patch под `ActorGuard`; Prisma store + `MatterAccess` |
 | Workspaces | `src/workspaces/*` | list/create PERSONAL\|TEAM/get/patch, members, matter links под `ActorGuard` + `WorkspaceAccess` |
-| Documents | `src/documents/*` | list/upload under workspace; get/download by id; `DocumentAccess` + Workspace content ACL; `LocalObjectStorage` |
+| Documents | `src/documents/*` | list/upload/get/download; two-phase upload; extract enqueue; `LocalObjectStorage`; disk multipart |
+| Worker | `src/worker/extract-worker.ts` | BullMQ extract consumer (separate process) |
+| Audit | `src/audit/*` | Thin `audit_events` append |
 | Org members | `src/organizations/*` | `GET …/members` (SEC-01); `PATCH …/members/:userId` owner→admin\|member (SEC-03 thin); runtime RLS |
 | Invitations | `src/invitations/*` | Org Owner invite CRUD-lite + accept; migrator store; TTL config |
 | AI | `src/ai/*` | `GET /api/v1/ai/provider`, `POST /api/v1/ai/generate` |
@@ -142,13 +144,13 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 
 - Prisma 7, URL в `prisma.config.ts`, клиент генерируется в `src/generated`.
 - `createPrismaClient({ purpose: "migrator" | "runtime" })` + `withActorContext` (GUC в interactive tx).
-- Модели: Organization, Client, Matter, User, OrganizationMembership, Session, **Workspace, WorkspaceMember, WorkspaceMatter**, **Document**, OrganizationInvitation.
-- `Matter.workspaceId` legacy nullable без FK; связи Matter↔Workspace — `WorkspaceMatter` (backfill в миграции S1).
-- Миграции: init, auth, workspace RLS foundation, invitations, **`20261109120000_documents`** (Document + tenant RLS).
-- RLS FORCE на clients/matters/organization_memberships/workspaces/workspace_members/workspace_matters/documents (только org GUC).
-- Auth bootstrap / e2e seed — migrator URL; tenant API — runtime + GUC.
-- AIJob / Audit / Chat / DocumentVersion — **в схеме нет**.
-- Поле `created_by` из `docs/06` на Client/Matter **ещё нет** (OPEN / отложено). Document имеет `uploadedByUserId`.
+- Модели: Organization, Client, Matter, User, OrganizationMembership, Session, Workspace*, Document, OrganizationInvitation, **AiJob**, **DocumentExtraction**, **AuditEvent**.
+- `Matter.workspaceId` legacy nullable без FK; связи Matter↔Workspace — `WorkspaceMatter`.
+- Миграции: … documents; **`20261110180000_phase4_hardening`** (uploading status, AIJob, extractions, audit, documents workspace RLS).
+- RLS: org GUC на большинстве tenant tables; **documents** — org + owner/active member; ai_jobs/extractions/audit org-scoped.
+- Auth bootstrap / e2e seed — migrator; tenant API — runtime + GUC; worker extract — migrator (scaffold).
+- Chat / DocumentVersion / grant — **нет**.
+- `created_by` на Client/Matter — ещё нет; Document имеет `uploadedByUserId` (**D-029** готов для будущего delete).
 
 ## 5. HTTP-контракт scaffold (фактический)
 
@@ -161,7 +163,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 | POST | `/auth/logout` | cookie + CSRF | `{ ok: true }` + clear session/CSRF cookies | `403 CSRF_REJECTED` |
 | GET | `/auth/me` | сессия | `{ user, organization }` | `401 UNAUTHENTICATED` |
 | GET | `/ai/provider` | нет | `{ providerId: "synthetic", externalTransferEnabled: false }` | — |
-| POST | `/ai/generate` | нет | `{ providerId, modelId, synthetic, text }` | `422 VALIDATION_ERROR`; `403 AI_DATA_POLICY_BLOCKED` |
+| POST | `/ai/generate` | сессия + CSRF + rate limit | `{ providerId, modelId, synthetic, text }` (`dataClass` server=`synthetic`) | `401`; `422`; `403 AI_DATA_POLICY_BLOCKED`; `429 RATE_LIMITED` |
 | GET | `/clients` | сессия | `{ items: Client[] }` | `401 UNAUTHENTICATED` |
 | POST | `/clients` | сессия + CSRF | Client (`201`) | `401`; `403 CSRF_REJECTED`; `422` |
 | GET | `/clients/:clientId` | сессия | Client | `401`; `404 NOT_FOUND` |
@@ -170,7 +172,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 | POST | `/matters` | сессия + CSRF | Matter (`201`) | `401`; `403 CSRF_REJECTED`; `422` (в т.ч. чужой/неизвестный `clientId`) |
 | GET | `/matters/:matterId` | сессия | Matter | `401`; `404 NOT_FOUND` |
 | PATCH | `/matters/:matterId` | сессия | Matter | `401`; `404`; `422` |
-| GET | `/workspaces` | сессия | `{ items: Workspace[] }` (content-visible) | `401` |
+| GET | `/workspaces` | сессия | `{ items, nextCursor }` content-visible + cursor (**D-026**) | `401` |
 | POST | `/workspaces` | сессия + CSRF | Workspace PERSONAL\|TEAM (`201`) | `401`; `403 CSRF_REJECTED`; `422` (bad visibility, чужой `clientId`) |
 | GET | `/workspaces/:workspaceId` | сессия | Workspace | `401`; `404 NOT_FOUND` |
 | PATCH | `/workspaces/:workspaceId` | сессия | Workspace (OWNER) | `401`; `404`; `422` |
@@ -188,8 +190,8 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 | POST | `/organizations/:organizationId/invitations/:id/resend` | сессия Owner + CSRF | Invitation | `401`; `404` |
 | DELETE | `/organizations/:organizationId/invitations/:id` | сессия Owner + CSRF | Invitation revoked | `401`; `404` |
 | POST | `/invitations/accept` | CSRF if session; new user: password | `{ organizationId, userId, role }` | `404`; `403`; `422` |
-| GET | `/workspaces/:workspaceId/documents` | сессия + content read | `{ items: Document[] }` | `401`; `404` |
-| POST | `/workspaces/:workspaceId/documents` | сессия + CSRF + content mutate; multipart `files` | `{ items: Document[] }` (`201`) | `401`; `403 CSRF`; `404`; `422` (type/size/count) |
+| GET | `/workspaces/:workspaceId/documents` | сессия + content read | `{ items, nextCursor }` | `401`; `404` |
+| POST | `/workspaces/:workspaceId/documents` | сессия + CSRF + content mutate; multipart `files` (disk temp) | `{ items }` (`201`); status → processing after enqueue | `401`; `403 CSRF`; `404`; `422`; `429` |
 | GET | `/documents/:documentId` | сессия + content read | Document (без `storageKey`) | `401`; `404` |
 | GET | `/documents/:documentId/download` | сессия + content read | binary + disposition | `401`; `404` |
 
@@ -197,9 +199,10 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 Тело Matter: `{ id, organizationId, title, clientId, workspaceId, status }` (`status`: `active` \| `archived`).  
 Тело Workspace: `{ id, organizationId, ownerUserId, name, description, visibility, status, clientId }` (`visibility`: `PERSONAL` \| `TEAM`; `status`: `ACTIVE` \| …).  
 Тело Member: `{ id, organizationId, workspaceId, userId, role, status }` (`role`: `EDITOR` \| `VIEWER`; `status`: `ACTIVE` \| `REVOKED`).  
-Тело Document: `{ id, organizationId, workspaceId, title, status, originalFileName, mimeType, byteSize, checksumSha256, uploadedByUserId, createdAt, updatedAt }` (`status` после upload: `uploaded`). `storageKey` **не** отдаётся клиенту.  
-`organizationId` / `ownerUserId` в теле запроса игнорируются / не принимаются — только из сессии. Hard `DELETE` Client/Matter/Workspace/Document **нет**. TEAM create через API **разрешён** (`visibility: TEAM`, W-002).  
-Локальный storage: `DOCUMENT_STORAGE_ROOT` (default `.data/documents`) — scaffold, не выбор хостера (**O-003**).
+Тело Document: `{ id, organizationId, workspaceId, title, status, originalFileName, mimeType, byteSize, checksumSha256, uploadedByUserId, createdAt, updatedAt }`. После успешного upload+enqueue типично `processing`; `ready` / `processing_failed` после worker. `storageKey` **не** отдаётся.  
+`organizationId` / `ownerUserId` только из сессии. Hard `DELETE` Client/Matter/Workspace/Document **нет** (**O-012** OPEN).  
+Локальный storage: `DOCUMENT_STORAGE_ROOT` — scaffold (**O-003**). Worker: `pnpm --filter @spectre/api worker:extract`. Sweeper: `sweep:uploading`.  
+Extract caps scaffold (**D-030**): 300 pages / 2M chars / 120s / maxAttempts 3. AV (**FILE-010**) не включён.
 
 **CSRF (W-014a):** mutating методы (кроме `POST /auth/login`) при наличии session/CSRF cookie требуют заголовок `X-CSRF-Token` = cookie `spectre_csrf`. Если `Origin`/`Referer` присутствует — должен входить в `WEB_ORIGIN`. Отсутствие обоих заголовков допускается для non-browser tooling (e2e). Ошибка: `403 CSRF_REJECTED`. При `NODE_ENV=production` пустой `WEB_ORIGIN` → процесс не стартует.
 
@@ -209,9 +212,9 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 - Одинаковый `401` при неверных credentials / неактивном аккаунте / отсутствии membership (без enumeration).
 - Ответ не содержит пароль, хеш или сырой session token.
 
-Тело `POST /ai/generate`:
+Тело `POST /ai/generate` (требует сессию):
 
-- Обязательные строки: `operationId`, `dataClass`, `content`.
+- Обязательные строки: `operationId`, `dataClass`, `content` (`dataClass` клиента игнорируется — сервер всегда `synthetic`).
 - Лимиты парсера: `operationId` ≤ 128, `content` 1…2000 символов.
 - Несинтетический `dataClass` блокируется gateway.
 

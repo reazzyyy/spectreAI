@@ -8,11 +8,13 @@ import {
 } from "@spectre/access";
 import { AiGateway } from "@spectre/ai-gateway";
 import type { Request } from "express";
+import { Queue } from "bullmq";
 import { AiController } from "./ai/ai.controller.js";
 import { AuthController } from "./auth/auth.controller.js";
 import { ACTOR_CONTEXT, type ActorContext } from "./auth/actor-context.js";
 import { ActorGuard } from "./auth/actor.guard.js";
 import { SessionService } from "./auth/session.service.js";
+import { AuditService } from "./audit/audit.service.js";
 import { ClientsController } from "./clients/clients.controller.js";
 import { ClientsService } from "./clients/clients.service.js";
 import {
@@ -24,6 +26,7 @@ import {
 import { PrismaService } from "./db/prisma.service.js";
 import { DocumentsController } from "./documents/documents.controller.js";
 import { DocumentsService } from "./documents/documents.service.js";
+import { AiJobsService } from "./documents/ai-jobs.service.js";
 import {
   createLocalObjectStorageFromEnv,
   LocalObjectStorage,
@@ -33,7 +36,8 @@ import { ApiExceptionFilter } from "./http/api-exception.filter.js";
 import { CsrfGuard } from "./http/csrf.guard.js";
 import { MattersController } from "./matters/matters.controller.js";
 import { MattersService } from "./matters/matters.service.js";
-import { AI_JOBS_QUEUE } from "./queue/ai-jobs.queue.js";
+import { createAiJobsQueue, AI_JOBS_QUEUE } from "./queue/ai-jobs.queue.js";
+import { AI_JOBS_QUEUE_TOKEN } from "./queue/ai-jobs.tokens.js";
 import {
   InvitationAcceptController,
   OrganizationInvitationsController,
@@ -60,6 +64,7 @@ import { WorkspacesService } from "./workspaces/workspaces.service.js";
   providers: [
     PrismaService,
     SessionService,
+    AuditService,
     {
       provide: ACTOR_CONTEXT,
       scope: Scope.REQUEST,
@@ -101,6 +106,21 @@ import { WorkspacesService } from "./workspaces/workspaces.service.js";
       provide: LocalObjectStorage,
       useFactory: () => createLocalObjectStorageFromEnv(),
     },
+    {
+      provide: AI_JOBS_QUEUE_TOKEN,
+      useFactory: (): Queue | null => {
+        const url = process.env.REDIS_URL?.trim();
+        if (!url) {
+          return null;
+        }
+        try {
+          return createAiJobsQueue(url);
+        } catch {
+          return null;
+        }
+      },
+    },
+    AiJobsService,
     ClientsService,
     MattersService,
     WorkspacesService,

@@ -901,24 +901,43 @@ describe("API scaffold", () => {
 
   describe("synthetic generation", () => {
     let app: INestApplication;
+    let agent: ReturnType<typeof request.agent>;
 
     beforeAll(async () => {
       app = await createApp();
+      agent = request.agent(app.getHttpServer());
+      const login = await agent.post("/api/v1/auth/login").send({
+        email: USER_A_EMAIL,
+        password: USER_A_PASSWORD,
+        organizationId: ORG_A,
+      });
+      expect(login.status).toBe(200);
+      const csrf = extractCookieValue(login.headers["set-cookie"], CSRF_COOKIE_NAME);
+      agent.set(CSRF_HEADER_NAME, csrf!);
     });
 
     afterAll(async () => {
       await app.close();
     });
 
-    it("generates from synthetic input without calling fetch", async () => {
-      const fetchSpy = vi.spyOn(globalThis, "fetch");
+    it("rejects unauthenticated generate", async () => {
       const response = await request(app.getHttpServer())
         .post("/api/v1/ai/generate")
         .send({
-          operationId: "op-1",
+          operationId: "op-unauth",
           dataClass: "synthetic",
-          content: "synthetic-fixture",
+          content: "x",
         });
+      expect(response.status).toBe(401);
+    });
+
+    it("generates from synthetic input without calling fetch", async () => {
+      const fetchSpy = vi.spyOn(globalThis, "fetch");
+      const response = await agent.post("/api/v1/ai/generate").send({
+        operationId: "op-1",
+        dataClass: "synthetic",
+        content: "synthetic-fixture",
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.providerId).toBe("synthetic");
@@ -929,25 +948,23 @@ describe("API scaffold", () => {
       fetchSpy.mockRestore();
     });
 
-    it("blocks a non-synthetic data class", async () => {
+    it("ignores client dataClass and always uses server synthetic", async () => {
       const fetchSpy = vi.spyOn(globalThis, "fetch");
-      const response = await request(app.getHttpServer())
-        .post("/api/v1/ai/generate")
-        .send({
-          operationId: "op-2",
-          dataClass: "client_document",
-          content: "not-for-external-transfer",
-        });
+      const response = await agent.post("/api/v1/ai/generate").send({
+        operationId: "op-2",
+        dataClass: "client_document",
+        content: "not-for-external-transfer",
+      });
 
-      expect(response.status).toBe(403);
-      expect(response.body.error.code).toBe("AI_DATA_POLICY_BLOCKED");
+      expect(response.status).toBe(200);
+      expect(response.body.synthetic).toBe(true);
       expect(JSON.stringify(response.body)).not.toContain("not-for-external-transfer");
       expect(fetchSpy).not.toHaveBeenCalled();
       fetchSpy.mockRestore();
     });
 
     it("rejects an incomplete generate body", async () => {
-      const response = await request(app.getHttpServer())
+      const response = await agent
         .post("/api/v1/ai/generate")
         .send({ dataClass: "synthetic" });
 

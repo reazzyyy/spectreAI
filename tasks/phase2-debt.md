@@ -9,7 +9,7 @@
 
 | ID | Долг | Примечание |
 |---|---|---|
-| W-020+ | Workspace-membership / chat / grant RLS policies | Org-tenant GUC есть; membership policies — hardening slice |
+| W-020+ | Chat / grant RLS policies; broaden beyond documents | **Documents** workspace-membership RLS landed 2026-11-10; chat/grant still open |
 | ACL-07 | Полная матрица `docs/07` для Client/Matter | Сейчас org-membership isolation scaffold |
 | W-010 / O-012 | Удаление TEAM Workspace + dual confirmation | Confirmer model **OPEN** — не кодировать |
 | W-009 | Ownership transfer PERSONAL/TEAM | Нет HTTP/UI |
@@ -23,8 +23,8 @@
 | Email | Delivery provider для invitations | Stub + `devToken` only |
 | ~~O-011~~ | Invite TTL | **Закрыт D-028:** `INVITE_TTL_HOURS`, default 72h |
 | Session | Idle timeout 24h (`docs/12`) | Только абсолютные 7d |
-| Audit | Login/logout/invite audit events | Thin `audit_events` — hardening/backlog |
-| Rate limit | Каркас abuse protection | W-019 technical limits — hardening slice |
+| Audit | Invite audit events + richer coverage | Login/logout/upload/download thin events landed; invite still thin |
+| Rate limit | Tune numbers / fail-closed prod | Sliding window scaffold landed (login/upload/ai/invite) |
 
 ## Product / CRM
 

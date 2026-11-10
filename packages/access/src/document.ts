@@ -5,6 +5,7 @@
  */
 
 export type DocumentStatus =
+  | "uploading"
   | "uploaded"
   | "processing"
   | "ready"
@@ -12,6 +13,16 @@ export type DocumentStatus =
   | "archived"
   | "deletion_pending"
   | "deleted";
+
+export interface DocumentListCursor {
+  createdAt: Date;
+  id: string;
+}
+
+export interface DocumentListPage {
+  items: DocumentRecord[];
+  nextCursor: DocumentListCursor | null;
+}
 
 export interface DocumentRecord {
   id: string;
@@ -47,12 +58,18 @@ export interface DocumentStore {
   listByWorkspace(
     organizationId: string,
     workspaceId: string,
-  ): Promise<DocumentRecord[]>;
+    options?: { limit?: number; cursor?: DocumentListCursor },
+  ): Promise<DocumentListPage>;
   create(
     organizationId: string,
     workspaceId: string,
     input: DocumentCreateInput,
   ): Promise<DocumentRecord>;
+  updateStatus(
+    id: string,
+    status: DocumentStatus,
+  ): Promise<DocumentRecord | null>;
+  deleteById(id: string): Promise<boolean>;
 }
 
 function hasOrganization(actorOrganizationId: string): boolean {
@@ -85,12 +102,13 @@ export class DocumentAccess {
   async listForWorkspace(
     actorOrganizationId: string,
     workspaceId: string,
-  ): Promise<DocumentRecord[]> {
+    options?: { limit?: number; cursor?: DocumentListCursor },
+  ): Promise<DocumentListPage> {
     if (!hasOrganization(actorOrganizationId)) {
-      return [];
+      return { items: [], nextCursor: null };
     }
 
-    return this.store.listByWorkspace(actorOrganizationId, workspaceId);
+    return this.store.listByWorkspace(actorOrganizationId, workspaceId, options);
   }
 
   async createForWorkspace(
@@ -103,5 +121,28 @@ export class DocumentAccess {
     }
 
     return this.store.create(actorOrganizationId, workspaceId, input);
+  }
+
+  async updateStatusForOrganization(
+    actorOrganizationId: string,
+    documentId: string,
+    status: DocumentStatus,
+  ): Promise<DocumentRecord | null> {
+    const existing = await this.readForOrganization(actorOrganizationId, documentId);
+    if (!existing) {
+      return null;
+    }
+    return this.store.updateStatus(documentId, status);
+  }
+
+  async deleteForOrganization(
+    actorOrganizationId: string,
+    documentId: string,
+  ): Promise<boolean> {
+    const existing = await this.readForOrganization(actorOrganizationId, documentId);
+    if (!existing) {
+      return false;
+    }
+    return this.store.deleteById(documentId);
   }
 }

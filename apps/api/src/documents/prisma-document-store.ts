@@ -1,5 +1,6 @@
 import type {
   DocumentCreateInput,
+  DocumentListCursor,
   DocumentRecord,
   DocumentStatus,
   DocumentStore,
@@ -38,6 +39,9 @@ function mapRow(row: {
   };
 }
 
+const DEFAULT_LIMIT = 50;
+const MAX_LIMIT = 100;
+
 /** Prisma-backed DocumentStore; expects caller to set RLS actor GUC. */
 export function createPrismaDocumentStore(tx: PrismaTxClient): DocumentStore {
   return {
@@ -45,12 +49,32 @@ export function createPrismaDocumentStore(tx: PrismaTxClient): DocumentStore {
       const row = await tx.document.findUnique({ where: { id } });
       return row ? mapRow(row) : null;
     },
-    async listByWorkspace(organizationId, workspaceId) {
+    async listByWorkspace(organizationId, workspaceId, options) {
+      const limit = Math.min(Math.max(options?.limit ?? DEFAULT_LIMIT, 1), MAX_LIMIT);
+      const cursor = options?.cursor;
       const rows = await tx.document.findMany({
-        where: { organizationId, workspaceId },
-        orderBy: { createdAt: "desc" },
+        where: {
+          organizationId,
+          workspaceId,
+          status: { notIn: ["uploading", "deleted"] },
+          ...(cursor
+            ? {
+                OR: [
+                  { createdAt: { lt: cursor.createdAt } },
+                  { createdAt: cursor.createdAt, id: { lt: cursor.id } },
+                ],
+              }
+            : {}),
+        },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: limit + 1,
       });
-      return rows.map(mapRow);
+      const page = rows.slice(0, limit).map(mapRow);
+      const extra = rows[limit];
+      const nextCursor: DocumentListCursor | null = extra
+        ? { createdAt: page[page.length - 1]!.createdAt, id: page[page.length - 1]!.id }
+        : null;
+      return { items: page, nextCursor };
     },
     async create(organizationId, workspaceId, input: DocumentCreateInput) {
       const row = await tx.document.create({
@@ -69,6 +93,25 @@ export function createPrismaDocumentStore(tx: PrismaTxClient): DocumentStore {
         },
       });
       return mapRow(row);
+    },
+    async updateStatus(id, status) {
+      try {
+        const row = await tx.document.update({
+          where: { id },
+          data: { status },
+        });
+        return mapRow(row);
+      } catch {
+        return null;
+      }
+    },
+    async deleteById(id) {
+      try {
+        await tx.document.delete({ where: { id } });
+        return true;
+      } catch {
+        return false;
+      }
     },
   };
 }

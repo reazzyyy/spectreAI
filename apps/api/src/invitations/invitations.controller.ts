@@ -13,6 +13,7 @@ import {
 } from "@nestjs/common";
 import { ACTOR_CONTEXT, type ActorContext } from "../auth/actor-context.js";
 import { ActorGuard } from "../auth/actor.guard.js";
+import { assertRateLimit } from "../http/rate-limit.js";
 import { InvitationsService } from "./invitations.service.js";
 import { parseInviteAccept, parseInviteCreate } from "./parse-invitation.js";
 
@@ -81,6 +82,7 @@ export class InvitationAcceptController {
     if (!input) {
       throw new UnprocessableEntityException();
     }
+    await assertRateLimit("invite_accept", input.token.slice(0, 16));
     const result = await this.invitations.accept(this.actor, input);
     return {
       organizationId: result.organizationId,

@@ -16,4 +16,6 @@ export interface Document {
 
 export interface DocumentListResponse {
   items: Document[];
+  /** Opaque cursor (D-026); null when no further page. */
+  nextCursor?: string | null;
 }

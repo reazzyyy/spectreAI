@@ -15,6 +15,8 @@ export type Workspace = {
 
 export type WorkspaceListResponse = {
   items: Workspace[];
+  /** Opaque cursor (D-026); null when no further page. */
+  nextCursor?: string | null;
 };
 
 /** POST /workspaces — PERSONAL (default) or TEAM (W-002). */

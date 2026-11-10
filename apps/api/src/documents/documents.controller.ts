@@ -4,6 +4,7 @@ import {
   Inject,
   Param,
   Post,
+  Query,
   Res,
   StreamableFile,
   UnauthorizedException,
@@ -14,9 +15,14 @@ import {
 } from "@nestjs/common";
 import { FilesInterceptor } from "@nestjs/platform-express";
 import type { Response } from "express";
-import { memoryStorage } from "multer";
+import { mkdir, readFile, unlink } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { diskStorage } from "multer";
+import { randomUUID } from "node:crypto";
 import { ACTOR_CONTEXT, type ActorContext } from "../auth/actor-context.js";
 import { ActorGuard } from "../auth/actor.guard.js";
+import { decodeCursor, encodeCursor, parseLimit } from "../http/cursor.js";
 import { MAX_DOCUMENT_BYTES, MAX_DOCUMENTS_PER_UPLOAD } from "./file-limits.js";
 import { DocumentsService } from "./documents.service.js";
 
@@ -50,6 +56,12 @@ function toDocumentBody(document: {
   };
 }
 
+async function ensureUploadTempDir(): Promise<string> {
+  const dir = path.join(os.tmpdir(), "spectre-uploads");
+  await mkdir(dir, { recursive: true });
+  return dir;
+}
+
 @Controller()
 @UseGuards(ActorGuard)
 export class DocumentsController {
@@ -66,15 +78,34 @@ export class DocumentsController {
   }
 
   @Get("workspaces/:workspaceId/documents")
-  async list(@Param("workspaceId") workspaceId: string) {
-    const rows = await this.documents.list(this.requireActor(), workspaceId);
-    return { items: rows.map(toDocumentBody) };
+  async list(
+    @Param("workspaceId") workspaceId: string,
+    @Query("cursor") cursorRaw?: string,
+    @Query("limit") limitRaw?: string,
+  ) {
+    const page = await this.documents.list(this.requireActor(), workspaceId, {
+      limit: parseLimit(limitRaw),
+      cursor: decodeCursor(cursorRaw),
+    });
+    return {
+      items: page.items.map(toDocumentBody),
+      nextCursor: page.nextCursor ? encodeCursor(page.nextCursor) : null,
+    };
   }
 
   @Post("workspaces/:workspaceId/documents")
   @UseInterceptors(
     FilesInterceptor("files", MAX_DOCUMENTS_PER_UPLOAD, {
-      storage: memoryStorage(),
+      storage: diskStorage({
+        destination: (_req, _file, cb) => {
+          void ensureUploadTempDir()
+            .then((dir) => cb(null, dir))
+            .catch((err) => cb(err as Error, ""));
+        },
+        filename: (_req, _file, cb) => {
+          cb(null, `${randomUUID()}.upload`);
+        },
+      }),
       limits: {
         files: MAX_DOCUMENTS_PER_UPLOAD,
         fileSize: MAX_DOCUMENT_BYTES,
@@ -88,16 +119,28 @@ export class DocumentsController {
     if (!files || files.length === 0) {
       throw new UnprocessableEntityException();
     }
-    const rows = await this.documents.uploadMany(
-      this.requireActor(),
-      workspaceId,
-      files.map((file) => ({
-        originalname: file.originalname,
-        buffer: file.buffer,
-        size: file.size,
-      })),
-    );
-    return { items: rows.map(toDocumentBody) };
+
+    try {
+      const payloads = [];
+      for (const file of files) {
+        const buffer = await readFile(file.path);
+        payloads.push({
+          originalname: file.originalname,
+          buffer,
+          size: file.size,
+        });
+      }
+      const rows = await this.documents.uploadMany(
+        this.requireActor(),
+        workspaceId,
+        payloads,
+      );
+      return { items: rows.map(toDocumentBody) };
+    } finally {
+      await Promise.all(
+        files.map((file) => unlink(file.path).catch(() => undefined)),
+      );
+    }
   }
 
   @Get("documents/:documentId")

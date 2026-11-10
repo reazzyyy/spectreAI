@@ -36,7 +36,7 @@ Idempotent for the same org name + owner email (re-runs refresh the owner passwo
 - Owner-only: `GET/POST /organizations/:orgId/invitations`, resend, revoke.
 - `POST /invitations/accept` — new user supplies `password`; existing user must be logged in as the invite email.
 - Roles: `admin` | `member` only (not `owner`). Raw token stored as SHA-256; `devToken` returned outside production only.
-- TTL: `INVITE_TTL_HOURS` (**O-011**). Email provider stub — out of this slice (devToken stands in).
+- TTL: `INVITE_TTL_HOURS` (**D-028**, default 72h). Email provider stub — out of this slice (devToken stands in).
 
 E2e seeds organizations, clients, matters, users + memberships, a TEAM Workspace fixture, logs in via cookie, and asserts cross-org Client/Matter/Workspace → `404`, foreign `clientId`/`matterId` → `422`, PERSONAL|TEAM create, bad visibility → `422`.
 
@@ -50,16 +50,18 @@ On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` 
 | `src/app.module.ts` | Controllers + DI wiring |
 | `src/db/` | Dual Prisma (`migrator` auth/seed, `runtime` + GUC); actor-scoped Client/Matter/Workspace stores |
 | `src/workspaces/` | Prisma WorkspaceStore + HTTP list/create/get/patch, members, matter links (S3) |
-| `src/documents/` | Document metadata + local private storage; upload/list/get/download (Phase 3 thin) |
+| `src/documents/` | Upload (two-phase) / list cursor / download; extract enqueue; LocalObjectStorage |
+| `src/worker/` | `worker:extract` — BullMQ document text extract (D-025/D-031) |
+| `src/audit/` | Thin audit_events (no content) |
 | `src/health/` | Liveness |
 | `src/auth/` | Login/logout/me, SessionService, REQUEST-scoped `ACTOR_CONTEXT`, `ActorGuard` |
 | `src/clients/` | Client list/create/get/patch via Prisma + `ClientAccess` |
 | `src/matters/` | Matter list/create/get/patch via Prisma + `MatterAccess` |
-| `src/ai/` | Provider status + synthetic generate |
-| `src/http/` | Uniform error JSON + shared middleware helper |
-| `src/queue/` | BullMQ queue name/helpers; **no worker** |
-| `src/scripts/` | Dev bootstrap CLI (`bootstrap:dev`) — not an HTTP API |
-| `src/invitations/` | Org invitations create/list/resend/revoke/accept (S4c); TTL via `INVITE_TTL_HOURS` |
+| `src/ai/` | Provider status + synthetic generate (**session required**) |
+| `src/http/` | Errors, CSRF, cursor helpers, Redis rate limit |
+| `src/queue/` | BullMQ `ai-jobs` queue factory (wired when `REDIS_URL` set) |
+| `src/scripts/` | Dev bootstrap + `sweep:uploading` orphan sweeper |
+| `src/invitations/` | Org invitations; TTL via `INVITE_TTL_HOURS` (**D-028**) |
 
 ## Auth scaffold
 

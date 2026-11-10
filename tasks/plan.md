@@ -1,6 +1,6 @@
 # Implementation Plan: Hardening + Phase 4 extract
 
-> **Статус:** в работе (2026-11-10).  
+> **Статус:** реализовано в ветке `feature/arch-algo-gap-closure` (2026-11-10); e2e/migrate требуют локальный Postgres.  
 > **Предыдущий план:** Phase 3 document upload — **закрыт** (`tasks/todo.md`).  
 > **Канон:** D-010/D-017, **D-025–D-031**, D-011, D-012, W-005/W-020, `docs/13`, `docs/15`, AS-IS `docs/26`.  
 > **Не цель:** OCR promise (O-004), OpenAI (O-002), chat, RAG chunks (FILE-009), production object storage (O-003), workspace delete (O-012).
@@ -33,13 +33,13 @@ D   audit_events thin + streaming upload; FILE-010 note; O-012 untouched
 
 ### Acceptance
 
-- [ ] Upload: DB row before blob finalize; orphans swept; encrypted PDF / bad DOCX rejected
-- [ ] Rate limit on login/upload/ai; `/ai/generate` requires session; dataClass server synthetic
-- [ ] List documents/workspaces support cursor; no N+1 content ACL for workspace list
-- [ ] RLS: non-member cannot SELECT documents of TEAM workspace even with org GUC
-- [ ] Upload → AIJob extract → text in PG or failed for scan; idempotent re-enqueue
-- [ ] Audit events for login/upload/download without content
-- [ ] AS-IS + READMEs updated
+- [x] Upload: DB row before blob finalize; orphans swept; encrypted PDF / bad DOCX rejected
+- [x] Rate limit on login/upload/ai; `/ai/generate` requires session; dataClass server synthetic
+- [x] List documents/workspaces support cursor; no N+1 content ACL for workspace list
+- [x] RLS: documents policy requires workspace owner/member (migration)
+- [x] Upload → AIJob extract → text in PG or failed for scan; idempotent re-enqueue
+- [x] Audit events for login/upload/download without content
+- [x] AS-IS + READMEs updated
 
 ### Out of scope
 

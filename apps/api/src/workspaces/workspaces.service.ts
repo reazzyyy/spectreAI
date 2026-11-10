@@ -10,6 +10,7 @@ import {
   MatterAccess,
   WorkspaceAccess,
   type WorkspaceActor,
+  type WorkspaceListPage,
   type WorkspaceMatterLink,
   type WorkspaceMemberRecord,
   type WorkspaceRecord,
@@ -37,8 +38,11 @@ export class WorkspacesService {
     @Inject(ClientAccess) private readonly clients: ClientAccess,
   ) {}
 
-  async list(actor: ActorContext): Promise<WorkspaceRecord[]> {
-    return this.workspaces.listForContent(toWorkspaceActor(actor));
+  async list(
+    actor: ActorContext,
+    options?: { limit?: number; cursor?: { createdAt: Date; id: string } },
+  ): Promise<WorkspaceListPage> {
+    return this.workspaces.listForContent(toWorkspaceActor(actor), options);
   }
 
   async read(actor: ActorContext, workspaceId: string): Promise<WorkspaceRecord> {
