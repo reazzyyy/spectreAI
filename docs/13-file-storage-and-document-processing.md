@@ -866,15 +866,15 @@ HTTP-запрос не должен ждать завершения всей о�
 |---|---|---|
 | FILE-001 | Object storage | **OPEN / PROPOSED:** S3-совместимое закрытое хранилище (продукт не CONFIRMED) |
 | FILE-002 | Максимальный размер | **CONFIRMED (D-010):** 25 МБ на файл |
-| FILE-003 | Максимальное число страниц | **OPEN / H-005:** 300 страниц — предварительное предложение |
+| FILE-003 | Максимальное число страниц | **CONFIRMED scaffold (D-030 / H-005):** 300 страниц на extract до нагрузочных тестов |
 | FILE-004 | Форматы MVP | **CONFIRMED (D-017):** PDF, DOCX, TXT; архивы/exe/макросы/пароль — отклонять |
-| FILE-005 | OCR | **HYPOTHESIS (H-002) / O-004:** OCRmyPDF + Tesseract — кандидат, не CONFIRMED |
+| FILE-005 | OCR | **HYPOTHESIS (H-002) / O-004:** кандидат OCRmyPDF + Tesseract; до закрытия — **D-031** (scan → failed) |
 | FILE-006 | Очередь задач | **CONFIRMED (D-008):** Redis + BullMQ |
-| FILE-007 | Хранение извлечённого текста | **OPEN:** PostgreSQL vs закрытое object storage |
+| FILE-007 | Хранение извлечённого текста | **CONFIRMED (D-025):** PostgreSQL для Phase 4 thin extract; оригинал в object storage |
 | FILE-008 | Векторный поиск | **CONFIRMED (D-018):** PostgreSQL + `pgvector` + FTS; модель embeddings OPEN |
-| FILE-009 | Chunking | **OPEN:** начать с 500–800 токенов и проверить |
-| FILE-010 | Антивирус | **OPEN** |
-| FILE-011 | Подписанные URL | **OPEN** |
+| FILE-009 | Chunking | **OPEN:** начать с 500–800 токенов и проверить (Phase 6) |
+| FILE-010 | Антивирус | **OPEN** (async hardening backlog; magic-bytes обязательны) |
+| FILE-011 | Подписанные URL | **OPEN** (AS-IS: proxied download) |
 | FILE-012 | Версии / retention | **OPEN (O-005)** для активного хранения; удаление производных — D-019 |
 | FILE-013 | Внешние OCR-сервисы | Не включать без оценки; до O-002/O-004 не слать клиентские сканы вовне |
 | FILE-014 | Дедупликация | Не выполнять межорганизационную дедупликацию в MVP |
