@@ -8,6 +8,8 @@ Import direction: `app → widgets → features → entities → shared`.
 **Quality bar (CONFIRMED D-024 / ADR-0004):** SCSS Modules + CSS tokens, own `shared/ui`, RHF+Zod, TanStack Query, Vitest+RTL + Storybook+Chromatic + Playwright.  
 **AS-IS (F5k + Phase 3 documents thin + CI e2e):** Workspace PERSONAL|TEAM + members picker, Matter + Client CRUD, links, `/documents` library upload, org members + owner role change + invitations + `/invite/accept`, AppShell/Home, Vitest+RTL, Storybook/Chromatic, Playwright auth smoke (CI `web-e2e`). `system-map` on SCSS Modules (D-024).
 
+**Design reference:** корневая папка `designSpectreAI/` — визуальный/IA референс (Figma Make). Не runtime-зависимость и не источник копипаста. В продукте «Проект» = **Workspace** (`entities/workspace`, `/workspaces`). Стили и экраны переписываются в FSD + SCSS Modules под канон D-023/D-024. Chat UI — после Phase 5A API; до этого вкладки без фиктивных AI-действий.
+
 ## Run
 
 ```bash
@@ -32,23 +34,25 @@ API: `API_ORIGIN` (default `http://localhost:3000`). Set `WEB_ORIGIN=http://loca
 src/
 ├── app/(product)/   # Home, /projects, /matters, /clients, /documents, /organization
 ├── app/invite/      # /invite/accept (no shell)
-├── widgets/         # app-shell, home, workspace-*, matter-*, client-*, document-list, organization-invites, system-map
+├── widgets/         # app-shell, home, workspace-* (incl. project-bar UI), matter-*, client-*, document-list, organization-invites, system-map
 ├── features/        # login, logout, invitations, workspace|matter|client, upload-document, members, matters links
 ├── entities/        # session, workspace, matter, client, document, invitation, org-member
 └── shared/          # api, lib, ui
 ```
+
+**Chat (после Phase 5A, не AS-IS):** целевая карта — `entities/conversation`, `features/create-conversation` / `send-message`, `widgets/chat-workspace`, routes `/projects/[id]/chats[…]`. До API — только disabled tab + StateCard.
 
 ## Behaviour
 
 - `/login` — auth form.
 - `/invite/accept` — accept org invite (token + optional password); no product shell.
 - `/` — home + recent workspaces.
-- `/projects`, `/projects/[id]` — Workspace list/create (PERSONAL|TEAM)/edit + Matter links + TEAM members (org picker).
+- `/projects` — list + client search/`?visibility=` + create; `/projects/[id]` — project-bar (Обзор) + edit/matters/members; Чаты/Research/Drafts disabled.
 - `/matters`, `/matters/[id]` — Matter list/create/edit.
 - `/clients`, `/clients/[id]` — Client list/create/edit.
 - `/documents` — Workspace-scoped list + multipart upload (PDF/DOCX/TXT); no OCR/preview.
 - `/organization` — org members directory; Owner role change + invitations; `devToken` accept link.
-- Nav: Home, проекты, дела, клиенты, документы, Организация, `/system`.
+- Nav: Home, проекты (Все/Личные/Команда), создать проект, дела, клиенты, документы, Организация, `/system`.
 - Desktop gate below 1280px. Synthetic banner (D-012).
 
-Plan: `tasks/plan.md`.
+Plan: `tasks/plan.md`. Phase 5A chat foundation: same file. UI port slices: shell → projects list → project-bar → chat after API.

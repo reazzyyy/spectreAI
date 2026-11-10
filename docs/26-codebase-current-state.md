@@ -105,9 +105,10 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 
 - Явная метка synthetic/test: `shared/ui` на `/`, `/login`, `/system` (D-012).
 - `/login` — `features/login` (RHF + Zod) → `POST /auth/login` (email, password, organizationId); без product shell.
-- `/` — `widgets/app-shell` + `widgets/home-overview`: Make-подобный chrome; `GET /auth/me` + краткий список Workspace; 401 → `/login`; logout в сайдбаре.
-- `/projects` — `widgets/workspace-list` + `features/create-workspace`: `GET/POST /workspaces` (PERSONAL|TEAM).
-- `/projects/[workspaceId]` — detail + edit + Matter links + TEAM members (`GET/POST/DELETE …/members`).
+- `/` — `widgets/app-shell` + `widgets/home-overview`: product chrome; `GET /auth/me` + краткий список Workspace; 401 → `/login`; logout в сайдбаре.
+- `/projects` — `widgets/workspace-list` + `features/create-workspace`: `GET/POST /workspaces` (PERSONAL|TEAM); UI-фильтры `?visibility=` и клиентский поиск по загруженному списку.
+- `/projects/[workspaceId]` — `widgets/workspace-detail` (project-bar UI + edit / Matter links / TEAM members); вкладка Чаты → StateCard до Phase 5A; Research/Drafts/Документы — disabled (без фиктивного composer).
+- **UI-референс:** каталог `designSpectreAI/` (Figma Make) — только визуальный/IA ориентир. В runtime `@spectre/web` **не** импортируется. UI «Проект» = API/сущность **Workspace**. Перенос — переписывание под FSD + SCSS Modules (D-023/D-024), не копипаст прототипа (Tailwind, hash-routing, demo-context, `sim`).
 - `/matters`, `/matters/[id]` — list/create/edit Matter (`GET/POST/PATCH`).
 - `/clients`, `/clients/[id]` — list/create/edit Client (`GET/POST/PATCH`).
 - `/documents` — library + multipart upload в выбранный Workspace (DOC-01/02 thin); без preview/OCR.
@@ -119,9 +120,9 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 - Сессия: `entities/session`. Workspace: `entities/workspace` (типы, API, Query).
 - Browser `fetch` на `/api/v1/*` с `credentials: "same-origin"` + CSRF header на мутациях; FormData upload без JSON Content-Type; rewrite в `next.config.ts` на `API_ORIGIN` (по умолчанию `http://localhost:3000`).
 - Линтеры: ESLint + Steiger FSD + Stylelint (включая system-map SCSS).
-- Стили AS-IS: SCSS-токены Make-aligned; `shared/ui` Button/Input/Icon; shell/home/system-map на SCSS Modules.
+- Стили AS-IS: SCSS-токены (визуально близки к референсу `designSpectreAI`); `shared/ui` Button/Input/Icon/StateCard; shell/home/workspace-list/workspace-detail/system-map на SCSS Modules.
 - Тесты AS-IS: Vitest + RTL (Button, schemas, AppShell). Storybook 10 + stories `shared/ui`; Chromatic addon/CLI (publish — `CHROMATIC_PROJECT_TOKEN`). Playwright smoke: unauth `/` → `/login`; login → home (Postgres + bootstrap + `E2E_ORGANIZATION_ID`). CI `web-e2e`: bootstrap JSON file + direct API login preflight before Playwright; Chromatic publish ещё нет.
-- Нет регистрации, recovery, MFA, ownership transfer, OCR/worker, chat.
+- Нет регистрации, recovery, MFA, ownership transfer, OCR/worker; chat API/UI нет (вкладка «Чаты» — StateCard до Phase 5A).
 
 ## 4. Пакеты
 

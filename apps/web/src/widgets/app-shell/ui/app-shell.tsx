@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { sessionMeQueryOptions } from "@/entities/session";
 import { LogoutButton } from "@/features/logout";
@@ -15,13 +15,21 @@ export interface AppShellProps {
   children: ReactNode;
 }
 
+type VisibilityFilter = "all" | "PERSONAL" | "TEAM";
+
+function projectsHref(visibility: VisibilityFilter): string {
+  if (visibility === "all") return "/projects";
+  return `/projects?visibility=${visibility}`;
+}
+
 /**
- * Product chrome from Make: sidebar + topbar + desktop gate.
- * Requires session via TanStack Query; 401 → /login. No demo/localStorage state.
+ * Product chrome: sidebar + topbar + desktop gate (IA from design reference).
+ * Session via TanStack Query; 401 → /login. No demo/localStorage state.
  */
 export function AppShell({ children }: AppShellProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { data, error, isPending, isError } = useQuery(sessionMeQueryOptions);
   const [collapsed, setCollapsed] = useState(false);
 
@@ -67,7 +75,12 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   const homeActive = pathname === "/";
-  const projectsActive = pathname === "/projects" || pathname.startsWith("/projects/");
+  const onProjects = pathname === "/projects" || pathname.startsWith("/projects/");
+  const listVisibility = (searchParams.get("visibility") ?? "").toUpperCase();
+  const projectsAllActive =
+    pathname === "/projects" && listVisibility !== "PERSONAL" && listVisibility !== "TEAM";
+  const projectsPersonalActive = pathname === "/projects" && listVisibility === "PERSONAL";
+  const projectsTeamActive = pathname === "/projects" && listVisibility === "TEAM";
   const mattersActive = pathname === "/matters" || pathname.startsWith("/matters/");
   const clientsActive = pathname === "/clients" || pathname.startsWith("/clients/");
   const documentsActive =
@@ -99,17 +112,25 @@ export function AppShell({ children }: AppShellProps) {
           <span className={styles.navLabel}>Спектр</span>
         </div>
 
-        <button
-          type="button"
+        <Link
+          href="/projects"
           className={styles.sideSearch}
-          disabled
-          title="Поиск проектов появится в следующем срезе"
-          aria-label="Поиск проектов (скоро)"
+          title="Поиск проектов на странице списка"
+          aria-label="Поиск проектов"
         >
           <Icon name="search" size={16} />
           <span className={styles.sideSearchLabel}>Поиск</span>
           <kbd className={styles.sideSearchKbd}>Ctrl K</kbd>
-        </button>
+        </Link>
+
+        <Link
+          href="/projects?create=1"
+          className={styles.sideCreate}
+          title="Создать проект"
+        >
+          <Icon name="plus" size={16} />
+          <span className={styles.navLabel}>Создать проект</span>
+        </Link>
 
         <nav className={styles.nav}>
           <Link
@@ -123,31 +144,42 @@ export function AppShell({ children }: AppShellProps) {
 
           <p className={styles.navGroup}>Проекты</p>
           <Link
-            href="/projects"
-            className={classNames(styles.navItem, projectsActive && styles.navItemActive)}
+            href={projectsHref("all")}
+            className={classNames(
+              styles.navItem,
+              (projectsAllActive || (onProjects && pathname !== "/projects")) &&
+                styles.navItemActive,
+            )}
             title="Все проекты"
+            aria-current={projectsAllActive ? "page" : undefined}
           >
             <Icon name="folder" />
             <span className={styles.navLabel}>Все проекты</span>
           </Link>
-          <button
-            type="button"
-            className={styles.navItem}
-            disabled
-            title="Скоро"
+          <Link
+            href={projectsHref("PERSONAL")}
+            className={classNames(
+              styles.navItem,
+              projectsPersonalActive && styles.navItemActive,
+            )}
+            title="Личные"
+            aria-current={projectsPersonalActive ? "page" : undefined}
           >
             <Icon name="user" />
             <span className={styles.navLabel}>Личные</span>
-          </button>
-          <button
-            type="button"
-            className={styles.navItem}
-            disabled
-            title="Скоро"
+          </Link>
+          <Link
+            href={projectsHref("TEAM")}
+            className={classNames(
+              styles.navItem,
+              projectsTeamActive && styles.navItemActive,
+            )}
+            title="Проекты команды"
+            aria-current={projectsTeamActive ? "page" : undefined}
           >
             <Icon name="users" />
             <span className={styles.navLabel}>Проекты команды</span>
-          </button>
+          </Link>
 
           <p className={styles.navGroup}>Дела</p>
           <Link
@@ -225,7 +257,7 @@ export function AppShell({ children }: AppShellProps) {
       <div className={styles.main}>
         <header className={styles.topbar}>
           <SyntheticModeBanner />
-          <span className="muted" aria-hidden>
+          <span className={styles.topbarMeta} aria-hidden>
             {data.organization.role}
           </span>
         </header>
