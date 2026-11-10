@@ -77,6 +77,7 @@
 - Для логирования, метрик и аудита используй `docs/25-logging-monitoring-and-audit.md`.
 - Для frontend-структуры следуй FSD (**D-023**), quality bar (**D-024**) и `docs/21-frontend-architecture.md`; не вводи параллельную раскладку вне слоёв и не подменяй SCSS Modules / тестовую пирамиду устаревшим стеком.
 - Для фактов о текущем коде (AS-IS scaffold) используй `docs/26-codebase-current-state.md` и README в `apps/*` / `packages/*`; не подменяй их целевыми спецификациями MVP.
+- Для реализации Chat / Search-RAG следуй `docs/32` / `docs/33` и `docs/CURSOR-INSTRUCTIONS-PHASE5-6.md` (**PROPOSED**); пробелы — `docs/34` / `tasks/phase5-6-gaps.md`. Не закрывай FILE-009, Gate B, O-002, DEC-05 самостоятельно.
 - Обязательная документация при изменении кода: `.cursor/rules/07-code-documentation.mdc`.
 - Для security governance (IR, vuln, BCDR, evidence, inventory; **PROPOSED**) смотри `docs/security/` — дополнение, не замена канонов; приоритет: `docs/decisions-log.md` → канон области → `docs/security/`. Классификация данных нормативна как **D0–D4** в `docs/03-data-security.md` (C0–C4 только mapping).
 - Файлы в `docs/archive/` сохранены для истории и сверки, но не являются нормативными. Если найдено уникальное требование, предложи перенести его в канонический документ и не реализуй его напрямую из архива.

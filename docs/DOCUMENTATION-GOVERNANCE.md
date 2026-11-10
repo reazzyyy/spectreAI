@@ -47,7 +47,10 @@
 | AS-IS кодовой базы | `26-codebase-current-state.md` | Снимок того, что реально реализовано в репозитории; не подменяет целевые спецификации MVP. |
 | Workspace Phase 2 (продукт + RLS + auth slice) | `workspace-phase2/` (вход: `workspace-phase2/README.md`) | **W-001–W-020 CONFIRMED** в `decisions-log.md`. Детализация модели, RLS, invitations, lifecycle, тестов. Не заменяет `06`/`07`/`08`/`12`; при расхождении с D-* — stop. Инструкция агенту: `CURSOR-INSTRUCTIONS-WORKSPACE-PHASE2.md`. |
 | Перенос корпуса и индекса | `27`–`30` | **PROPOSED.** Не заменяет backup/DR и не закрывает O-006 / O-009. |
-| Живой план реализации | `tasks/roadmap.md` | Порядок работ и ворота недостающих вводных. Можно менять. Не канон требований и не повышает OPEN/PROPOSED до CONFIRMED. Детали среза — `tasks/plan.md` / `tasks/todo.md` (сейчас закрытая Фаза 1; следующий срез заменяет их при старте Фазы 2). |
+| Phase 5 Chat (исполнимая спецификация) | `32-phase5-chat-implementation-specification.md` | **PROPOSED.** Дополняет `06`/`07`/`15`/`19`/`20`/`workspace-phase2`; не меняет D/O/H. Инструкция агенту: `CURSOR-INSTRUCTIONS-PHASE5-6.md`. |
+| Phase 6 Search/RAG (исполнимая спецификация) | `33-phase6-rag-implementation-specification.md` | **PROPOSED.** Дополняет `13`/`17`/`27`–`30`; FILE-009 и Gate B остаются OPEN. |
+| Phase 5–6 AS-IS audit gaps | `34-phase5-6-code-and-design-audit.md` | Отчёт о пробелах кода/дизайна (снимок); не канон решений. Рабочий трекер: `tasks/phase5-6-gaps.md`. |
+| Живой план реализации | `tasks/roadmap.md` | Порядок работ и ворота недостающих вводных. Можно менять. Не канон требований и не повышает OPEN/PROPOSED до CONFIRMED. Детали среза — `tasks/plan.md` / `tasks/todo.md`. |
 | Архитектурные решения | `adr/` и `decisions-log.md` | ADR фиксирует отдельные решения; журнал показывает общий статус. ADR-0003 — PostgreSQL RLS (**W-020**). |
 
 ## 3. Архивные документы

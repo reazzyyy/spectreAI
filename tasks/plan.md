@@ -1,46 +1,45 @@
-# Implementation Plan: Hardening + Phase 4 extract
+# Implementation Plan: Phase 5A Chat (foundation)
 
-> **Статус:** реализовано в ветке `feature/arch-algo-gap-closure` (2026-11-10); e2e/migrate требуют локальный Postgres.  
-> **Предыдущий план:** Phase 3 document upload — **закрыт** (`tasks/todo.md`).  
-> **Канон:** D-010/D-017, **D-025–D-031**, D-011, D-012, W-005/W-020, `docs/13`, `docs/15`, AS-IS `docs/26`.  
-> **Не цель:** OCR promise (O-004), OpenAI (O-002), chat, RAG chunks (FILE-009), production object storage (O-003), workspace delete (O-012).
+> **Статус:** план среза после интеграции спек Phase 5–6 (2026-11-11). Код Phase 5A **ещё не начат**.  
+> **Предыдущий план:** Hardening + Phase 4 extract — **закрыт** (`tasks/todo.md`).  
+> **Канон:** `docs/32`, `docs/CURSOR-INSTRUCTIONS-PHASE5-6.md`, D-011/D-012/D-026/D-027, W-006–W-008/W-020, `docs/15`/`19`, AS-IS `docs/26`.  
+> **Пробелы:** `docs/34`, трекер `tasks/phase5-6-gaps.md`.  
+> **Не цель:** внешний LLM (O-002), regenerate/edit (DEC-05), DocumentVersion/FTS/vector (Phase 6), OCR (O-004), workspace delete (O-012).
 
 ---
 
 ## Overview
 
-1. **Docs pack** — CONFIRMED D-025–D-031 (закрыт в journal).
-2. **Hardening** — upload atomicity, validation, rate limit, AI auth, cursor lists, workspace RLS on documents.
-3. **Phase 4 thin** — AIJob + DocumentExtraction in PG, BullMQ worker, extract TXT/DOCX/digital PDF; scan → failed (D-031).
-4. **Backlog parallel** — thin audit_events, streaming upload; AV remains OPEN (FILE-010).
+1. **Docs pack** — `docs/32`–`34` + инструкция в репозитории (**PROPOSED**; статусы D/O/H не менялись).
+2. **Phase 5A data/access** — Conversation, Message, Generation; RLS; PRIVATE/WORKSPACE ACL.
+3. **Phase 5A orchestration** — API, Outbox, BullMQ chat worker, Synthetic only, cursor messages, e2e history.
+4. **Later** — 5B context; 6A DocumentVersion/FTS; Gate B → 6B vector.
 
-## Architecture Decisions (locked)
+## Architecture Decisions (locked from journal)
 
-- Extracted text in **PostgreSQL** (D-025).
-- Cursor pagination (D-026); Idempotency-Key / `documentId:extract:v1` (D-027).
-- Caps D-030; scan policy D-031.
-- EDITOR delete own only (D-029) — apply when delete HTTP exists; no workspace delete without O-012.
+- Synthetic only until **O-002** (**D-012**).
+- AIJob statuses **D-011**; Idempotency-Key **D-027**; cursor lists **D-026**.
+- RLS + NestJS authz (**W-020**); Org Admin без auto content (**W-008**).
+- Не начинать 6B schema до Gate B; FILE-009 остаётся OPEN.
 
-## Task slices
+## Task slices (перед кодом — отчёт из §3 инструкции)
 
 ```text
-A   Docs: D-025–D-031 + docs/11/13/15/07 + debt/todo sync
-B   Hardening: two-phase upload, DOCX/PDF harden, Redis rate limit,
-    AI ActorGuard, visible-workspace SQL + cursor, documents RLS membership
-C   Phase 4: AIJob + DocumentExtraction + worker + enqueue + tests + AS-IS
-D   audit_events thin + streaming upload; FILE-010 note; O-012 untouched
+Docs   docs/32–34 + governance/roadmap/gaps  (этот пакет)
+5A-1   Conversation/Message/Generation + RLS + ACL tests
+5A-2   API + Outbox + chat worker + Synthetic + e2e history
+5B     context/source refs (synthetic-safe) — после 5A
+6A…    DocumentVersion / FTS — отдельный план; не в этом срезе
 ```
 
-### Acceptance
+### Acceptance (Phase 5A)
 
-- [x] Upload: DB row before blob finalize; orphans swept; encrypted PDF / bad DOCX rejected
-- [x] Rate limit on login/upload/ai; `/ai/generate` requires session; dataClass server synthetic
-- [x] List documents/workspaces support cursor; no N+1 content ACL for workspace list
-- [x] RLS: documents policy requires workspace owner/member (migration)
-- [x] Upload → AIJob extract → text in PG or failed for scan; idempotent re-enqueue
-- [x] Audit events for login/upload/download without content
-- [x] AS-IS + READMEs updated
+- [ ] Models + migrations + RLS ENABLE/FORCE + runtime-role tests
+- [ ] Create/list/open Conversation; PRIVATE vs WORKSPACE isolation
+- [ ] Send message → Generation + AIJob + Outbox; idempotent; Synthetic response persisted
+- [ ] Reload restores history; cross-tenant / cross-workspace / private isolation negative tests
+- [ ] AS-IS `docs/26` + READMEs updated after code
 
 ### Out of scope
 
-OCR success path, embeddings, chat, grant, hard delete workspace, ClamAV product, Chromatic.
+OpenAI, embeddings, DocumentVersion, chunks, FTS/pgvector, regenerate/edit product rules, OCR success path, workspace hard delete.

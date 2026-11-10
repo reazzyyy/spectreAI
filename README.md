@@ -6,7 +6,7 @@
 
 ## Локальный scaffold
 
-Глобальный порядок работ — живой план `tasks/roadmap.md` (его можно менять; это не канон требований). Закрытая Фаза 1 (web login) — `tasks/plan.md` / `tasks/todo.md`. Следующий код — Фаза 2 (Workspace/RLS) после плана по `docs/CURSOR-INSTRUCTIONS-WORKSPACE-PHASE2.md`. **Что реально есть в коде сейчас** — только в `docs/26-codebase-current-state.md` (не путать с целевым MVP). Стек: Next.js, NestJS, PostgreSQL, Prisma, Redis, BullMQ (**D-008**). До закрытия **O-002** модель вызывается только через `SyntheticAIProvider`.
+Глобальный порядок работ — живой план `tasks/roadmap.md` (его можно менять; это не канон требований). Текущий срез плана — `tasks/plan.md` / `tasks/todo.md` (**Phase 5A Chat** после закрытых Фаз 3–4). Спеки Phase 5–6 (**PROPOSED**): `docs/32`–`34`, инструкция `docs/CURSOR-INSTRUCTIONS-PHASE5-6.md`; пробелы — `tasks/phase5-6-gaps.md`. **Что реально есть в коде сейчас** — только в `docs/26-codebase-current-state.md` (не путать с целевым MVP). Стек: Next.js, NestJS, PostgreSQL, Prisma, Redis, BullMQ (**D-008**). До закрытия **O-002** модель вызывается только через `SyntheticAIProvider`.
 
 ```bash
 pnpm install
@@ -83,6 +83,8 @@ pnpm dev:web   # http://localhost:3001
 | `docs/archive/24-security-and-threat-model-legacy.md` | Архив прежней модели угроз; не нормативный источник |
 | `docs/25-logging-monitoring-and-audit.md` | Технические логи, метрики и аудит |
 | `docs/26-codebase-current-state.md` | AS-IS снимок исполняемого scaffold (что есть в коде сейчас) |
+| `docs/32`–`34`, `CURSOR-INSTRUCTIONS-PHASE5-6.md` | Phase 5–6 Chat/RAG спеки + audit (**PROPOSED**/отчёт; не закрывают OPEN) |
+| `tasks/phase5-6-gaps.md` | Рабочий трекер пробелов Phase 5–6 |
 | `docs/workspace-phase2/README.md` | Workspace Phase 2: продукт, RLS, auth/invite, lifecycle, тесты (**W-001–W-020**) |
 | `docs/PACKAGE-README.md` | Указатель путей пакета Workspace Phase 2 после интеграции |
 | `docs/CURSOR-INSTRUCTIONS-WORKSPACE-PHASE2.md` | Инструкция агенту перед кодом Фазы 2 |

@@ -1,9 +1,9 @@
 # Глобальный план реализации
 
 **Статус:** живой рабочий план. Его можно менять и дополнять. Это не подтверждённое продуктовое решение и не описание уже написанного кода.  
-**Дата редакции:** 2026-11-10  
+**Дата редакции:** 2026-11-11  
 **Опора:** `docs/decisions-log.md` (D-001–D-031, W-001–W-020, O-001–O-012, H-001–H-005), `docs/05-mvp-acceptance.md`, AS-IS `docs/26-codebase-current-state.md`.  
-**Детальный срез:** `tasks/plan.md` / `tasks/todo.md` — **hardening + Фаза 4 extract**. Фаза 3 upload thin **в `main`**; D-025–D-031 закрыли FILE-007/API-004/005/O-011/O-013/scan policy для старта Phase 4.
+**Детальный срез:** `tasks/plan.md` / `tasks/todo.md` — следующий: **Phase 5A Chat** по `docs/32` + `docs/CURSOR-INSTRUCTIONS-PHASE5-6.md`. Phase 4 extract **в `main`**. Спеки Phase 5–6: `docs/32`–`34` (**PROPOSED**); пробелы: `tasks/phase5-6-gaps.md`.
 
 Если журнал решений и этот план расходятся, приоритет у журнала. Новое CONFIRMED сначала попадает в `docs/decisions-log.md`, затем сюда сдвигается соответствующее ворота.
 
@@ -17,15 +17,16 @@
 
 ## Что уже есть
 
-Снимок на 2026-11-09, подробно в `docs/26-codebase-current-state.md`:
+Снимок на 2026-11-10, подробно в `docs/26-codebase-current-state.md`:
 
 - монорепо Next.js + NestJS + PostgreSQL/Prisma + Redis/BullMQ (**D-008**);
 - Organization, Client, Matter, User, Membership, Session, Workspace (+ members/matter links), invitations;
 - login cookie + CSRF (**W-014a**); актёр только из сессии; bootstrap + invite-only (**W-012**);
-- HTTP CRU+list Client/Matter/Workspace с org isolation + WorkspaceAccess; tenant RLS foundation (**W-020** partial);
-- `SyntheticAIProvider` и тонкий `POST /ai/generate` без сети; имя очереди `ai-jobs` без воркера;
-- web FSD (**D-023**) + quality bar (**D-024**): login, shell/home, projects/matters/clients/organization/invite accept; CI Playwright smoke;
-- документы / OCR / chat / grant — **ещё нет** (Фаза 3+).
+- HTTP CRU+list Client/Matter/Workspace с org isolation + WorkspaceAccess; tenant RLS foundation (**W-020** partial + documents membership);
+- документы: two-phase upload, download, extract enqueue; AIJob + DocumentExtraction; BullMQ extract worker (**Фаза 3–4**);
+- `SyntheticAIProvider` и тонкий `POST /ai/generate` (не chat orchestration);
+- web FSD (**D-023**) + quality bar (**D-024**): login, shell/home, CRM surfaces, documents UI; CI Playwright smoke;
+- chat / RAG / grant / OCR success — **ещё нет** (Фаза 5+; спеки `docs/32`–`34`).
 
 Это база. Дальше план её наращивает, а не заменяет стек.
 
@@ -123,27 +124,31 @@
 
 **Ворота.** Object storage production — **O-003**. **Ворота E / D-031:** скан без текста → failed до O-004.
 
-### Фаза 4. Воркер и извлечение текста — текущий срез
+### Фаза 4. Воркер и извлечение текста — в `main`
 
 **Цель.** BullMQ-воркер ведёт AIJob только статусами **D-011**. Повтор задания не плодит вторую успешную обработку (**D-027**). Для TXT, DOCX и PDF с текстовым слоем текст в PostgreSQL (**D-025**). Скан → `failed` (**D-031**).
 
-**Ворота H-005 / D-030.** Scaffold caps: 300 pages / 2M chars / 120s / maxAttempts 3 — не O-007.
+**Факт.** Hardening + extract worker + AIJob/DocumentExtraction в `main` (2026-11-10). Caps **D-030**.
 
 **Выход.** Упавший воркер оставляет job в `failed` или `timed_out`, история файла на месте. В логах нет текста документа.
 
-### Фаза 5. Чат в пространстве
+### Фаза 5. Чат в пространстве — следующий срез
 
 **Цель.** Диалог создаётся в пространстве, история продолжается, чтение чужого диалога по id невозможно. Ответ идёт через Synthetic. Ошибка провайдера не стирает историю и не раскрывает секреты. UI показывает synthetic/test.
 
-**Зависимость.** Фазы 2 и 4. Контекст ответа — явно выбранные пользователем документы, к которым доступ проверен повторно перед вызовом. Поиск по корпусу — фаза 6.
+**Спецификация (PROPOSED):** `docs/32-phase5-chat-implementation-specification.md`. Порядок срезов: `docs/CURSOR-INSTRUCTIONS-PHASE5-6.md` (5A foundation → orchestration → затем 5B context). Audit gaps: `docs/34`, трекер `tasks/phase5-6-gaps.md`.
 
-**Выход.** Критерии Chat из `docs/05`. Несинтетический `dataClass` по-прежнему блокируется gateway.
+**Зависимость.** Фазы 2 и 4. Контекст ответа — явно выбранные пользователем документы, к которым доступ проверен повторно перед вызовом. Поиск по корпусу — фаза 6. Не вызывать внешний AI до **O-002**. Regenerate/edit — ждать DEC-05.
+
+**Выход.** Критерии Chat из `docs/05` + acceptance из `docs/32`. Несинтетический `dataClass` по-прежнему блокируется gateway.
 
 ### Фаза 6. Поиск по своим документам
 
 **Цель.** Полнотекстовый поиск PostgreSQL возвращает только фрагменты, которые актёр может читать в момент запроса. Отзыв членства виден в следующем поиске.
 
-**Ворота B.** Векторный слой `pgvector` включается после выбора модели embeddings. Если модель внешняя — только вместе с закрытием **O-002**. До этого в AS-IS честно написано, что работает FTS, а вектор ещё нет, хотя **D-018** требует оба к полному MVP.
+**Спецификация (PROPOSED):** `docs/33-phase6-rag-implementation-specification.md`. Сначала 6A: DocumentVersion + FTS/structure (до Gate B); 6B vector — только после Gate B.
+
+**Ворота B.** Векторный слой `pgvector` включается после выбора модели embeddings. Если модель внешняя — только вместе с закрытием **O-002**. **FILE-009** chunking остаётся OPEN до benchmark + явного выбора. До этого в AS-IS честно: FTS может появиться в 6A, вектор ещё нет, хотя **D-018** требует оба к полному MVP.
 
 **Выход.** Негативный тест: фрагмент чужой организации и фрагмент чужого пространства не попадают в выдачу и в контекст модели. Содержимое документа не меняет права и не запускает инструменты.
 

@@ -8,6 +8,8 @@
 
 Этот документ описывает **только то, что реально есть в репозитории**. Спецификации в `docs/00–25` могут описывать целевое MVP шире; если код ещё не реализован — ниже явно указано «не реализовано».
 
+Исполняемые спеки следующего среза (ещё **не** код): Phase 5 Chat `docs/32`, Phase 6 RAG `docs/33`, audit gaps `docs/34`, инструкция `docs/CURSOR-INSTRUCTIONS-PHASE5-6.md` — все **PROPOSED**/отчётные. Трекер пробелов: `tasks/phase5-6-gaps.md`.
+
 ## 1. Что это за репозиторий сейчас
 
 Исполняемый **scaffold монорепо** (не готовый MVP): pnpm workspace, NestJS API, Next.js web (login UI + rewrite к API), пакеты доступа и AI Gateway, Prisma-схема Organization/Client/Matter/User/OrganizationMembership/Session, серверные сессии (cookie), регистрация имени очереди BullMQ `ai-jobs`.
@@ -294,15 +296,15 @@ Workflow: `.github/workflows/ci.yml`.
 Не считать сделанным, пока нет кода и тестов:
 
 - MFA/SSO (**O-008** / **W-013** — не в MVP), self-registration (**W-012** запрещает public self-reg), email verify, recovery, logout-all, session list.
-- Email delivery provider для invitations; audit events; rate limit каркас.
-- Полный `docs/12` (audit events, password policy product confirmation, idle timeout).
-- Hard delete Client/Matter/Workspace; `created_by`; полный W-020 (сверх tenant RLS); ACL матрица `docs/07`; admin grant; ownership transfer.
-- OCR, извлечение текста, DocumentVersion, production object storage (**O-003**) — после thin upload.
-- BullMQ worker, сущность/жизненный цикл AIJob в БД.
-- RAG / pgvector индексы в приложении (D-018 — решение есть, кода поиска нет).
+- Email delivery provider для invitations; полный `docs/12` (password policy product confirmation, idle timeout, logout-all, session list).
+- Hard delete Client/Matter/Workspace; полный W-020 (сверх текущих tenant/document policies); ACL матрица `docs/07` в коде; admin grant; ownership transfer.
+- Conversation / Message / AI Generation / Context Snapshot / chat API / chat RLS / chat UI (**Phase 5**; спека `docs/32`).
+- Transactional Outbox + chat worker orchestration (extract worker есть; chat path — нет).
+- DocumentVersion; chunks; FTS/GIN; embeddings; pgvector/HNSW; hybrid retrieval/RRF (**Phase 6**; спека `docs/33`; Gate B / FILE-009 OPEN).
+- OCR success path (**O-004**); production object storage (**O-003**).
 - OpenAI adapter (запрещён до O-002; целевой провайдер D-015).
-- Аудит-хранилище, метрики production, деплой в РФ (D-014 — требование, реализации нет).
-- Удаление по D-019/D-020 в коде.
+- Полный audit/WORM на год, метрики production, деплой в РФ (D-014 — требование, реализации нет).
+- Удаление по D-019/D-020 в коде; workspace hard delete (**O-012**).
 
 ## 9. Онбординг разработчика (минимальный путь)
 
