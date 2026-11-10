@@ -1,0 +1,10 @@
+{
+  "description": "AI legal workspace for Russian law firms and in-house teams to analyze documents, research legal sources, and prepare drafts with clear, source-backed insights.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

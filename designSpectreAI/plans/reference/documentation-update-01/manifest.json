@@ -1,0 +1,65 @@
+{
+  "package": "DOCSYNC-01",
+  "sources": [
+    {
+      "file": "00-project-overview.md",
+      "attachmentId": "d2856d3c-ea71-479f-886b-01998ec69b72",
+      "sizeBytes": 6730,
+      "sha256": "80dd50ca016145b1e6fb06870220ed4301b76b4d143787f30b9e55743984c487"
+    },
+    {
+      "file": "01-ux-ui-design.md",
+      "attachmentId": "fe1d5318-f010-4803-bac4-e6e5bc01c562",
+      "sizeBytes": 3159,
+      "sha256": "9ed26af80a75d7c00423fbe6dc76a993a8f6859ec841cba4c5749052e230a5df"
+    },
+    {
+      "file": "07-access-control-matrix.md",
+      "attachmentId": "ddfd9c5b-9fa2-4c8e-9640-5b66c0bafb1d",
+      "sizeBytes": 40111,
+      "sha256": "b1b16e35d3e444c8b7b7e478aba532aceb8b8f1ebd91e208bc5b588a3b15cdd6"
+    },
+    {
+      "file": "16-prompt-management-and-ai-safety.md",
+      "attachmentId": "31a545c9-8eb5-438a-8da1-1f7772c9c6ee",
+      "sizeBytes": 45629,
+      "sha256": "557cbf91577abbf820b13a7135c71b0050b3ee489973d2a24fbe78e525b2ae48"
+    },
+    {
+      "file": "17-rag-and-knowledge-retrieval.md",
+      "attachmentId": "f3613d14-8385-4eb2-8795-bd0be44af78e",
+      "sizeBytes": 48687,
+      "sha256": "1d576c2dbdeee48ff44b64ffc73fd374274cc2f6635e3bb91432a3ae0afbf720"
+    },
+    {
+      "file": "18-legal-research-and-external-sources.md",
+      "attachmentId": "aff441c8-8b7f-4002-858a-6651654743f0",
+      "sizeBytes": 74632,
+      "sha256": "2ec10b4728ca87c955edab7eb226364f02afdc58ed20c2d4d79d3aa278835da8"
+    },
+    {
+      "file": "19-conversation-and-workspace-context.md",
+      "attachmentId": "c0ceb3e0-065c-4d01-a98a-a38e04f065fc",
+      "sizeBytes": 60657,
+      "sha256": "abb0c8ea8ab7155cb9666cf1a3ab3cee30e1649d1ed280ffe2e9bd55b9283c6b"
+    },
+    {
+      "file": "20-ai-product-workflows.md",
+      "attachmentId": "59aef6a9-f0a2-49ab-b87d-f1b7c8dbd11a",
+      "sizeBytes": 51749,
+      "sha256": "34e872fe8905ea9639af56062b8782d50994e5d99d942b00ce50f78bb4008bbf"
+    },
+    {
+      "file": "25-logging-monitoring-and-audit.md",
+      "attachmentId": "9ab5463d-13ad-448c-8f25-6b574363e926",
+      "sizeBytes": 41385,
+      "sha256": "960401b0039b6cef10111df477d5308b1b401267e49c7fca742344f6a18cd0b3"
+    },
+    {
+      "file": "workspace-phase2/01-product-and-access-model.md",
+      "attachmentId": "7e04e991-b198-403d-9b43-d7a686be41f4",
+      "sizeBytes": 13844,
+      "sha256": "13902fdc588eeaf692a105839046ea2cf6f2dfdd356218e7b0f339eb4309934f"
+    }
+  ]
+}
