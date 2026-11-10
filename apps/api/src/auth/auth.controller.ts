@@ -15,11 +15,13 @@ import type { Request, Response } from "express";
 import { ActorGuard } from "./actor.guard.js";
 import { parseLogin } from "./parse-login.js";
 import { randomBytes } from "node:crypto";
+import { AuditService } from "../audit/audit.service.js";
 import {
   clearCsrfCookieOptions,
   CSRF_COOKIE_NAME,
   csrfCookieOptions,
 } from "../http/csrf.js";
+import { assertRateLimit } from "../http/rate-limit.js";
 import {
   clearSessionCookieOptions,
   SESSION_COOKIE_NAME,
@@ -30,7 +32,10 @@ import { SessionService } from "./session.service.js";
 
 @Controller("auth")
 export class AuthController {
-  constructor(@Inject(SessionService) private readonly sessions: SessionService) {}
+  constructor(
+    @Inject(SessionService) private readonly sessions: SessionService,
+    @Inject(AuditService) private readonly audit: AuditService,
+  ) {}
 
   @Post("login")
   @HttpCode(200)
@@ -42,6 +47,8 @@ export class AuthController {
     if (!input) {
       throw new UnprocessableEntityException();
     }
+
+    await assertRateLimit("auth_login", input.email.toLowerCase());
 
     const result = await this.sessions.login(
       input.email,
@@ -59,6 +66,13 @@ export class AuthController {
       randomBytes(32).toString("base64url"),
       csrfCookieOptions(SESSION_TTL_MS),
     );
+
+    await this.audit.write({
+      organizationId: result.profile.organizationId,
+      actorUserId: result.profile.userId,
+      action: "auth.login",
+      objectType: "session",
+    });
 
     return {
       user: { id: result.profile.userId, email: result.profile.email },
@@ -78,6 +92,9 @@ export class AuthController {
     await this.sessions.logout(req);
     res.clearCookie(SESSION_COOKIE_NAME, clearSessionCookieOptions());
     res.clearCookie(CSRF_COOKIE_NAME, clearCsrfCookieOptions());
+    await this.audit.write({
+      action: "auth.logout",
+    });
     return { ok: true };
   }
 

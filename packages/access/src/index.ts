@@ -12,6 +12,8 @@ export {
   type DocumentStore,
   type DocumentCreateInput,
   type DocumentStatus,
+  type DocumentListCursor,
+  type DocumentListPage,
 } from "./document.js";
 
 export {
@@ -31,6 +33,8 @@ export {
   type WorkspaceMemberStatus,
   type WorkspaceEffectiveRole,
   type OrganizationActorRole,
+  type WorkspaceListCursor,
+  type WorkspaceListPage,
 } from "./workspace.js";
 
 export interface ClientRecord {

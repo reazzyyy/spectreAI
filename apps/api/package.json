@@ -7,6 +7,8 @@
     "dev": "tsx --env-file=../../.env src/main.ts",
     "start": "tsx --env-file=../../.env src/main.ts",
     "bootstrap:dev": "tsx --env-file=../../.env src/scripts/run-dev-bootstrap.ts",
+    "worker:extract": "tsx --env-file=../../.env src/worker/extract-worker.ts",
+    "sweep:uploading": "tsx --env-file=../../.env src/scripts/sweep-uploading-documents.ts",
     "build": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
@@ -20,7 +22,10 @@
     "argon2": "^0.45.1",
     "bullmq": "^6.5.0",
     "cookie-parser": "^1.4.7",
+    "ioredis": "^6.0.0",
+    "jszip": "^3.10.2",
     "multer": "^2.5.0",
+    "pdf-parse": "^2.4.5",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
@@ -28,6 +33,7 @@
     "@nestjs/testing": "^12.0.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
+    "@types/jszip": "^3.4.1",
     "@types/multer": "^2.3.0",
     "@types/node": "^24.0.0",
     "@types/supertest": "^6.0.3",

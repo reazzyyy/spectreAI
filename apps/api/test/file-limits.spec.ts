@@ -3,6 +3,7 @@ import {
   MAX_DOCUMENT_BYTES,
   validateDocumentBytes,
 } from "../src/documents/file-limits.js";
+import { minimalDocxBytes } from "./zip-fixtures.js";
 
 describe("validateDocumentBytes", () => {
   it("accepts PDF magic + .pdf", () => {
@@ -11,6 +12,11 @@ describe("validateDocumentBytes", () => {
       kind: "pdf",
       mimeType: "application/pdf",
     });
+  });
+
+  it("rejects encrypted PDF", () => {
+    const buf = Buffer.from("%PDF-1.4\n1 0 obj\n<< /Encrypt 2 0 R >>\nendobj\n");
+    expect(validateDocumentBytes(buf, "secret.pdf")).toBeNull();
   });
 
   it("accepts plain text .txt", () => {
@@ -28,11 +34,8 @@ describe("validateDocumentBytes", () => {
     expect(validateDocumentBytes(buf, "archive.docx")).toBeNull();
   });
 
-  it("accepts minimal openxml-like docx bytes", () => {
-    const payload = Buffer.from(
-      "PK\u0003\u0004....[Content_Types].xml....word/document.xml",
-      "latin1",
-    );
+  it("accepts minimal openxml docx zip", () => {
+    const payload = minimalDocxBytes();
     expect(validateDocumentBytes(payload, "memo.docx")?.kind).toBe("docx");
   });
 

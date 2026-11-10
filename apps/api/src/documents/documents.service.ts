@@ -2,16 +2,19 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  Optional,
   Scope,
   UnprocessableEntityException,
 } from "@nestjs/common";
 import {
   DocumentAccess,
   WorkspaceAccess,
+  type DocumentListPage,
   type DocumentRecord,
   type WorkspaceActor,
 } from "@spectre/access";
 import type { ActorContext } from "../auth/actor-context.js";
+import { AuditService } from "../audit/audit.service.js";
 import {
   MAX_DOCUMENTS_PER_UPLOAD,
   validateDocumentBytes,
@@ -22,6 +25,8 @@ import {
   newDocumentId,
   sha256Hex,
 } from "./local-object-storage.js";
+import { AiJobsService } from "./ai-jobs.service.js";
+import { assertRateLimit } from "../http/rate-limit.js";
 
 export interface UploadedDocumentFile {
   originalname: string;
@@ -49,14 +54,20 @@ export class DocumentsService {
     @Inject(DocumentAccess) private readonly documents: DocumentAccess,
     @Inject(WorkspaceAccess) private readonly workspaces: WorkspaceAccess,
     @Inject(LocalObjectStorage) private readonly storage: LocalObjectStorage,
+    @Inject(AiJobsService) private readonly aiJobs: AiJobsService,
+    @Optional() @Inject(AuditService) private readonly audit?: AuditService,
   ) {}
 
-  async list(actor: ActorContext, workspaceId: string): Promise<DocumentRecord[]> {
+  async list(
+    actor: ActorContext,
+    workspaceId: string,
+    options?: { limit?: number; cursor?: { createdAt: Date; id: string } },
+  ): Promise<DocumentListPage> {
     const wsActor = toWorkspaceActor(actor);
     if (!(await this.workspaces.canReadContent(wsActor, workspaceId))) {
       throw new NotFoundException();
     }
-    return this.documents.listForWorkspace(actor.organizationId, workspaceId);
+    return this.documents.listForWorkspace(actor.organizationId, workspaceId, options);
   }
 
   async read(actor: ActorContext, documentId: string): Promise<DocumentRecord> {
@@ -80,6 +91,13 @@ export class DocumentsService {
   ): Promise<{ document: DocumentRecord; bytes: Buffer }> {
     const document = await this.read(actor, documentId);
     const bytes = await this.storage.get(document.storageKey);
+    await this.audit?.write({
+      organizationId: actor.organizationId,
+      actorUserId: actor.userId,
+      action: "document.download",
+      objectType: "document",
+      objectId: document.id,
+    });
     return { document, bytes };
   }
 
@@ -88,6 +106,8 @@ export class DocumentsService {
     workspaceId: string,
     files: UploadedDocumentFile[],
   ): Promise<DocumentRecord[]> {
+    await assertRateLimit("document_upload", `${actor.organizationId}:${actor.userId}`);
+
     if (files.length === 0 || files.length > MAX_DOCUMENTS_PER_UPLOAD) {
       throw new UnprocessableEntityException();
     }
@@ -104,6 +124,10 @@ export class DocumentsService {
     return created;
   }
 
+  /**
+   * Two-phase upload: DB `uploading` → storage put → `uploaded` → extract enqueue.
+   * On storage/DB finalize failure, delete row + best-effort blob (orphan sweeper companion).
+   */
   private async uploadOne(
     actor: ActorContext,
     workspaceId: string,
@@ -123,9 +147,7 @@ export class DocumentsService {
     });
     const checksumSha256 = sha256Hex(file.buffer);
 
-    await this.storage.put(storageKey, file.buffer);
-
-    const record = await this.documents.createForWorkspace(
+    const pending = await this.documents.createForWorkspace(
       actor.organizationId,
       workspaceId,
       {
@@ -137,12 +159,50 @@ export class DocumentsService {
         checksumSha256,
         storageKey,
         uploadedByUserId: actor.userId,
-        status: "uploaded",
+        status: "uploading",
       },
     );
-    if (!record) {
+    if (!pending) {
       throw new NotFoundException();
     }
-    return record;
+
+    try {
+      await this.storage.put(storageKey, file.buffer);
+    } catch (error) {
+      await this.documents.deleteForOrganization(actor.organizationId, documentId);
+      throw error;
+    }
+
+    const finalized = await this.documents.updateStatusForOrganization(
+      actor.organizationId,
+      documentId,
+      "uploaded",
+    );
+    if (!finalized) {
+      await this.storage.delete(storageKey).catch(() => undefined);
+      await this.documents.deleteForOrganization(actor.organizationId, documentId);
+      throw new NotFoundException();
+    }
+
+    await this.aiJobs.enqueueDocumentExtract({
+      organizationId: actor.organizationId,
+      workspaceId,
+      documentId,
+      createdByUserId: actor.userId,
+    });
+
+    await this.audit?.write({
+      organizationId: actor.organizationId,
+      actorUserId: actor.userId,
+      action: "document.upload",
+      objectType: "document",
+      objectId: documentId,
+    });
+
+    // Re-read after enqueue may have set processing
+    return (
+      (await this.documents.readForOrganization(actor.organizationId, documentId)) ??
+      finalized
+    );
   }
 }

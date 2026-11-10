@@ -8,12 +8,14 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UnauthorizedException,
   UnprocessableEntityException,
   UseGuards,
 } from "@nestjs/common";
 import { ACTOR_CONTEXT, type ActorContext } from "../auth/actor-context.js";
 import { ActorGuard } from "../auth/actor.guard.js";
+import { decodeCursor, encodeCursor, parseLimit } from "../http/cursor.js";
 import {
   parseMatterLink,
   parseMemberUpsert,
@@ -78,9 +80,18 @@ export class WorkspacesController {
   }
 
   @Get()
-  async list() {
-    const rows = await this.workspaces.list(this.requireActor());
-    return { items: rows.map(toWorkspaceBody) };
+  async list(
+    @Query("cursor") cursorRaw?: string,
+    @Query("limit") limitRaw?: string,
+  ) {
+    const page = await this.workspaces.list(this.requireActor(), {
+      limit: parseLimit(limitRaw),
+      cursor: decodeCursor(cursorRaw),
+    });
+    return {
+      items: page.items.map(toWorkspaceBody),
+      nextCursor: page.nextCursor ? encodeCursor(page.nextCursor) : null,
+    };
   }
 
   @Post()

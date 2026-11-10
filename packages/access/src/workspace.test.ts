@@ -15,6 +15,8 @@ const USER_VIEWER = "00000000-0000-4000-8000-0000000000u3";
 const USER_ORG_ADMIN = "00000000-0000-4000-8000-0000000000u4";
 const USER_STRANGER = "00000000-0000-4000-8000-0000000000u5";
 
+const NOW = new Date("2026-01-01T00:00:00.000Z");
+
 const personalA: WorkspaceRecord = {
   id: "00000000-0000-4000-8000-0000000000w1",
   organizationId: ORG_A,
@@ -24,6 +26,8 @@ const personalA: WorkspaceRecord = {
   visibility: "PERSONAL",
   status: "ACTIVE",
   clientId: null,
+  createdAt: NOW,
+  updatedAt: NOW,
 };
 
 const teamA: WorkspaceRecord = {
@@ -35,6 +39,8 @@ const teamA: WorkspaceRecord = {
   visibility: "TEAM",
   status: "ACTIVE",
   clientId: null,
+  createdAt: NOW,
+  updatedAt: NOW,
 };
 
 const teamB: WorkspaceRecord = {
@@ -46,6 +52,8 @@ const teamB: WorkspaceRecord = {
   visibility: "TEAM",
   status: "ACTIVE",
   clientId: null,
+  createdAt: NOW,
+  updatedAt: NOW,
 };
 
 function actor(
@@ -70,6 +78,18 @@ function memoryWorkspaceStore(
     async listByOrganization(organizationId) {
       return [...ws.values()].filter((row) => row.organizationId === organizationId);
     },
+    async listContentVisible(organizationId, userId, options) {
+      const all = [...ws.values()].filter((row) => {
+        if (row.organizationId !== organizationId) return false;
+        if (row.ownerUserId === userId) return true;
+        if (row.visibility === "PERSONAL") return false;
+        const member = mem.get(`${row.id}:${userId}`);
+        return member?.status === "ACTIVE";
+      });
+      const limit = options?.limit ?? 50;
+      const items = all.slice(0, limit);
+      return { items, nextCursor: null };
+    },
     async create(organizationId, ownerUserId, input) {
       const created: WorkspaceRecord = {
         id: `ws-${ws.size + 1}`,
@@ -80,6 +100,8 @@ function memoryWorkspaceStore(
         visibility: input.visibility ?? "PERSONAL",
         status: "ACTIVE",
         clientId: input.clientId ?? null,
+        createdAt: NOW,
+        updatedAt: NOW,
       };
       ws.set(created.id, created);
       return created;
@@ -220,7 +242,7 @@ describe("WorkspaceAccess content", () => {
 
   it("listForContent returns only accessible workspaces", async () => {
     const listed = await access.listForContent(actor(USER_EDITOR, ORG_A, "member"));
-    expect(listed.map((w) => w.id)).toEqual([teamA.id]);
+    expect(listed.items.map((w) => w.id)).toEqual([teamA.id]);
   });
 });
 

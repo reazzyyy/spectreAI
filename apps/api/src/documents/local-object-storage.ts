@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 /**
@@ -35,6 +35,17 @@ export class LocalObjectStorage {
 
   async get(storageKey: string): Promise<Buffer> {
     return readFile(this.resolvePath(storageKey));
+  }
+
+  async delete(storageKey: string): Promise<void> {
+    try {
+      await unlink(this.resolvePath(storageKey));
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "ENOENT") {
+        throw error;
+      }
+    }
   }
 }
 

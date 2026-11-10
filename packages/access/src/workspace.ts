@@ -28,6 +28,8 @@ export interface WorkspaceRecord {
   visibility: WorkspaceVisibility;
   status: WorkspaceStatus;
   clientId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface WorkspaceMemberRecord {
@@ -72,9 +74,25 @@ export interface WorkspaceMatterLink {
   matterId: string;
 }
 
+export interface WorkspaceListCursor {
+  createdAt: Date;
+  id: string;
+}
+
+export interface WorkspaceListPage {
+  items: WorkspaceRecord[];
+  nextCursor: WorkspaceListCursor | null;
+}
+
 export interface WorkspaceStore {
   findById(id: string): Promise<WorkspaceRecord | null>;
   listByOrganization(organizationId: string): Promise<WorkspaceRecord[]>;
+  /** Single-query content-visible workspaces (owner OR active TEAM member). D-026 ready. */
+  listContentVisible(
+    organizationId: string,
+    userId: string,
+    options?: { limit?: number; cursor?: WorkspaceListCursor },
+  ): Promise<WorkspaceListPage>;
   create(organizationId: string, ownerUserId: string, input: WorkspaceCreateInput): Promise<WorkspaceRecord>;
   update(id: string, input: WorkspaceUpdateInput): Promise<WorkspaceRecord | null>;
   findActiveMember(workspaceId: string, userId: string): Promise<WorkspaceMemberRecord | null>;
@@ -197,19 +215,15 @@ export class WorkspaceAccess {
   }
 
   /** Workspaces the actor may read content in (not org-wide admin listing). */
-  async listForContent(actor: WorkspaceActor): Promise<WorkspaceRecord[]> {
+  async listForContent(
+    actor: WorkspaceActor,
+    options?: { limit?: number; cursor?: WorkspaceListCursor },
+  ): Promise<WorkspaceListPage> {
     if (!hasOrg(actor)) {
-      return [];
+      return { items: [], nextCursor: null };
     }
 
-    const all = await this.store.listByOrganization(actor.organizationId);
-    const visible: WorkspaceRecord[] = [];
-    for (const workspace of all) {
-      if (await this.canReadContent(actor, workspace.id)) {
-        visible.push(workspace);
-      }
-    }
-    return visible;
+    return this.store.listContentVisible(actor.organizationId, actor.userId, options);
   }
 
   /**

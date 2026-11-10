@@ -1,5 +1,6 @@
 import type {
   WorkspaceCreatePersonalInput,
+  WorkspaceListCursor,
   WorkspaceMatterLink,
   WorkspaceMemberRecord,
   WorkspaceMemberUpsertInput,
@@ -8,9 +9,13 @@ import type {
   WorkspaceUpdateInput,
 } from "@spectre/access";
 import type { PrismaClient, PrismaTxClient } from "@spectre/db";
+import { Prisma } from "@spectre/db";
 import { randomUUID } from "node:crypto";
 
 type Db = PrismaClient | PrismaTxClient;
+
+const DEFAULT_LIMIT = 50;
+const MAX_LIMIT = 100;
 
 function toWorkspace(row: {
   id: string;
@@ -21,6 +26,8 @@ function toWorkspace(row: {
   visibility: string;
   status: string;
   clientId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 }): WorkspaceRecord {
   return {
     id: row.id,
@@ -31,6 +38,8 @@ function toWorkspace(row: {
     visibility: row.visibility as WorkspaceRecord["visibility"],
     status: row.status as WorkspaceRecord["status"],
     clientId: row.clientId,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
   };
 }
 
@@ -68,6 +77,85 @@ export function createPrismaWorkspaceStore(prisma: Db): WorkspaceStore {
         orderBy: { updatedAt: "desc" },
       });
       return rows.map(toWorkspace);
+    },
+
+    async listContentVisible(organizationId, userId, options) {
+      const limit = Math.min(Math.max(options?.limit ?? DEFAULT_LIMIT, 1), MAX_LIMIT);
+      const cursor = options?.cursor;
+      const rows = await prisma.$queryRaw<
+        Array<{
+          id: string;
+          organization_id: string;
+          owner_user_id: string;
+          name: string;
+          description: string | null;
+          visibility: string;
+          status: string;
+          client_id: string | null;
+          created_at: Date;
+          updated_at: Date;
+        }>
+      >(Prisma.sql`
+        SELECT w.id, w.organization_id, w.owner_user_id, w.name, w.description,
+               w.visibility::text, w.status::text, w.client_id, w.created_at, w.updated_at
+        FROM workspaces w
+        WHERE w.organization_id = ${organizationId}::uuid
+          AND (
+            w.owner_user_id = ${userId}::uuid
+            OR EXISTS (
+              SELECT 1 FROM workspace_members m
+              WHERE m.workspace_id = w.id
+                AND m.organization_id = w.organization_id
+                AND m.user_id = ${userId}::uuid
+                AND m.status = 'ACTIVE'
+            )
+          )
+          ${
+            cursor
+              ? Prisma.sql`AND (
+                  w.created_at < ${cursor.createdAt}
+                  OR (w.created_at = ${cursor.createdAt} AND w.id < ${cursor.id}::uuid)
+                )`
+              : Prisma.empty
+          }
+        ORDER BY w.created_at DESC, w.id DESC
+        LIMIT ${limit + 1}
+      `);
+
+      const mapped = rows.slice(0, limit).map(
+        (row: {
+          id: string;
+          organization_id: string;
+          owner_user_id: string;
+          name: string;
+          description: string | null;
+          visibility: string;
+          status: string;
+          client_id: string | null;
+          created_at: Date;
+          updated_at: Date;
+        }) =>
+          toWorkspace({
+            id: row.id,
+            organizationId: row.organization_id,
+            ownerUserId: row.owner_user_id,
+            name: row.name,
+            description: row.description,
+            visibility: row.visibility,
+            status: row.status,
+            clientId: row.client_id,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+          }),
+      );
+      const nextCursor: WorkspaceListCursor | null =
+        rows.length > limit && mapped.length > 0
+          ? {
+              createdAt: mapped[mapped.length - 1]!.createdAt,
+              id: mapped[mapped.length - 1]!.id,
+            }
+          : null;
+      return { items: mapped, nextCursor };
     },
 
     async create(organizationId, ownerUserId, input: WorkspaceCreatePersonalInput) {
