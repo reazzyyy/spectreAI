@@ -843,7 +843,8 @@ describe("API scaffold", () => {
         expect.objectContaining({
           workspaceId: TEAM_WORKSPACE_A,
           organizationId: ORG_A,
-          status: "uploaded",
+          // Enqueue sets processing even when Redis publish is best-effort/fail-open.
+          status: "processing",
           originalFileName: "note.txt",
           mimeType: "text/plain; charset=utf-8",
         }),

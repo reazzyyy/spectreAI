@@ -4,7 +4,7 @@ import { redisConnectionFromUrl } from "../queue/redis-connection.js";
 
 /**
  * Redis sliding-window rate limiter (W-019 technical caps; not product tariffs / O-007).
- * Fail-open if Redis is unavailable so local scaffold without Redis still boots;
+ * Fail-open if Redis is unavailable so CI/local without Redis still passes;
  * production should monitor Redis and treat fail-open as an incident.
  */
 
@@ -22,8 +22,12 @@ const DEFAULTS: Record<RateLimitBucket, { limit: number; windowSec: number }> = 
 };
 
 let redis: Redis | null | undefined;
+let redisDisabled = false;
 
 function getRedis(): Redis | null {
+  if (redisDisabled) {
+    return null;
+  }
   if (redis !== undefined) {
     return redis;
   }
@@ -41,13 +45,20 @@ function getRedis(): Redis | null {
       password: opts.password,
       ...(opts.tls ? { tls: opts.tls } : {}),
       maxRetriesPerRequest: 1,
+      enableOfflineQueue: false,
       enableReadyCheck: false,
+      connectTimeout: 500,
       lazyConnect: true,
+      retryStrategy: () => null,
+    });
+    redis.on("error", () => {
+      // Suppress unhandled error spam when Redis is down.
     });
     return redis;
   } catch {
     redis = null;
-    return redis;
+    redisDisabled = true;
+    return null;
   }
 }
 
@@ -64,7 +75,12 @@ export async function assertRateLimit(
   const redisKey = `rl:${bucket}:${key}`;
   try {
     if (client.status !== "ready") {
-      await client.connect();
+      await Promise.race([
+        client.connect(),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error("RATE_LIMIT_REDIS_TIMEOUT")), 500);
+        }),
+      ]);
     }
     const count = await client.incr(redisKey);
     if (count === 1) {
@@ -80,6 +96,7 @@ export async function assertRateLimit(
     if (error instanceof HttpException) {
       throw error;
     }
+    redisDisabled = true;
     // fail-open on Redis errors
   }
 }
@@ -90,4 +107,5 @@ export function resetRateLimitClientForTests(): void {
     void redis.quit().catch(() => undefined);
   }
   redis = undefined;
+  redisDisabled = false;
 }

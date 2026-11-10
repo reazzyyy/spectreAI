@@ -9,6 +9,7 @@ import {
 import { AI_JOBS_QUEUE_TOKEN } from "../queue/ai-jobs.tokens.js";
 
 export const EXTRACT_JOB_TYPE = "document.extract";
+const PUBLISH_TIMEOUT_MS = 1_500;
 
 @Injectable()
 export class AiJobsService {
@@ -19,7 +20,7 @@ export class AiJobsService {
 
   /**
    * Idempotent extract enqueue (D-027). Reuses existing job for same key.
-   * Uses migrator for insert so worker role bootstrap stays simple; RLS still on runtime path.
+   * PostgreSQL row is source of truth; Redis publish is best-effort (fail-open).
    */
   async enqueueDocumentExtract(input: {
     organizationId: string;
@@ -69,10 +70,22 @@ export class AiJobsService {
     if (!this.queue) {
       return;
     }
-    await this.queue.add(
-      EXTRACT_JOB_TYPE,
-      { jobId, documentId },
-      { jobId, removeOnComplete: 100, removeOnFail: 100 },
-    );
+    try {
+      await Promise.race([
+        this.queue.add(
+          EXTRACT_JOB_TYPE,
+          { jobId, documentId },
+          { jobId, removeOnComplete: 100, removeOnFail: 100 },
+        ),
+        new Promise<never>((_, reject) => {
+          setTimeout(
+            () => reject(new Error("AI_JOBS_PUBLISH_TIMEOUT")),
+            PUBLISH_TIMEOUT_MS,
+          );
+        }),
+      ]);
+    } catch {
+      // Job stays queued in PG; worker/republisher can pick it up when Redis is back.
+    }
   }
 }

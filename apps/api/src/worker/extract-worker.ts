@@ -12,8 +12,7 @@ import {
 import { extractDocumentText } from "../documents/extract-text.js";
 import { EXTRACT_TIMEOUT_MS } from "../documents/extract-limits.js";
 import { EXTRACT_JOB_TYPE } from "../documents/ai-jobs.service.js";
-import { AI_JOBS_QUEUE } from "../queue/ai-jobs.queue.js";
-import { redisConnectionFromUrl } from "../queue/redis-connection.js";
+import { AI_JOBS_QUEUE, bullmqRedisConnection } from "../queue/ai-jobs.queue.js";
 
 async function main(): Promise<void> {
   const redisUrl = process.env.REDIS_URL?.trim();
@@ -131,7 +130,7 @@ async function main(): Promise<void> {
         },
       });
     },
-    { connection: redisConnectionFromUrl(redisUrl), concurrency: 2 },
+    { connection: bullmqRedisConnection(redisUrl), concurrency: 2 },
   );
 
   worker.on("failed", (job, err) => {

@@ -8,7 +8,6 @@ import {
 } from "@spectre/access";
 import { AiGateway } from "@spectre/ai-gateway";
 import type { Request } from "express";
-import { Queue } from "bullmq";
 import { AiController } from "./ai/ai.controller.js";
 import { AuthController } from "./auth/auth.controller.js";
 import { ACTOR_CONTEXT, type ActorContext } from "./auth/actor-context.js";
@@ -36,7 +35,8 @@ import { ApiExceptionFilter } from "./http/api-exception.filter.js";
 import { CsrfGuard } from "./http/csrf.guard.js";
 import { MattersController } from "./matters/matters.controller.js";
 import { MattersService } from "./matters/matters.service.js";
-import { createAiJobsQueue, AI_JOBS_QUEUE } from "./queue/ai-jobs.queue.js";
+import { AI_JOBS_QUEUE } from "./queue/ai-jobs.queue.js";
+import { AiJobsQueueProvider } from "./queue/ai-jobs-queue.provider.js";
 import { AI_JOBS_QUEUE_TOKEN } from "./queue/ai-jobs.tokens.js";
 import {
   InvitationAcceptController,
@@ -106,19 +106,11 @@ import { WorkspacesService } from "./workspaces/workspaces.service.js";
       provide: LocalObjectStorage,
       useFactory: () => createLocalObjectStorageFromEnv(),
     },
+    AiJobsQueueProvider,
     {
       provide: AI_JOBS_QUEUE_TOKEN,
-      useFactory: (): Queue | null => {
-        const url = process.env.REDIS_URL?.trim();
-        if (!url) {
-          return null;
-        }
-        try {
-          return createAiJobsQueue(url);
-        } catch {
-          return null;
-        }
-      },
+      inject: [AiJobsQueueProvider],
+      useFactory: (provider: AiJobsQueueProvider) => provider.queue,
     },
     AiJobsService,
     ClientsService,
