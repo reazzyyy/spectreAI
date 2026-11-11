@@ -8,6 +8,8 @@ import { SESSION_COOKIE_NAME, SESSION_TTL_MS } from "./session-cookie.js";
 
 export interface SessionProfile extends ActorContext {
   email: string;
+  /** Organization display name for shell chrome (not an access claim). */
+  organizationName: string;
 }
 
 const ACTOR_PROFILE_KEY = "spectre.actorProfile";
@@ -79,6 +81,11 @@ export class SessionService {
       data: { lastLoginAt: new Date() },
     });
 
+    const organization = await this.authDb.organization.findUnique({
+      where: { id: organizationId },
+      select: { name: true },
+    });
+
     return {
       rawToken,
       profile: {
@@ -86,6 +93,7 @@ export class SessionService {
         organizationId,
         orgRole: membership.role,
         email: user.email,
+        organizationName: organization?.name ?? organizationId,
       },
     };
   }
@@ -165,11 +173,20 @@ export class SessionService {
       return null;
     }
 
+    const organization = await this.authDb.organization.findUnique({
+      where: { id: session.organizationId },
+      select: { name: true },
+    });
+    if (!organization) {
+      return null;
+    }
+
     return {
       userId: user.id,
       organizationId: session.organizationId,
       orgRole: membership.role,
       email: user.email,
+      organizationName: organization.name,
     };
   }
 }

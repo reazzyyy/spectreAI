@@ -1,116 +1,306 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
+import { clientsListQueryOptions } from "@/entities/client";
+import { mattersListQueryOptions } from "@/entities/matter";
 import {
   createWorkspace,
+  linkWorkspaceMatter,
   workspacesListQueryOptions,
   type Workspace,
+  type WorkspaceVisibility,
 } from "@/entities/workspace";
 import { isApiError } from "@/shared/api";
-import { Button, Input } from "@/shared/ui";
+import { Button, Dialog } from "@/shared/ui";
+import { classNames } from "@/shared/lib";
 import {
   createWorkspaceSchema,
   type CreateWorkspaceFormValues,
 } from "../model/create-workspace-schema";
+import { EntityPicker } from "./entity-picker";
 import styles from "./create-workspace-form.module.scss";
 
 export interface CreateWorkspaceFormProps {
+  open: boolean;
+  onClose: () => void;
   onCreated?: (workspace: Workspace) => void;
+  /** Prefill from list filter PERSONAL|TEAM. */
+  defaultVisibility?: WorkspaceVisibility;
+  /** Prefill name (e.g. from command palette empty-state create). */
+  defaultName?: string;
 }
 
-/** Creates a PERSONAL or TEAM Workspace via POST /workspaces (W-002). */
-export function CreateWorkspaceForm({ onCreated }: CreateWorkspaceFormProps) {
+/**
+ * Create Workspace modal (Make CreateProjectDialog) → POST /workspaces (+ optional matter link).
+ */
+export function CreateWorkspaceForm({
+  open,
+  onClose,
+  onCreated,
+  defaultVisibility = "PERSONAL",
+  defaultName = "",
+}: CreateWorkspaceFormProps) {
   const queryClient = useQueryClient();
   const [formError, setFormError] = useState<string | null>(null);
+  const clientsQuery = useQuery({
+    ...clientsListQueryOptions,
+    enabled: open,
+  });
+  const mattersQuery = useQuery({
+    ...mattersListQueryOptions,
+    enabled: open,
+  });
+
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<CreateWorkspaceFormValues>({
     resolver: zodResolver(createWorkspaceSchema),
-    defaultValues: { name: "", description: "", visibility: "PERSONAL" },
+    defaultValues: {
+      name: defaultName,
+      description: "",
+      visibility: defaultVisibility,
+      clientId: "",
+      matterId: "",
+    },
   });
 
+  const visibility = watch("visibility");
+  const clientId = watch("clientId") ?? "";
+  const matterId = watch("matterId") ?? "";
+
+  const clientOptions = useMemo(
+    () =>
+      (clientsQuery.data?.items ?? []).map((c) => ({
+        id: c.id,
+        name: c.name,
+      })),
+    [clientsQuery.data?.items],
+  );
+
+  const matterOptions = useMemo(() => {
+    const items = mattersQuery.data?.items ?? [];
+    return items
+      .filter((m) => !clientId || !m.clientId || m.clientId === clientId)
+      .map((m) => ({ id: m.id, name: m.title }));
+  }, [mattersQuery.data?.items, clientId]);
+
+  useEffect(() => {
+    if (!open) return;
+    reset({
+      name: defaultName,
+      description: "",
+      visibility: defaultVisibility,
+      clientId: "",
+      matterId: "",
+    });
+    setFormError(null);
+  }, [open, defaultVisibility, defaultName, reset]);
+
   const mutation = useMutation({
-    mutationFn: createWorkspace,
+    mutationFn: async (values: CreateWorkspaceFormValues) => {
+      const description = values.description?.trim();
+      const client =
+        values.clientId && values.clientId.length > 0 ? values.clientId : null;
+      const workspace = await createWorkspace({
+        name: values.name.trim(),
+        description: description ? description : null,
+        visibility: values.visibility,
+        clientId: client,
+      });
+      const matter =
+        values.matterId && values.matterId.length > 0 ? values.matterId : null;
+      if (matter) {
+        await linkWorkspaceMatter(workspace.id, matter);
+      }
+      return workspace;
+    },
     onSuccess: async (workspace) => {
       await queryClient.invalidateQueries({
         queryKey: workspacesListQueryOptions.queryKey,
       });
-      reset({ name: "", description: "", visibility: "PERSONAL" });
       setFormError(null);
       onCreated?.(workspace);
+      onClose();
     },
   });
 
   async function onSubmit(values: CreateWorkspaceFormValues) {
     setFormError(null);
     try {
-      const description = values.description?.trim();
-      await mutation.mutateAsync({
-        name: values.name.trim(),
-        description: description ? description : null,
-        visibility: values.visibility,
-      });
+      await mutation.mutateAsync(values);
     } catch (err) {
       if (isApiError(err) && err.code === "VALIDATION_ERROR") {
-        setFormError("Проверьте название, тип и описание.");
+        setFormError(
+          "Проверьте название, тип, клиента и дело. Чужой client/matter отклоняется API.",
+        );
       } else {
-        setFormError("Не удалось создать проект. Попробуйте ещё раз.");
+        setFormError(
+          "Не удалось создать проект. Введённые данные сохранены — попробуйте ещё раз.",
+        );
       }
     }
   }
 
+  const nameReg = register("name");
+  const busy = isSubmitting || mutation.isPending;
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate>
-      <Input
-        id="workspace-name"
-        label="Название"
-        autoComplete="off"
-        disabled={isSubmitting}
-        error={errors.name?.message}
-        {...register("name")}
-      />
-      <div className={styles.field}>
-        <label className={styles.label} htmlFor="workspace-visibility">
-          Тип
-        </label>
-        <select
-          id="workspace-visibility"
-          className={styles.select}
-          disabled={isSubmitting}
-          {...register("visibility")}
-        >
-          <option value="PERSONAL">Личный</option>
-          <option value="TEAM">Командный</option>
-        </select>
-        {errors.visibility?.message ? (
-          <p role="alert" className="form-error">
-            {errors.visibility.message}
+    <Dialog
+      open={open}
+      title="Создать проект"
+      onClose={onClose}
+      footer={
+        <>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={busy}
+            onClick={onClose}
+          >
+            Отмена
+          </Button>
+          <Button type="submit" form="create-workspace-form" disabled={busy}>
+            {busy ? "Создание…" : formError ? "Повторить" : "Создать"}
+          </Button>
+        </>
+      }
+    >
+      <form
+        id="create-workspace-form"
+        onSubmit={handleSubmit(onSubmit)}
+        noValidate
+        aria-busy={busy}
+      >
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="workspace-name">
+            Название
+          </label>
+          <input
+            id="workspace-name"
+            className={styles.control}
+            autoComplete="off"
+            maxLength={160}
+            disabled={busy}
+            data-autofocus
+            aria-invalid={errors.name ? true : undefined}
+            aria-describedby={errors.name ? "workspace-name-error" : undefined}
+            {...nameReg}
+          />
+          {errors.name?.message ? (
+            <p id="workspace-name-error" className={styles.fieldError} role="alert">
+              {errors.name.message}
+            </p>
+          ) : null}
+        </div>
+
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="workspace-description">
+            Описание <span className={styles.optional}>· необязательно</span>
+          </label>
+          <textarea
+            id="workspace-description"
+            className={classNames(styles.control, styles.textarea)}
+            rows={2}
+            maxLength={2000}
+            disabled={busy}
+            {...register("description")}
+          />
+          {errors.description?.message ? (
+            <p className={styles.fieldError} role="alert">
+              {errors.description.message}
+            </p>
+          ) : null}
+        </div>
+
+        <div className={styles.field}>
+          <span className={styles.label} id="workspace-visibility-label">
+            Тип
+          </span>
+          <div
+            className={styles.segmented}
+            role="radiogroup"
+            aria-labelledby="workspace-visibility-label"
+          >
+            {(
+              [
+                ["PERSONAL", "Личное"],
+                ["TEAM", "Командное"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={visibility === value}
+                className={classNames(
+                  styles.segment,
+                  visibility === value && styles.segmentActive,
+                )}
+                disabled={busy}
+                onClick={() =>
+                  setValue("visibility", value, { shouldValidate: true })
+                }
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <input type="hidden" {...register("visibility")} />
+          <p className={styles.help}>
+            {visibility === "PERSONAL"
+              ? "Проект виден только вам."
+              : "Доступ получат только добавленные участники. Администратор организации не получает доступ к содержимому автоматически."}
+          </p>
+        </div>
+
+        <EntityPicker
+          label="Клиент"
+          options={clientOptions}
+          value={clientId}
+          disabled={busy || clientsQuery.isPending}
+          placeholder={
+            clientsQuery.isPending ? "Загрузка клиентов…" : "Найдите клиента"
+          }
+          onChange={(id) => {
+            setValue("clientId", id, { shouldValidate: true });
+            const matter = mattersQuery.data?.items.find((m) => m.id === matterId);
+            if (matter?.clientId && id && matter.clientId !== id) {
+              setValue("matterId", "", { shouldValidate: true });
+            }
+          }}
+        />
+
+        <EntityPicker
+          label="Юридическое дело"
+          options={matterOptions}
+          value={matterId}
+          disabled={busy || mattersQuery.isPending}
+          placeholder={
+            mattersQuery.isPending ? "Загрузка дел…" : "Найдите дело"
+          }
+          onChange={(id) => {
+            setValue("matterId", id, { shouldValidate: true });
+            const matter = mattersQuery.data?.items.find((m) => m.id === id);
+            if (matter?.clientId && !clientId) {
+              setValue("clientId", matter.clientId, { shouldValidate: true });
+            }
+          }}
+        />
+
+        {formError ? (
+          <p role="alert" className={styles.error}>
+            {formError}
           </p>
         ) : null}
-      </div>
-      <Input
-        id="workspace-description"
-        label="Описание"
-        autoComplete="off"
-        disabled={isSubmitting}
-        hint="Необязательно. Участников можно добавить только в командный проект."
-        error={errors.description?.message}
-        {...register("description")}
-      />
-      {formError ? (
-        <p role="alert" className="form-error">
-          {formError}
-        </p>
-      ) : null}
-      <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Создание…" : "Создать проект"}
-      </Button>
-    </form>
+      </form>
+    </Dialog>
   );
 }

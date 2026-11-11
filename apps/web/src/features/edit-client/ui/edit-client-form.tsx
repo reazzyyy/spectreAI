@@ -11,7 +11,7 @@ import {
   type Client,
 } from "@/entities/client";
 import { isApiError } from "@/shared/api";
-import { Button, Input } from "@/shared/ui";
+import { Button, Input, Select } from "@/shared/ui";
 import {
   editClientSchema,
   type EditClientFormValues,
@@ -97,20 +97,16 @@ export function EditClientForm({ client }: EditClientFormProps) {
         error={errors.name?.message}
         {...register("name")}
       />
-      <div className={styles.field}>
-        <label className={styles.label} htmlFor="edit-client-status">
-          Статус
-        </label>
-        <select
-          id="edit-client-status"
-          className={styles.select}
-          disabled={isSubmitting}
-          {...register("status")}
-        >
-          <option value="active">active</option>
-          <option value="archived">archived</option>
-        </select>
-      </div>
+      <Select
+        id="edit-client-status"
+        label="Статус"
+        className={styles.field}
+        disabled={isSubmitting}
+        {...register("status")}
+      >
+        <option value="active">active</option>
+        <option value="archived">archived</option>
+      </Select>
       {formError ? (
         <p role="alert" className="form-error">
           {formError}

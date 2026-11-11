@@ -100,6 +100,7 @@ On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` 
 
 ## Hard boundaries
 
+- `POST /auth/login` and `GET /auth/me` return `organization: { id, name, role }` (name for shell chrome; not an access claim).
 - No valid session → Clients / Matters / Workspaces / `/auth/me` return `401`.
 - Session mutating without CSRF / bad Origin → `403 CSRF_REJECTED`.
 - Foreign or missing Client/Matter/Workspace → identical `404 NOT_FOUND`.

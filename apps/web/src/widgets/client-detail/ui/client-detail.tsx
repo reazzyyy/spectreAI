@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { clientDetailQueryOptions } from "@/entities/client";
 import { EditClientForm } from "@/features/edit-client";
 import { isApiError } from "@/shared/api";
+import { Page, PageHead } from "@/shared/ui";
 import styles from "./client-detail.module.scss";
 
 export interface ClientDetailProps {
@@ -19,11 +20,11 @@ export function ClientDetail({ clientId }: ClientDetailProps) {
 
   if (isPending) {
     return (
-      <div className={styles.page}>
+      <Page>
         <p className={styles.status} role="status">
           Загрузка клиента…
         </p>
-      </div>
+      </Page>
     );
   }
 
@@ -31,7 +32,7 @@ export function ClientDetail({ clientId }: ClientDetailProps) {
     const notFound =
       isApiError(error) && (error.status === 404 || error.code === "NOT_FOUND");
     return (
-      <div className={styles.page}>
+      <Page>
         <Link href="/clients" className={styles.back}>
           ← Все клиенты
         </Link>
@@ -42,22 +43,21 @@ export function ClientDetail({ clientId }: ClientDetailProps) {
               ? "Сессия истекла. Войдите снова."
               : "Не удалось загрузить клиента."}
         </p>
-      </div>
+      </Page>
     );
   }
 
   return (
-    <div className={styles.page}>
+    <Page>
       <Link href="/clients" className={styles.back}>
         ← Все клиенты
       </Link>
 
-      <div className={styles.head}>
-        <p className={styles.meta}>
-          <span>{data.status}</span>
-        </p>
-        <h1>{data.name}</h1>
-      </div>
+      <PageHead
+        compact
+        eyebrow={data.status}
+        title={data.name}
+      />
 
       <section className={styles.panel} aria-labelledby="client-edit-title">
         <h2 id="client-edit-title" className={styles.sectionTitle}>
@@ -65,6 +65,6 @@ export function ClientDetail({ clientId }: ClientDetailProps) {
         </h2>
         <EditClientForm client={data} />
       </section>
-    </div>
+    </Page>
   );
 }

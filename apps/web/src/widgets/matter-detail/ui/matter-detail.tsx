@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { matterDetailQueryOptions } from "@/entities/matter";
 import { EditMatterForm } from "@/features/edit-matter";
 import { isApiError } from "@/shared/api";
+import { Page, PageHead } from "@/shared/ui";
 import styles from "./matter-detail.module.scss";
 
 export interface MatterDetailProps {
@@ -19,11 +20,11 @@ export function MatterDetail({ matterId }: MatterDetailProps) {
 
   if (isPending) {
     return (
-      <div className={styles.page}>
+      <Page>
         <p className={styles.status} role="status">
           Загрузка дела…
         </p>
-      </div>
+      </Page>
     );
   }
 
@@ -31,7 +32,7 @@ export function MatterDetail({ matterId }: MatterDetailProps) {
     const notFound =
       isApiError(error) && (error.status === 404 || error.code === "NOT_FOUND");
     return (
-      <div className={styles.page}>
+      <Page>
         <Link href="/matters" className={styles.back}>
           ← Все дела
         </Link>
@@ -42,22 +43,17 @@ export function MatterDetail({ matterId }: MatterDetailProps) {
               ? "Сессия истекла. Войдите снова."
               : "Не удалось загрузить дело."}
         </p>
-      </div>
+      </Page>
     );
   }
 
   return (
-    <div className={styles.page}>
+    <Page>
       <Link href="/matters" className={styles.back}>
         ← Все дела
       </Link>
 
-      <div className={styles.head}>
-        <p className={styles.meta}>
-          <span>{data.status}</span>
-        </p>
-        <h1>{data.title}</h1>
-      </div>
+      <PageHead compact eyebrow={data.status} title={data.title} />
 
       <section className={styles.panel} aria-labelledby="matter-edit-title">
         <h2 id="matter-edit-title" className={styles.sectionTitle}>
@@ -65,6 +61,6 @@ export function MatterDetail({ matterId }: MatterDetailProps) {
         </h2>
         <EditMatterForm matter={data} />
       </section>
-    </div>
+    </Page>
   );
 }

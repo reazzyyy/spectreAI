@@ -1,5 +1,5 @@
 import { AcceptInvitationForm } from "@/features/accept-invitation";
-import { SyntheticModeBanner } from "@/shared/ui";
+import { AuthLayout } from "@/widgets/auth-layout";
 
 type AcceptInvitePageProps = {
   searchParams: Promise<{ token?: string | string[] }>;
@@ -14,14 +14,8 @@ export default async function AcceptInvitePage({
   const initialToken = typeof raw === "string" ? raw : "";
 
   return (
-    <main className="page-main">
-      <SyntheticModeBanner />
-      <h1>Принять приглашение</h1>
-      <p className="lead">
-        Новый пользователь задаёт пароль (≥12). Существующий — сначала входит, затем
-        принимает токен без пароля.
-      </p>
+    <AuthLayout title="Принять приглашение" cardEyebrow="Вход по приглашению">
       <AcceptInvitationForm initialToken={initialToken} />
-    </main>
+    </AuthLayout>
   );
 }

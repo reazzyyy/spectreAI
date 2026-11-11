@@ -297,7 +297,7 @@ describe("API scaffold", () => {
       expect(login.status).toBe(200);
       expect(login.body).toEqual({
         user: { id: USER_A, email: USER_A_EMAIL },
-        organization: { id: ORG_A, role: "owner" },
+        organization: { id: ORG_A, name: "org-a", role: "owner" },
       });
       expect(JSON.stringify(login.body)).not.toContain(USER_A_PASSWORD);
       const setCookie = login.headers["set-cookie"];
@@ -375,7 +375,7 @@ describe("API scaffold", () => {
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
         user: { id: USER_A, email: USER_A_EMAIL },
-        organization: { id: ORG_A, role: "owner" },
+        organization: { id: ORG_A, name: "org-a", role: "owner" },
       });
     });
 

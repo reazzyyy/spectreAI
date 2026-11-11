@@ -12,7 +12,7 @@ import {
   type Workspace,
 } from "@/entities/workspace";
 import { isApiError } from "@/shared/api";
-import { Button, Input } from "@/shared/ui";
+import { Button, Input, Select } from "@/shared/ui";
 import {
   editWorkspaceSchema,
   type EditWorkspaceFormValues,
@@ -125,12 +125,9 @@ export function EditWorkspaceForm({ workspace }: EditWorkspaceFormProps) {
         {...register("description")}
       />
       <div className={styles.field}>
-        <label className={styles.label} htmlFor="edit-workspace-client">
-          Клиент
-        </label>
-        <select
+        <Select
           id="edit-workspace-client"
-          className={styles.select}
+          label="Клиент"
           disabled={isSubmitting || clientsQuery.isPending}
           {...register("clientId")}
         >
@@ -140,7 +137,7 @@ export function EditWorkspaceForm({ workspace }: EditWorkspaceFormProps) {
               {client.name}
             </option>
           ))}
-        </select>
+        </Select>
         {clients.length === 0 && !clientsQuery.isPending ? (
           <p className={styles.saved}>
             Клиентов пока нет — создайте на странице «Все клиенты».

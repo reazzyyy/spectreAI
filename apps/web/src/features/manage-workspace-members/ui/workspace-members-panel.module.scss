@@ -1,95 +1,217 @@
-.panel {
-  margin-top: 24px;
-  padding: 20px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 24px;
+  padding: 0;
+  border: 0;
+  font: inherit;
+  font-size: 12px;
+  color: var(--color-muted);
+  background: none;
+  cursor: pointer;
+}
+
+.backIcon {
+  transform: rotate(180deg);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 245px;
+  align-items: start;
+  gap: 40px;
+}
+
+.toolbar {
+  display: flex;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.search {
+  min-width: 220px;
+  flex: 1;
+}
+
+.filter {
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  color: inherit;
   background: var(--color-surface);
 }
 
-.sectionTitle {
-  margin-bottom: 14px;
+.table {
+  border-top: 1px solid var(--color-border);
 }
 
-.list {
+.tableHead,
+.row {
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) 110px 150px;
+  align-items: center;
+  gap: 16px;
+}
+
+.tableHead {
+  min-height: 38px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 11px;
+  color: var(--color-muted);
+}
+
+.row {
+  min-height: 90px;
+  padding-block: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.person {
   display: flex;
-  flex-direction: column;
-  margin: 0 0 16px;
-  padding: 0;
-  gap: 8px;
-  list-style: none;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
 }
 
-.item {
+.personMeta {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.personMeta strong {
+  font-size: 13px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.personMeta small,
+.you {
+  font-size: 10px;
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
+
+.actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  gap: 10px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  gap: 8px 12px;
 }
 
-.title {
-  margin: 0;
-  font-weight: 600;
-  word-break: break-all;
-}
-
-.meta {
+.help {
+  font-size: 12px;
   color: var(--color-muted);
-  font-size: var(--fs-sm);
 }
 
-.empty {
-  margin-bottom: 16px;
+.footnote {
+  display: flex;
+  margin-top: 18px;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
   color: var(--color-muted);
 }
 
 .notice {
-  margin-bottom: 12px;
+  margin-top: 16px;
+  font-size: 11px;
   color: var(--color-muted);
-  font-size: var(--fs-sm);
 }
 
-.form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 12px;
-}
-
-.field {
-  flex: 1 1 220px;
-  min-width: 0;
-}
-
-.fieldNarrow {
-  flex: 0 1 140px;
-}
-
-.label {
-  display: block;
-  margin-bottom: 6px;
-  font-size: var(--fs-sm);
-}
-
-.control {
-  width: 100%;
-  padding: 10px 12px;
+.guide {
+  position: sticky;
+  top: calc(var(--topbar-height) + 100px);
+  padding: 20px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  color: inherit;
-  background: var(--color-bg, #fff);
-  font: inherit;
+  border-radius: 9px;
+  background: rgb(255 255 255 / 55%);
+}
+
+.guide h2 {
+  margin: 8px 0 0;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.guideBlock {
+  padding-top: 20px;
+}
+
+.guideBlock strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.guideBlock p {
+  margin: 7px 0 0;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--color-text-2);
+}
+
+.guideNotice {
+  margin-top: 24px;
+  font-size: 11px;
+  color: var(--color-muted);
 }
 
 .status {
+  margin: 16px 0;
   color: var(--color-muted);
   font-size: var(--fs-sm);
 }
 
 .error {
-  margin-top: 10px;
-  color: var(--color-danger, #b42318);
+  margin: 12px 0;
+  color: var(--color-danger);
+  font-size: var(--fs-sm);
+}
+
+.dialogField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.dialogField label {
+  font-size: var(--fs-sm);
+  color: var(--color-muted);
+}
+
+.dialogField select {
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  background: var(--color-surface);
+}
+
+@media (width <= 960px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .guide {
+    position: static;
+  }
+
+  .tableHead,
+  .row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tableHead span:nth-child(n + 2) {
+    display: none;
+  }
 }

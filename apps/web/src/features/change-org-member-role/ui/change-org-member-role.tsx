@@ -9,6 +9,7 @@ import {
   type OrgMember,
 } from "@/entities/org-member";
 import { isApiError } from "@/shared/api";
+import { Select } from "@/shared/ui";
 import styles from "./change-org-member-role.module.scss";
 
 export interface ChangeOrgMemberRoleProps {
@@ -39,7 +40,11 @@ export function ChangeOrgMemberRole({
   });
 
   if (member.role === "owner" || member.status !== "active") {
-    return <span>{member.role}</span>;
+    return (
+      <span className={styles.static}>
+        {member.role === "owner" ? "Владелец" : member.role}
+      </span>
+    );
   }
 
   async function onChange(role: AssignableOrgRole) {
@@ -60,7 +65,7 @@ export function ChangeOrgMemberRole({
 
   return (
     <div className={styles.wrap}>
-      <select
+      <Select
         id={`org-role-${member.userId}`}
         className={styles.select}
         aria-label={`Роль ${member.email}`}
@@ -68,9 +73,9 @@ export function ChangeOrgMemberRole({
         disabled={mutation.isPending}
         onChange={(e) => void onChange(e.target.value as AssignableOrgRole)}
       >
-        <option value="member">member</option>
-        <option value="admin">admin</option>
-      </select>
+        <option value="member">Сотрудник</option>
+        <option value="admin">Администратор</option>
+      </Select>
       {error ? (
         <p className={styles.error} role="alert">
           {error}

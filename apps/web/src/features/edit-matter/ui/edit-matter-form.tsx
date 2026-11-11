@@ -12,7 +12,7 @@ import {
   type Matter,
 } from "@/entities/matter";
 import { isApiError } from "@/shared/api";
-import { Button, Input } from "@/shared/ui";
+import { Button, Input, Select } from "@/shared/ui";
 import {
   editMatterSchema,
   type EditMatterFormValues,
@@ -107,27 +107,20 @@ export function EditMatterForm({ matter }: EditMatterFormProps) {
         error={errors.title?.message}
         {...register("title")}
       />
+      <Select
+        id="edit-matter-status"
+        label="Статус"
+        className={styles.field}
+        disabled={isSubmitting}
+        {...register("status")}
+      >
+        <option value="active">active</option>
+        <option value="archived">archived</option>
+      </Select>
       <div className={styles.field}>
-        <label className={styles.label} htmlFor="edit-matter-status">
-          Статус
-        </label>
-        <select
-          id="edit-matter-status"
-          className={styles.select}
-          disabled={isSubmitting}
-          {...register("status")}
-        >
-          <option value="active">active</option>
-          <option value="archived">archived</option>
-        </select>
-      </div>
-      <div className={styles.field}>
-        <label className={styles.label} htmlFor="edit-matter-client">
-          Клиент
-        </label>
-        <select
+        <Select
           id="edit-matter-client"
-          className={styles.select}
+          label="Клиент"
           disabled={isSubmitting || clientsQuery.isPending}
           {...register("clientId")}
         >
@@ -137,7 +130,7 @@ export function EditMatterForm({ matter }: EditMatterFormProps) {
               {client.name}
             </option>
           ))}
-        </select>
+        </Select>
         {clients.length === 0 && !clientsQuery.isPending ? (
           <p className={styles.saved}>
             Клиентов пока нет — создайте на странице «Все клиенты».

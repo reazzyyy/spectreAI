@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { mattersListQueryOptions } from "@/entities/matter";
 import { CreateMatterForm } from "@/features/create-matter";
 import { isApiError } from "@/shared/api";
+import { Page, PageHead } from "@/shared/ui";
 import styles from "./matter-list.module.scss";
 
 /**
@@ -18,16 +19,11 @@ export function MatterList() {
   );
 
   return (
-    <div className={styles.page}>
-      <div className={styles.head}>
-        <div>
-          <h1>Дела</h1>
-          <p className={styles.lead}>
-            Юридические дела организации. После создания их можно привязать к
-            проекту на карточке Workspace.
-          </p>
-        </div>
-      </div>
+    <Page>
+      <PageHead
+        title="Дела"
+        description="Юридические дела организации. После создания их можно привязать к проекту на карточке Workspace."
+      />
 
       <div className={styles.layout}>
         <section aria-labelledby="matter-list-title">
@@ -83,6 +79,6 @@ export function MatterList() {
           />
         </section>
       </div>
-    </div>
+    </Page>
   );
 }

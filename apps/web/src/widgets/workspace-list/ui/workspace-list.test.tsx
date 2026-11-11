@@ -48,6 +48,19 @@ vi.mock("@/entities/workspace", async () => {
   };
 });
 
+vi.mock("@/entities/client", async () => {
+  const actual = await vi.importActual<typeof import("@/entities/client")>(
+    "@/entities/client",
+  );
+  return {
+    ...actual,
+    clientsListQueryOptions: queryOptions({
+      queryKey: ["clients", "list"] as const,
+      queryFn: async () => ({ items: [] }),
+    }),
+  };
+});
+
 function renderList() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -81,11 +94,11 @@ describe("WorkspaceList", () => {
     expect(screen.queryByText("Команда Альфа")).not.toBeInTheDocument();
   });
 
-  it("shows create panel when ?create=1", async () => {
+  it("opens create dialog when ?create=1", async () => {
     search = new URLSearchParams("create=1");
     renderList();
     expect(
-      await screen.findByRole("heading", { name: "Новый проект" }),
+      await screen.findByRole("dialog", { name: "Создать проект" }),
     ).toBeInTheDocument();
   });
 

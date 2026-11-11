@@ -1,4 +1,4 @@
-import { SyntheticModeBanner } from "@/shared/ui";
+import { Page, PageHead, SyntheticModeBanner } from "@/shared/ui";
 import { ArchitectureDiagram } from "./architecture-diagram";
 import styles from "./system-map.module.scss";
 
@@ -8,17 +8,16 @@ import styles from "./system-map.module.scss";
  */
 export function SystemMap() {
   return (
-    <div className={styles.page}>
+    <Page>
       <div className={styles.banner}>
         <SyntheticModeBanner />
       </div>
 
-      <p className={styles.kicker}>Карта системы · scaffold</p>
-      <h1 className={styles.title}>Что мы строим и что уже есть</h1>
-      <p className={styles.lead}>
-        Это не «готовый продукт», а каркас. Ниже — system design схема: блоки, стрелки,
-        сценарии с анимацией потока. Потом — те же идеи текстом, без бэкендерского жаргона.
-      </p>
+      <PageHead
+        eyebrow="Карта системы · scaffold"
+        title="Что мы строим и что уже есть"
+        description="Это не «готовый продукт», а каркас. Ниже — system design схема: блоки, стрелки, сценарии с анимацией потока. Потом — те же идеи текстом, без бэкендерского жаргона."
+      />
 
       <ul className={styles.nav} aria-label="Разделы">
         <li>
@@ -398,6 +397,6 @@ export function SystemMap() {
         S4c). Если карта и код разойдутся — верь AS-IS и правь эту страницу в том же PR, где
         меняется поведение.
       </p>
-    </div>
+    </Page>
   );
 }

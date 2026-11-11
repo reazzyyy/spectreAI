@@ -6,6 +6,7 @@ import { workspaceDocumentsQueryOptions } from "@/entities/document";
 import { workspacesListQueryOptions } from "@/entities/workspace";
 import { UploadDocumentForm } from "@/features/upload-document";
 import { isApiError } from "@/shared/api";
+import { Page, PageHead, Select } from "@/shared/ui";
 import styles from "./document-list.module.scss";
 
 /**
@@ -27,39 +28,32 @@ export function DocumentList() {
   );
 
   return (
-    <div className={styles.page}>
-      <div className={styles.head}>
-        <div>
-          <h1>Документы</h1>
-          <p className={styles.lead}>
-            Загрузка PDF, DOCX и TXT в проект. Обработка текста и OCR — в следующих
-            срезах; сейчас сохраняется оригинал со статусом uploaded.
-          </p>
-        </div>
-      </div>
+    <Page>
+      <PageHead
+        title="Документы"
+        description="Загрузка PDF, DOCX и TXT в проект. Обработка текста и OCR — в следующих срезах; сейчас сохраняется оригинал со статусом uploaded."
+      />
 
       <div className={styles.layout}>
         <section aria-labelledby="document-list-title">
           <div className={styles.toolbar}>
-            <label htmlFor="document-list-workspace">
-              Проект
-              <select
-                id="document-list-workspace"
-                className={styles.select}
-                value={effectiveWorkspaceId}
-                disabled={workspacesQuery.isPending || workspaces.length === 0}
-                onChange={(event) => setWorkspaceId(event.target.value)}
-              >
-                {workspaces.length === 0 ? (
-                  <option value="">Нет доступных проектов</option>
-                ) : null}
-                {workspaces.map((ws) => (
-                  <option key={ws.id} value={ws.id}>
-                    {ws.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <Select
+              id="document-list-workspace"
+              label="Проект"
+              className={styles.workspaceSelect}
+              value={effectiveWorkspaceId}
+              disabled={workspacesQuery.isPending || workspaces.length === 0}
+              onChange={(event) => setWorkspaceId(event.target.value)}
+            >
+              {workspaces.length === 0 ? (
+                <option value="">Нет доступных проектов</option>
+              ) : null}
+              {workspaces.map((ws) => (
+                <option key={ws.id} value={ws.id}>
+                  {ws.name}
+                </option>
+              ))}
+            </Select>
           </div>
 
           <h2 id="document-list-title" className={styles.sectionTitle}>
@@ -139,6 +133,6 @@ export function DocumentList() {
           )}
         </section>
       </div>
-    </div>
+    </Page>
   );
 }

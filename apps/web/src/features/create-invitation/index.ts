@@ -1,1 +1,4 @@
-export { CreateInvitationForm } from "./ui/create-invitation-form";
+export {
+  createInvitationSchema,
+  type CreateInvitationFormValues,
+} from "./model/create-invitation-schema";

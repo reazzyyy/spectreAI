@@ -10,6 +10,12 @@ const names: IconName[] = [
   "sidebar",
   "user",
   "map",
+  "warning",
+  "lock",
+  "chevron",
+  "arrow",
+  "down",
+  "more",
 ];
 
 const meta = {

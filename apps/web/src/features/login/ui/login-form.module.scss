@@ -1,0 +1,114 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.intro {
+  margin: 0 0 8px;
+  color: var(--color-text-2);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.passwordWrap {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+.passwordWrap:focus-within {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.passwordInput {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.passwordInput:focus {
+  outline: none;
+}
+
+.passwordInput:disabled {
+  opacity: 0.65;
+}
+
+.toggle {
+  flex: none;
+  padding-inline: 12px;
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.toggle:disabled {
+  color: var(--color-muted);
+  cursor: not-allowed;
+}
+
+.fieldLabel {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--color-text-2);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+}
+
+.forgot {
+  align-self: flex-end;
+  margin-top: -5px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: not-allowed;
+}
+
+.error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-size: var(--fs-sm);
+}
+
+.submit {
+  justify-content: space-between;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 4px;
+}
+
+.note {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  background: var(--color-canvas);
+}
+
+.note p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 11px;
+  line-height: 1.7;
+}

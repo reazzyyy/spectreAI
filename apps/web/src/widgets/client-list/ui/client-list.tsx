@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { clientsListQueryOptions } from "@/entities/client";
 import { CreateClientForm } from "@/features/create-client";
 import { isApiError } from "@/shared/api";
+import { Page, PageHead } from "@/shared/ui";
 import styles from "./client-list.module.scss";
 
 /** Org Clients list + create (CRM-01 thin). */
@@ -16,16 +17,11 @@ export function ClientList() {
   );
 
   return (
-    <div className={styles.page}>
-      <div className={styles.head}>
-        <div>
-          <h1>Клиенты</h1>
-          <p className={styles.lead}>
-            Клиенты организации. Позже их можно будет связать с делами и
-            проектами.
-          </p>
-        </div>
-      </div>
+    <Page>
+      <PageHead
+        title="Клиенты"
+        description="Клиенты организации. Позже их можно будет связать с делами и проектами."
+      />
 
       <div className={styles.layout}>
         <section aria-labelledby="client-list-title">
@@ -83,6 +79,6 @@ export function ClientList() {
           />
         </section>
       </div>
-    </div>
+    </Page>
   );
 }

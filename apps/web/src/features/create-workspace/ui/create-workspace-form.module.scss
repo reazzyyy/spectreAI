@@ -1,20 +1,106 @@
 .field {
-  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .label {
-  display: block;
-  margin-bottom: 6px;
+  color: var(--color-text-2);
   font-size: var(--fs-sm);
-  font-weight: 600;
+  font-weight: 500;
 }
 
-.select {
+.optional {
+  color: var(--color-muted);
+  font-weight: 400;
+}
+
+.control {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  color: inherit;
-  background: var(--color-bg, #fff);
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
   font: inherit;
+  font-size: var(--fs-base);
+}
+
+.textarea {
+  min-height: 72px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.control:focus,
+.textarea:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.control:disabled,
+.textarea:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.control[aria-invalid="true"] {
+  border-color: var(--color-danger);
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.segment {
+  min-height: 40px;
+  border: 0;
+  background: var(--color-surface);
+  color: var(--color-text-2);
+  font: inherit;
+  font-size: var(--fs-base);
+  cursor: pointer;
+}
+
+.segment + .segment {
+  border-left: 1px solid var(--color-border-strong);
+}
+
+.segmentActive {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+.segment:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.help {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+
+.error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-size: var(--fs-sm);
+}
+
+.fieldError {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--fs-sm);
 }
