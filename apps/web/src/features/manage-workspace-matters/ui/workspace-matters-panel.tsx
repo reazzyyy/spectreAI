@@ -10,7 +10,7 @@ import {
   workspaceMattersQueryOptions,
 } from "@/entities/workspace";
 import { isApiError } from "@/shared/api";
-import { Button } from "@/shared/ui";
+import { Button, Select } from "@/shared/ui";
 import styles from "./workspace-matters-panel.module.scss";
 
 export interface WorkspaceMattersPanelProps {
@@ -156,25 +156,21 @@ export function WorkspaceMattersPanel({ workspaceId }: WorkspaceMattersPanelProp
 
       {availableMatters.length > 0 ? (
         <form className={styles.form} onSubmit={(e) => void onLink(e)}>
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="link-matter">
-              Привязать дело
-            </label>
-            <select
-              id="link-matter"
-              className={styles.select}
-              value={selectedMatterId}
-              disabled={busy}
-              onChange={(e) => setSelectedMatterId(e.target.value)}
-            >
-              <option value="">Выберите дело…</option>
-              {availableMatters.map((matter) => (
-                <option key={matter.id} value={matter.id}>
-                  {matter.title}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            id="link-matter"
+            label="Привязать дело"
+            className={styles.field}
+            value={selectedMatterId}
+            disabled={busy}
+            onChange={(e) => setSelectedMatterId(e.target.value)}
+          >
+            <option value="">Выберите дело…</option>
+            {availableMatters.map((matter) => (
+              <option key={matter.id} value={matter.id}>
+                {matter.title}
+              </option>
+            ))}
+          </Select>
           <Button type="submit" disabled={busy || !selectedMatterId}>
             {linkMutation.isPending ? "Привязка…" : "Привязать"}
           </Button>

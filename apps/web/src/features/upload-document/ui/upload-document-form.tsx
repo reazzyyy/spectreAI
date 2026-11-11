@@ -11,7 +11,7 @@ import {
 } from "@/entities/document";
 import type { Workspace } from "@/entities/workspace";
 import { isApiError } from "@/shared/api";
-import { Button, Input } from "@/shared/ui";
+import { Button, Input, Select } from "@/shared/ui";
 import {
   uploadDocumentSchema,
   type UploadDocumentFormValues,
@@ -85,12 +85,9 @@ export function UploadDocumentForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate>
       <div className={styles.field}>
-        <label className={styles.label} htmlFor="document-workspace">
-          Проект
-        </label>
-        <select
+        <Select
           id="document-workspace"
-          className={styles.select}
+          label="Проект"
           disabled={isSubmitting || Boolean(workspaceId)}
           {...register("workspaceId")}
         >
@@ -99,7 +96,7 @@ export function UploadDocumentForm({
               {ws.name}
             </option>
           ))}
-        </select>
+        </Select>
         {errors.workspaceId?.message ? (
           <p role="alert" className={styles.error}>
             {errors.workspaceId.message}
