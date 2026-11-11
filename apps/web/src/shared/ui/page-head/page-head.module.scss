@@ -1,0 +1,38 @@
+.head {
+  display: flex;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.compact {
+  margin-bottom: 24px;
+}
+
+.main {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--fs-2xl);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.description {
+  margin: 4px 0 0;
+  color: var(--color-muted);
+  font-size: var(--fs-base);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}

@@ -1,0 +1,16 @@
+.page {
+  box-sizing: border-box;
+  margin-inline: auto;
+  padding: 24px 40px 80px;
+}
+
+.default {
+  width: min(100%, var(--content-max-width, 1040px));
+  max-width: 1040px;
+}
+
+.wide {
+  width: min(100%, 1240px);
+  max-width: 1240px;
+  padding-top: 28px;
+}

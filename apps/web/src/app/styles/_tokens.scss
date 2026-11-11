@@ -25,6 +25,7 @@
   --color-warning-text: #8a6420;
   --color-warning-border: #e2c56a;
   --color-success: #387357;
+  --color-success-soft: #eaf4ed;
 
   /* Radii / type */
   --radius-sm: 6px;
@@ -40,4 +41,6 @@
   --sidebar-width: 232px;
   --sidebar-collapsed: 64px;
   --topbar-height: 52px;
+  /* Product main column (lists, detail, home) — Make-aligned */
+  --content-max-width: 1040px;
 }

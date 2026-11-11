@@ -47,6 +47,22 @@ const paths = {
       <path d="M12 10v5M12 18h.01" />
     </>
   ),
+  lock: (
+    <>
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+    </>
+  ),
+  chevron: <path d="m9 6 6 6-6 6" />,
+  arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
+  down: <path d="m6 9 6 6 6-6" />,
+  more: (
+    <>
+      <circle cx="5" cy="12" r="1" />
+      <circle cx="12" cy="12" r="1" />
+      <circle cx="19" cy="12" r="1" />
+    </>
+  ),
 } as const;
 
 export type IconName = keyof typeof paths;

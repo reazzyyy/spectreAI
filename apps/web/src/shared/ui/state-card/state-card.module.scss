@@ -3,23 +3,22 @@
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: 32px 24px;
-  border: 1px dashed var(--color-border-strong);
-  border-radius: var(--radius);
-  background: var(--color-surface);
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 40px 24px;
   text-align: center;
 }
 
-.danger {
-  border-style: solid;
-  border-color: var(--color-danger-soft);
+.danger .icon {
+  color: var(--color-danger);
   background: var(--color-danger-soft);
+  border-color: transparent;
 }
 
-.accent {
-  border-style: solid;
-  border-color: #dde1ef;
+.accent .icon {
+  color: var(--color-accent);
   background: var(--color-accent-soft);
+  border-color: transparent;
 }
 
 .icon {
@@ -33,19 +32,19 @@
 
 .iconDanger {
   border-color: transparent;
-  background: var(--color-surface);
+  background: var(--color-danger-soft);
   color: var(--color-danger);
 }
 
 .iconAccent {
-  border-color: #dde1ef;
-  background: var(--color-surface);
+  border-color: transparent;
+  background: var(--color-accent-soft);
   color: var(--color-accent);
 }
 
 .title {
-  margin: 0;
-  font-size: var(--fs-lg);
+  margin: 0 0 6px;
+  font-size: var(--fs-xl);
   font-weight: 600;
 }
 
