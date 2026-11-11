@@ -78,6 +78,7 @@ export class AuthController {
       user: { id: result.profile.userId, email: result.profile.email },
       organization: {
         id: result.profile.organizationId,
+        name: result.profile.organizationName,
         role: result.profile.orgRole,
       },
     };
@@ -108,7 +109,11 @@ export class AuthController {
 
     return {
       user: { id: profile.userId, email: profile.email },
-      organization: { id: profile.organizationId, role: profile.orgRole },
+      organization: {
+        id: profile.organizationId,
+        name: profile.organizationName,
+        role: profile.orgRole,
+      },
     };
   }
 }
