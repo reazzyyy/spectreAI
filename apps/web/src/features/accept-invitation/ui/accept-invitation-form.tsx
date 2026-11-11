@@ -10,11 +10,12 @@ import {
   type AcceptInvitationResult,
 } from "@/entities/invitation";
 import { isApiError } from "@/shared/api";
-import { Button, Input } from "@/shared/ui";
+import { Button, Icon, Input } from "@/shared/ui";
 import {
   acceptInvitationSchema,
   type AcceptInvitationFormValues,
 } from "../model/accept-invitation-schema";
+import styles from "./accept-invitation-form.module.scss";
 
 export interface AcceptInvitationFormProps {
   /** Prefill from `?token=` (dev outbox / email link later). */
@@ -74,28 +75,39 @@ export function AcceptInvitationForm({
 
   if (result) {
     return (
-      <div role="status">
+      <div className={styles.result} role="status">
         <p>
-          Приглашение принято. Роль: <strong>{result.role}</strong>. Организация:{" "}
-          <code>{result.organizationId}</code>.
+          Приглашение принято. Роль: <strong>{result.role}</strong>.
         </p>
-        <p className="lead">
-          Сессия здесь не создаётся — войдите с email приглашения и ID организации.
+        <p>
+          Сессия здесь не создаётся — войдите с email приглашения и ID
+          организации.
         </p>
         <Button
           type="button"
+          className={styles.submit}
           onClick={() => {
             router.push("/login");
           }}
         >
           Перейти ко входу
+          <Icon name="arrow" size={16} />
         </Button>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate>
+    <form
+      className={styles.form}
+      onSubmit={handleSubmit(onSubmit)}
+      noValidate
+      aria-busy={isSubmitting}
+    >
+      <p className={styles.intro}>
+        Новый пользователь задаёт пароль (≥12). Существующий — сначала входит,
+        затем принимает токен без пароля.
+      </p>
       <Input
         id="invite-token"
         label="Токен приглашения"
@@ -117,18 +129,17 @@ export function AcceptInvitationForm({
         {...register("password")}
       />
       {formError ? (
-        <p role="alert" className="form-error">
+        <p role="alert" className={styles.error}>
           {formError}
         </p>
       ) : null}
-      <Button type="submit" disabled={isSubmitting}>
+      <Button type="submit" className={styles.submit} disabled={isSubmitting}>
         {isSubmitting ? "Принятие…" : "Принять приглашение"}
+        <Icon name="arrow" size={16} />
       </Button>
-      <p className="lead">
-        Уже есть аккаунт?{" "}
-        <Link href="/login">Войдите</Link>, затем вернитесь на эту страницу без
-        пароля.
-      </p>
+      <Link href="/login" className={styles.backLink}>
+        Назад ко входу
+      </Link>
     </form>
   );
 }

@@ -1,16 +1,10 @@
 import { LoginForm } from "@/features/login";
-import { SyntheticModeBanner } from "@/shared/ui";
+import { AuthLayout } from "@/widgets/auth-layout";
 
 export default function LoginPage() {
   return (
-    <main className="page-main">
-      <SyntheticModeBanner />
-      <h1>Вход</h1>
-      <p className="lead">
-        Сессия создаётся через существующий API. Регистрация и восстановление пароля
-        в этот срез не входят.
-      </p>
+    <AuthLayout title="Войти в Спектр">
       <LoginForm />
-    </main>
+    </AuthLayout>
   );
 }

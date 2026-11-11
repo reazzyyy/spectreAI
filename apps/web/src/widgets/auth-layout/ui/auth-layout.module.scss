@@ -1,0 +1,213 @@
+.layout {
+  display: grid;
+  min-height: 100vh;
+  grid-template-columns: minmax(440px, 43%) minmax(0, 1fr);
+  background: var(--color-surface);
+}
+
+.story {
+  display: flex;
+  padding: 42px 48px 30px;
+  border-right: 1px solid var(--color-border);
+  flex-direction: column;
+  background: var(--color-soft);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand strong {
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.brandMark {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  place-items: center;
+  font-family: var(--font-serif);
+  font-size: 15px;
+  color: #fff;
+  background: var(--color-accent);
+}
+
+.storyContent {
+  margin-block: auto;
+  padding-block: 70px;
+}
+
+.eyebrow {
+  margin: 0 0 7px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.storyContent h1 {
+  margin: 20px 0 24px;
+  font-family: var(--font-serif);
+  font-size: clamp(30px, 2.7vw, 42px);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.45;
+}
+
+.storyLead {
+  max-width: 430px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.9;
+  color: var(--color-text-2);
+}
+
+.diagram {
+  display: flex;
+  margin-top: 42px;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-muted);
+}
+
+.diagram>div {
+  display: flex;
+  padding: 20px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  background: rgb(255 255 255 / 65%);
+}
+
+.diagram>div>svg {
+  margin-bottom: 8px;
+  color: var(--color-accent);
+}
+
+.diagram span {
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.diagram small {
+  font-size: 10px;
+}
+
+.securityNote {
+  display: flex;
+  margin-top: 30px;
+  padding-top: 26px;
+  border-top: 1px solid var(--color-border-strong);
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--color-accent);
+}
+
+.securityNote p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--color-text-2);
+}
+
+.securityNote svg {
+  margin-top: 2px;
+  flex: none;
+}
+
+.storyFooter {
+  margin: 0;
+  font-size: 11px;
+  color: var(--color-muted);
+}
+
+.main {
+  display: flex;
+  padding: 32px 48px;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.bannerSlot {
+  align-self: flex-end;
+}
+
+.card {
+  width: min(430px, 100%);
+  margin-block: auto;
+  padding-block: 24px;
+}
+
+.card > .eyebrow {
+  margin-bottom: 10px;
+}
+
+.title {
+  margin: 10px 0 20px;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+}
+
+.mainFooter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--color-muted);
+}
+
+@media (width <=1100px) {
+  .layout {
+    grid-template-columns: 36% minmax(0, 1fr);
+  }
+
+  .story {
+    padding: 28px;
+  }
+
+  .storyContent h1 {
+    font-size: 28px;
+  }
+
+  .diagram {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .diagram>svg {
+    display: none;
+  }
+}
+
+@media (width <=760px) {
+  .layout {
+    display: block;
+  }
+
+  .story {
+    display: none;
+  }
+
+  .main {
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  .bannerSlot {
+    align-self: center;
+  }
+
+  .card {
+    padding-block: 30px;
+  }
+}
