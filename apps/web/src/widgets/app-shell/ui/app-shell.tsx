@@ -1,15 +1,20 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { sessionMeQueryOptions } from "@/entities/session";
-import { LogoutButton } from "@/features/logout";
+import { workspacesListQueryOptions } from "@/entities/workspace";
+import {
+  CommandPalette,
+  PaletteControllerProvider,
+} from "@/features/search-workspaces";
 import { isApiError } from "@/shared/api";
-import { Icon, SyntheticModeBanner } from "@/shared/ui";
+import { Icon, IconButton, SyntheticModeBanner } from "@/shared/ui";
 import { classNames } from "@/shared/lib";
 import styles from "./app-shell.module.scss";
+import { ProfileMenu } from "./profile-menu";
 
 export interface AppShellProps {
   children: ReactNode;
@@ -31,11 +36,22 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { data, error, isPending, isError } = useQuery(sessionMeQueryOptions);
+  const workspaces = useQuery(workspacesListQueryOptions);
   const [collapsed, setCollapsed] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [paletteKey, setPaletteKey] = useState(0);
+
+  const openPalette = useCallback(() => {
+    setPaletteKey((k) => k + 1);
+    setPaletteOpen(true);
+  }, []);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 1000px)");
-    const sync = () => setCollapsed(mq.matches);
+    /** Narrow viewports force collapse; wide screens keep the user's toggle. */
+    const sync = () => {
+      if (mq.matches) setCollapsed(true);
+    };
     sync();
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
@@ -47,6 +63,18 @@ export function AppShell({ children }: AppShellProps) {
       router.replace("/login");
     }
   }, [error, isError, router]);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteKey((k) => k + 1);
+        setPaletteOpen(true);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   if (isPending) {
     return (
@@ -87,8 +115,14 @@ export function AppShell({ children }: AppShellProps) {
     pathname === "/documents" || pathname.startsWith("/documents/");
   const organizationActive =
     pathname === "/organization" || pathname.startsWith("/organization/");
+  const systemActive = pathname === "/system" || pathname.startsWith("/system/");
+  const wsItems = workspaces.data?.items ?? [];
+  const personalCount = wsItems.filter((w) => w.visibility === "PERSONAL").length;
+  const teamCount = wsItems.filter((w) => w.visibility === "TEAM").length;
+  const recentNav = wsItems.slice(0, 5);
 
   return (
+    <PaletteControllerProvider openPalette={openPalette}>
     <div className={styles.shell}>
       <div className={styles.desktopRequired}>
         <span className={styles.brandMark} aria-hidden>
@@ -112,16 +146,19 @@ export function AppShell({ children }: AppShellProps) {
           <span className={styles.navLabel}>Спектр</span>
         </div>
 
-        <Link
-          href="/projects"
+        <button
+          type="button"
           className={styles.sideSearch}
-          title="Поиск проектов на странице списка"
+          title="Поиск проектов"
           aria-label="Поиск проектов"
+          aria-haspopup="dialog"
+          aria-expanded={paletteOpen}
+          onClick={openPalette}
         >
           <Icon name="search" size={16} />
           <span className={styles.sideSearchLabel}>Поиск</span>
           <kbd className={styles.sideSearchKbd}>Ctrl K</kbd>
-        </Link>
+        </button>
 
         <Link
           href="/projects?create=1"
@@ -141,6 +178,27 @@ export function AppShell({ children }: AppShellProps) {
             <Icon name="home" />
             <span className={styles.navLabel}>Главная</span>
           </Link>
+
+          {!collapsed && recentNav.length > 0 ? (
+            <>
+              <p className={styles.navGroup}>Недавние</p>
+              {recentNav.map((ws) => (
+                <Link
+                  key={ws.id}
+                  href={`/projects/${ws.id}`}
+                  className={classNames(
+                    styles.navItem,
+                    styles.navItemRecent,
+                    pathname.startsWith(`/projects/${ws.id}`) &&
+                      styles.navItemActive,
+                  )}
+                  title={ws.name}
+                >
+                  <span className={styles.navLabel}>{ws.name}</span>
+                </Link>
+              ))}
+            </>
+          ) : null}
 
           <p className={styles.navGroup}>Проекты</p>
           <Link
@@ -167,6 +225,9 @@ export function AppShell({ children }: AppShellProps) {
           >
             <Icon name="user" />
             <span className={styles.navLabel}>Личные</span>
+            {!collapsed ? (
+              <span className={styles.navCount}>{personalCount}</span>
+            ) : null}
           </Link>
           <Link
             href={projectsHref("TEAM")}
@@ -179,45 +240,38 @@ export function AppShell({ children }: AppShellProps) {
           >
             <Icon name="users" />
             <span className={styles.navLabel}>Проекты команды</span>
+            {!collapsed ? (
+              <span className={styles.navCount}>{teamCount}</span>
+            ) : null}
           </Link>
 
-          <p className={styles.navGroup}>Дела</p>
-          <Link
-            href="/matters"
-            className={classNames(styles.navItem, mattersActive && styles.navItemActive)}
-            title="Все дела"
-          >
-            <Icon name="folder" />
-            <span className={styles.navLabel}>Все дела</span>
-          </Link>
-
-          <p className={styles.navGroup}>Клиенты</p>
+          <p className={styles.navGroup}>Справочники</p>
           <Link
             href="/clients"
             className={classNames(styles.navItem, clientsActive && styles.navItemActive)}
-            title="Все клиенты"
+            title="Клиенты"
           >
             <Icon name="users" />
-            <span className={styles.navLabel}>Все клиенты</span>
+            <span className={styles.navLabel}>Клиенты</span>
           </Link>
-
-          <p className={styles.navGroup}>Документы</p>
+          <Link
+            href="/matters"
+            className={classNames(styles.navItem, mattersActive && styles.navItemActive)}
+            title="Юридические дела"
+          >
+            <Icon name="folder" />
+            <span className={styles.navLabel}>Юридические дела</span>
+          </Link>
           <Link
             href="/documents"
             className={classNames(
               styles.navItem,
               documentsActive && styles.navItemActive,
             )}
-            title="Документы"
+            title="Библиотека документов"
           >
             <Icon name="folder" />
-            <span className={styles.navLabel}>Библиотека</span>
-          </Link>
-
-          <p className={styles.navGroup}>Служебное</p>
-          <Link href="/system" className={styles.navItem} title="Карта системы">
-            <Icon name="map" />
-            <span className={styles.navLabel}>Карта системы</span>
+            <span className={styles.navLabel}>Документы</span>
           </Link>
         </nav>
 
@@ -228,41 +282,54 @@ export function AppShell({ children }: AppShellProps) {
               styles.navItem,
               organizationActive && styles.navItemActive,
             )}
-            title="Организация"
+            title="Организация и сотрудники"
           >
             <Icon name="users" />
             <span className={styles.navLabel}>Организация</span>
           </Link>
+          <Link
+            href="/system"
+            className={classNames(styles.navItem, systemActive && styles.navItemActive)}
+            title="Карта системы"
+          >
+            <Icon name="map" />
+            <span className={styles.navLabel}>Карта системы</span>
+          </Link>
 
           <div className={styles.profile}>
-            <Icon name="user" size={16} />
-            <div className={styles.profileMeta}>
-              <span className={styles.profileEmail} title={data.user.email}>
-                {data.user.email}
-              </span>
-            </div>
-            <button
-              type="button"
-              className={styles.iconButton}
-              aria-label={collapsed ? "Развернуть навигацию" : "Свернуть навигацию"}
+            <ProfileMenu session={data} collapsed={collapsed} />
+            <IconButton
+              icon="sidebar"
+              label={
+                collapsed ? "Развернуть навигацию" : "Свернуть навигацию"
+              }
               onClick={() => setCollapsed((value) => !value)}
-            >
-              <Icon name="sidebar" size={16} />
-            </button>
+            />
           </div>
-          <LogoutButton />
         </div>
       </aside>
 
       <div className={styles.main}>
         <header className={styles.topbar}>
           <SyntheticModeBanner />
-          <span className={styles.topbarMeta} aria-hidden>
-            {data.organization.role}
-          </span>
+          <div className={styles.topActions}>
+            <IconButton
+              icon="search"
+              label="Поиск проектов (Ctrl K)"
+              size={18}
+              onClick={openPalette}
+            />
+          </div>
         </header>
         <div className={styles.content}>{children}</div>
       </div>
+
+      <CommandPalette
+        key={paletteKey}
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+      />
     </div>
+    </PaletteControllerProvider>
   );
 }
