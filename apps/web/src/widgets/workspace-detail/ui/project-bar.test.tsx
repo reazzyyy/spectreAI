@@ -1,8 +1,12 @@
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Workspace } from "@/entities/workspace";
 import { ProjectBar } from "./project-bar";
+
+vi.mock("@/features/search-workspaces", () => ({
+  useOpenCommandPalette: () => vi.fn(),
+}));
 
 const workspace: Workspace = {
   id: "w1",
@@ -15,24 +19,62 @@ const workspace: Workspace = {
   clientId: null,
 };
 
+afterEach(() => {
+  cleanup();
+});
+
 describe("ProjectBar", () => {
-  it("switches to chats and keeps future tabs disabled", async () => {
+  it("renders sticky chrome: switcher, access, tabs", async () => {
     const user = userEvent.setup();
-    const onTabChange = vi.fn();
+    const onOpenAccess = vi.fn();
     render(
       <ProjectBar
         workspace={workspace}
-        activeTab="overview"
-        onTabChange={onTabChange}
+        activeTab="chats"
+        panel="tab"
+        onTabChange={vi.fn()}
+        onOpenAccess={onOpenAccess}
+        onAction={vi.fn()}
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "Север" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Документы" })).toBeDisabled();
-    expect(screen.getByRole("tab", { name: "Исследования" })).toBeDisabled();
-    expect(screen.getByRole("tab", { name: "Черновики" })).toBeDisabled();
+    expect(
+      screen.getByTitle("Перейти в другой проект (Ctrl K)"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Команда")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Участники/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Чаты/i })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByRole("tab", { name: /Документы/i })).toBeDisabled();
+    expect(screen.getByRole("tab", { name: /Исследования/i })).toBeDisabled();
+    expect(screen.getByRole("tab", { name: /Черновики/i })).toBeDisabled();
 
-    await user.click(screen.getByRole("tab", { name: "Чаты" }));
-    expect(onTabChange).toHaveBeenCalledWith("chats");
+    await user.click(screen.getByRole("button", { name: /Участники/i }));
+    expect(onOpenAccess).toHaveBeenCalled();
+  });
+
+  it("exposes rename via actions menu", async () => {
+    const user = userEvent.setup();
+    const onAction = vi.fn();
+    render(
+      <ProjectBar
+        workspace={workspace}
+        activeTab="chats"
+        panel="tab"
+        onTabChange={vi.fn()}
+        onOpenAccess={vi.fn()}
+        onAction={onAction}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Действия: Север" }),
+    );
+    await user.click(screen.getByRole("menuitem", { name: /Переименовать/i }));
+    expect(onAction).toHaveBeenCalledWith("rename");
   });
 });

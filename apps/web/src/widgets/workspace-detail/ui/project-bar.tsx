@@ -1,20 +1,32 @@
 "use client";
 
-import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import type { Workspace, WorkspaceVisibility } from "@/entities/workspace";
+import { useOpenCommandPalette } from "@/features/search-workspaces";
+import { Badge, Button, Icon, IconButton } from "@/shared/ui";
 import { classNames } from "@/shared/lib";
 import styles from "./project-bar.module.scss";
 
-export type ProjectTabId = "overview" | "chats" | "docs" | "research" | "drafts";
+/** Make ProjectTab — no separate «Обзор» chrome tab. */
+export type ProjectTabId = "chats" | "docs" | "research" | "drafts";
+
+export type ProjectBarPanel = "tab" | "access" | "settings";
+
+export type ProjectBarAction = "rename" | "archive" | "delete";
 
 export interface ProjectBarProps {
   workspace: Workspace;
   activeTab: ProjectTabId;
+  panel: ProjectBarPanel;
   onTabChange: (tab: ProjectTabId) => void;
+  onOpenAccess: () => void;
+  onAction: (action: ProjectBarAction) => void;
+  /** Optional tab counts (Make tab-count); omitted tabs show no badge. */
+  tabCounts?: Partial<Record<ProjectTabId, number>>;
 }
 
 const VISIBILITY_LABEL: Record<WorkspaceVisibility, string> = {
-  PERSONAL: "Личный",
+  PERSONAL: "Личное",
   TEAM: "Команда",
 };
 
@@ -24,7 +36,6 @@ const TABS: {
   enabled: boolean;
   title?: string;
 }[] = [
-  { id: "overview", label: "Обзор", enabled: true },
   { id: "chats", label: "Чаты", enabled: true },
   {
     id: "docs",
@@ -47,30 +58,130 @@ const TABS: {
 ];
 
 /**
- * Project chrome: name, visibility/status, tabs.
- * Only Обзор and Чаты (placeholder) are interactive until Phase 5A / docs scope.
+ * Sticky project chrome (Make ProjectBar): switcher → palette, Access, ⋮ menu, tabs.
  */
-export function ProjectBar({ workspace, activeTab, onTabChange }: ProjectBarProps) {
+export function ProjectBar({
+  workspace,
+  activeTab,
+  panel,
+  onTabChange,
+  onOpenAccess,
+  onAction,
+  tabCounts,
+}: ProjectBarProps) {
+  const openPalette = useOpenCommandPalette();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const canManage =
+    workspace.status === "ACTIVE" || workspace.status === "ARCHIVED";
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onPointer(e: MouseEvent) {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setMenuOpen(false);
+    }
+    document.addEventListener("mousedown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
+
+  const accessLabel =
+    workspace.visibility === "PERSONAL" ? "Доступ" : "Участники";
+
   return (
     <div className={styles.bar}>
       <div className={styles.top}>
-        <div className={styles.titleBlock}>
-          <Link href="/projects" className={styles.back}>
-            ← Все проекты
-          </Link>
-          <h1 className={styles.name}>{workspace.name}</h1>
-        </div>
-        <div className={styles.badges}>
-          <span className={styles.badge}>
-            {VISIBILITY_LABEL[workspace.visibility] ?? workspace.visibility}
-          </span>
-          <span className={styles.status}>{workspace.status}</span>
+        <button
+          type="button"
+          className={styles.switch}
+          title="Перейти в другой проект (Ctrl K)"
+          onClick={openPalette}
+        >
+          <strong className={styles.switchName}>{workspace.name}</strong>
+          <Icon name="down" size={16} />
+        </button>
+
+        <span className={styles.kind}>
+          {VISIBILITY_LABEL[workspace.visibility]}
+        </span>
+        {workspace.status === "ARCHIVED" ? <Badge>Архив</Badge> : null}
+        {workspace.status === "PENDING_DELETION" ? (
+          <Badge tone="warning">Удаляется</Badge>
+        ) : null}
+
+        <span className={styles.spacer} />
+
+        <Button
+          type="button"
+          variant="ghost"
+          icon="users"
+          className={panel === "access" ? styles.ghostActive : undefined}
+          onClick={onOpenAccess}
+        >
+          {accessLabel}
+        </Button>
+
+        <div className={styles.menuAnchor} ref={menuRef}>
+          <IconButton
+            icon="more"
+            label={`Действия: ${workspace.name}`}
+            active={menuOpen}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((v) => !v)}
+          />
+          {menuOpen ? (
+            <div className={styles.menu} role="menu">
+              <button
+                type="button"
+                role="menuitem"
+                className={styles.menuItem}
+                disabled={workspace.status !== "ACTIVE"}
+                title={
+                  workspace.status !== "ACTIVE"
+                    ? "Переименование доступно для активного проекта"
+                    : undefined
+                }
+                onClick={() => {
+                  setMenuOpen(false);
+                  onAction("rename");
+                }}
+              >
+                Переименовать
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className={styles.menuItem}
+                disabled
+                title="Архивация Workspace — в следующем срезе"
+              >
+                Архивировать
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className={classNames(styles.menuItem, styles.menuDanger)}
+                disabled={!canManage}
+                title="Удаление Workspace — dual confirmation, следующий срез"
+              >
+                Удалить проект
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
 
       <div className={styles.tabs} role="tablist" aria-label="Разделы проекта">
         {TABS.map((tab) => {
-          const selected = activeTab === tab.id;
+          const selected = panel === "tab" && activeTab === tab.id;
+          const count = tabCounts?.[tab.id];
           if (!tab.enabled) {
             return (
               <button
@@ -83,6 +194,11 @@ export function ProjectBar({ workspace, activeTab, onTabChange }: ProjectBarProp
                 aria-selected={false}
               >
                 {tab.label}
+                {count !== undefined ? (
+                  <span className={styles.tabCount}>{count}</span>
+                ) : (
+                  <span className={styles.tabCount}>0</span>
+                )}
               </button>
             );
           }
@@ -96,6 +212,9 @@ export function ProjectBar({ workspace, activeTab, onTabChange }: ProjectBarProp
               onClick={() => onTabChange(tab.id)}
             >
               {tab.label}
+              <span className={styles.tabCount}>
+                {count !== undefined ? count : 0}
+              </span>
             </button>
           );
         })}

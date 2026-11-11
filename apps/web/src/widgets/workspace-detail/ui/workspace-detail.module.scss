@@ -1,14 +1,58 @@
-.page {
-  max-width: 800px;
+.screen {
+  width: 100%;
 }
 
-.back {
-  display: inline-block;
-  margin-bottom: 16px;
-  color: var(--color-muted);
+.body,
+.bodyNarrow,
+.bodyMembers {
+  box-sizing: border-box;
+  margin-inline: auto;
+}
+
+.body,
+.bodyNarrow {
+  padding: 24px 40px 80px;
+}
+
+.body {
+  width: min(100%, var(--content-max-width, 1040px));
+  max-width: 1040px;
+}
+
+.bodyNarrow {
+  width: min(100%, 880px);
+  max-width: 880px;
+}
+
+/* Make Members: panel owns padding + 1240 width */
+.bodyMembers {
+  width: 100%;
+  max-width: none;
+  padding: 0;
+}
+
+.center {
+  display: grid;
+  min-height: calc(100vh - var(--topbar-height) - 80px);
+  place-items: center;
+  padding: 40px;
+}
+
+.pageHead {
+  margin-bottom: 24px;
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: 600;
+}
+
+.pageLead {
+  margin: 8px 0 0;
+  max-width: 40rem;
+  color: var(--color-text-2);
   font-size: var(--fs-sm);
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
 
 .description {
@@ -16,37 +60,14 @@
   color: var(--color-text-2);
 }
 
-.panel {
-  margin-bottom: 20px;
-  padding: 20px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-surface);
+.mattersBlock {
+  margin-top: 28px;
 }
 
-.sectionTitle {
-  margin-bottom: 14px;
+.chatsEmpty {
+  padding-top: 48px;
 }
 
 .status {
   color: var(--color-muted);
-}
-
-.error {
-  color: var(--color-danger, #b42318);
-}
-
-.textButton {
-  min-height: 36px;
-  padding: 0 14px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  color: var(--color-accent);
-  font: inherit;
-  cursor: pointer;
-}
-
-.textButton:hover {
-  background: var(--color-accent-soft);
 }

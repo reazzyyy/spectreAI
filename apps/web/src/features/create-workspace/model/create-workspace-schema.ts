@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-/** Client create payload — aligned with POST /workspaces (PERSONAL|TEAM). */
+/** Client create payload — aligned with POST /workspaces + optional matter link. */
 export const createWorkspaceSchema = z.object({
   name: z
     .string()
@@ -12,6 +12,10 @@ export const createWorkspaceSchema = z.object({
     .max(2000, "Описание не длиннее 2000 символов.")
     .optional(),
   visibility: z.enum(["PERSONAL", "TEAM"]),
+  /** Optional Client UUID (POST /workspaces.clientId). */
+  clientId: z.string().uuid().optional().or(z.literal("")),
+  /** Optional Matter UUID — linked after create via POST …/matters. */
+  matterId: z.string().uuid().optional().or(z.literal("")),
 });
 
 export type CreateWorkspaceFormValues = z.infer<typeof createWorkspaceSchema>;
