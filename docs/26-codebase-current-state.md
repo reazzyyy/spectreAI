@@ -104,15 +104,18 @@ spectreAI/
 Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities` / `shared`.
 
 - Явная метка synthetic/test: `shared/ui` на `/`, `/login`, `/system` (D-012).
-- `/login` — `features/login` (RHF + Zod) → `POST /auth/login` (email, password, organizationId); без product shell.
-- `/` — `widgets/app-shell` + `widgets/home-overview`: product chrome; `GET /auth/me` + краткий список Workspace; 401 → `/login`; logout в сайдбаре.
-- `/projects` — `widgets/workspace-list` + `features/create-workspace`: `GET/POST /workspaces` (PERSONAL|TEAM); UI-фильтры `?visibility=` и клиентский поиск по загруженному списку.
-- `/projects/[workspaceId]` — `widgets/workspace-detail` (project-bar UI + edit / Matter links / TEAM members); вкладка Чаты → StateCard до Phase 5A; Research/Drafts/Документы — disabled (без фиктивного composer).
+- `/login` — `widgets/auth-layout` + `features/login` (RHF + Zod) → `POST /auth/login` (email, password, organizationId); split story/form как в designSpectreAI; без product shell.
+- `/` — `widgets/app-shell` + `widgets/home-overview`: product chrome; `GET /auth/me` (+ `organization.name`) + краткий список Workspace; 401 → `/login`; Make profile menu (имя из email до User.name, org name, logout).
+- `/projects` — `widgets/workspace-list` + `features/create-workspace`: `GET/POST /workspaces` (PERSONAL|TEAM); UI-фильтры `?visibility=` / `?q=` и клиентский поиск по загруженному списку; create modal с опциональными Client/Matter.
+- Command palette — `features/search-workspaces` в `widgets/app-shell`: попап поиска проектов (Ctrl/Cmd+K), клиентский матч по name/client/matter из загруженных списков (не server search API).
+- `/projects/[workspaceId]` — full-bleed sticky Make `ProjectBar` (на всю ширину main); тело страницы centered `max-width: 1040`; switcher→palette, Доступ/Участники, ⋮, tabs; Чаты StateCard до Phase 5A; Access → Make Members page (1240, back «К проекту», table + sticky role guide; TEAM upsert/revoke); Переименовать → edit + matters; docs/research/drafts disabled.
+- AppShell `.content` — full main column (без max-width); ограничение 1040 на widget `.page` / project `.body` (как Make); sidebar: collapse без overflow текста, footer avatar+имя+org, fixed profile popup.
+- `shared/ui` kit (D-024): Button, Input, Select (forwardRef + RHF), Icon, IconButton, Badge, Dialog, StateCard, Avatar, TextAction, SearchField, Eyebrow, PageHead, Page — adopted across shell / home / lists / org / members / forms / details / auth; helpers `displayNameFromEmail` / `orgRoleLabel` in `shared/lib`. Org invite UI lives in `widgets/organization-invites` (not unused `CreateInvitationForm` / `InvitationActions`).
 - **UI-референс:** каталог `designSpectreAI/` (Figma Make) — только визуальный/IA ориентир. В runtime `@spectre/web` **не** импортируется. UI «Проект» = API/сущность **Workspace**. Перенос — переписывание под FSD + SCSS Modules (D-023/D-024), не копипаст прототипа (Tailwind, hash-routing, demo-context, `sim`).
 - `/matters`, `/matters/[id]` — list/create/edit Matter (`GET/POST/PATCH`).
 - `/clients`, `/clients/[id]` — list/create/edit Client (`GET/POST/PATCH`).
 - `/documents` — library + multipart upload в выбранный Workspace (DOC-01/02 thin); без preview/OCR.
-- `/organization` — member directory (SEC-01); Owner: role patch admin|member + invitations.
+- `/organization` — Make Organization page (1240): boundary banner, staff search/list with avatars, Owner invite dialog + invite table (resend/revoke); role patch admin|member (SEC-01/SEC-03). Admin grant / offboard / TEAM admin list — не в этом срезе.
 - `/invite/accept` — принять приглашение (токен + пароль для нового пользователя; существующий — с сессией, без пароля); без product shell.
 - Matter/Workspace edit forms: optional `clientId` link/unlink (CRM + WS-07).
 - `entities/matter`, `entities/client`, `entities/document`, `entities/invitation`, `entities/org-member` — list/detail/create/update (+ invite mutate / upload).
@@ -120,7 +123,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 - Сессия: `entities/session`. Workspace: `entities/workspace` (типы, API, Query).
 - Browser `fetch` на `/api/v1/*` с `credentials: "same-origin"` + CSRF header на мутациях; FormData upload без JSON Content-Type; rewrite в `next.config.ts` на `API_ORIGIN` (по умолчанию `http://localhost:3000`).
 - Линтеры: ESLint + Steiger FSD + Stylelint (включая system-map SCSS).
-- Стили AS-IS: SCSS-токены (визуально близки к референсу `designSpectreAI`); `shared/ui` Button/Input/Icon/StateCard; shell/home/workspace-list/workspace-detail/system-map на SCSS Modules.
+- Стили AS-IS: SCSS-токены (визуально близки к референсу `designSpectreAI`); `shared/ui` kit выше; shell/home/workspace-list/workspace-detail/system-map на SCSS Modules.
 - Тесты AS-IS: Vitest + RTL (Button, schemas, AppShell). Storybook 10 + stories `shared/ui`; Chromatic addon/CLI (publish — `CHROMATIC_PROJECT_TOKEN`). Playwright smoke: unauth `/` → `/login`; login → home (Postgres + bootstrap + `E2E_ORGANIZATION_ID`). CI `web-e2e`: bootstrap JSON file + direct API login preflight before Playwright; Chromatic publish ещё нет.
 - Нет регистрации, recovery, MFA, ownership transfer, OCR/worker; chat API/UI нет (вкладка «Чаты» — StateCard до Phase 5A).
 
@@ -242,7 +245,7 @@ Extract caps scaffold (**D-030**): 300 pages / 2M chars / 120s / maxAttempts 3. 
 | `docs/decisions-log.md` O-008 MFA/SSO | OPEN | Нет MFA/SSO | Соответствует OUT OF SCOPE |
 | `docs/12` §5.1 способ входа | **CONFIRMED W-011** | Scaffold: email+password+organizationId (без email verify) | Продуктовый способ совпадает; verify email — **OPEN**; MFA/SSO не в MVP (**W-013** / **O-008**) |
 | `docs/12` §5.2 алгоритм login | PROPOSED детали | Шаги 1–7 есть; §8 audit event — нет | Audit OUT OF SCOPE |
-| `docs/12` §5.3 `GET /auth/me` | PROPOSED иллюстрация `organizations[]` + `emailVerified` | Фактически: одна `organization` (из Session) без `emailVerified` | **OPEN** форма DTO до утверждения полного `docs/12` |
+| `docs/12` §5.3 `GET /auth/me` | PROPOSED иллюстрация `organizations[]` + `emailVerified` | Фактически: одна `organization` `{ id, name, role }` (из Session) без `emailVerified` / User.name | **OPEN** форма DTO до утверждения полного `docs/12` |
 | `docs/12` §5.4 актёр из сессии | принцип | Cookie→Session→membership; клиентский org игнорируется | Соответствует |
 | `docs/12` §6.1 cookie | PROPOSED | HttpOnly, SameSite=Lax, Secure в production, Path=/ | Соответствует scaffold |
 | `docs/12` §6.2 TTL 7d + idle 24h | PROPOSED | Только абсолютные 7d; idle timeout нет | Idle — OPEN / не реализован |
