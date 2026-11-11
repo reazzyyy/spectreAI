@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { displayNameFromEmail } from "../src/shared/lib/display-name";
 import { readSmokeCredentials } from "./credentials";
 
 const ORG_UUID_RE =
@@ -48,7 +49,9 @@ test.describe("auth smoke", () => {
     await expect(page.locator(".form-error")).toHaveCount(0);
 
     await expect(page).toHaveURL(/\/$/, { timeout: 15_000 });
-    const local = creds!.email.split("@")[0] ?? creds!.email;
-    await expect(page.getByRole("heading", { level: 1 })).toContainText(local);
+    const greetingName = displayNameFromEmail(creds!.email);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      `Добрый день, ${greetingName}`,
+    );
   });
 });
