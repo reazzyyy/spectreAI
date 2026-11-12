@@ -150,6 +150,7 @@ model Organization {
   conversations Conversation[]
   messages      Message[]
   aiGenerations AiGeneration[]
+  outboxEvents  OutboxEvent[]
 
   @@map("organizations")
 }
@@ -514,4 +515,26 @@ model AiGeneration {
   @@index([organizationId, conversationId, createdAt])
   @@index([userMessageId])
   @@map("ai_generations")
+}
+
+/// Transactional outbox for reliable queue publish (docs/15 §5.3; chat path docs/32 §8.1).
+/// JOB-012 remains OPEN in journal — this is the scaffold shape for Phase 5A-2, not a status close.
+model OutboxEvent {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  eventType      String       @map("event_type")
+  aggregateId    String       @map("aggregate_id") @db.Uuid
+  /// Minimal JSON only (e.g. jobId + type). Never document/prompt text.
+  payload        Json
+  createdAt      DateTime     @default(now()) @map("created_at")
+  publishedAt    DateTime?    @map("published_at")
+  attemptCount   Int          @default(0) @map("attempt_count")
+  lastError      String?      @map("last_error")
+  nextAttemptAt  DateTime?    @map("next_attempt_at")
+
+  @@index([publishedAt, nextAttemptAt, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([aggregateId])
+  @@map("outbox_events")
 }

@@ -20,6 +20,7 @@ export type {
   Conversation,
   Message,
   AiGeneration,
+  OutboxEvent,
 } from "./generated/client.js";
 export {
   WorkspaceVisibility,
