@@ -1,36 +1,34 @@
 # Implementation Plan: Phase 5A Chat (foundation)
 
-> **Статус:** 5A-1 + **5A-2 закрыты в коде** (2026-11-12). Следующий — **5B** context/UI или Phase 6A.  
-> **Канон:** `docs/32`, D-011/D-012/D-026/D-027, W-006–W-008/W-020, AS-IS `docs/26`.  
-> **Пробелы:** `tasks/phase5-6-gaps.md`. JOB-012 остаётся OPEN (Outbox scaffold only).  
-> **Не цель:** внешний LLM (O-002), regenerate/edit (DEC-05), DocumentVersion/FTS/vector, OCR, workspace delete (O-012).
+> **Статус:** 5A + **5B context refs закрыты** (2026-11-12). Следующий — chat UI или **6A**.  
+> **Канон:** `docs/32`, D-011/D-012, W-007/W-020, AS-IS `docs/26`.  
+> **Пробелы:** `tasks/phase5-6-gaps.md`. JOB-012 / CTX-* / FILE-009 / Gate B / O-002 remain OPEN.  
+> **Не цель:** внешний LLM, DocumentVersion-in-context, regenerate/edit (DEC-05), OCR, workspace delete.
 
 ---
 
 ## Overview
 
-1. Docs pack — done.
-2. 5A-1 data/access — done.
-3. 5A-2 orchestration — API, Outbox, chat worker, Synthetic, e2e — **done**.
-4. Later — 5B context/UI; 6A DocumentVersion/FTS; Gate B → 6B vector.
+1. 5A-1/5A-2 — done.
+2. 5B conversation_only ContextSnapshot + MessageSource — **done** (no chat UI in this slice).
+3. Later — chat UI; 6A DocumentVersion/FTS; Gate B → 6B vector.
 
 ## Task slices
 
 ```text
-5A-1   models/RLS/ACL  (done)
-5A-2   API + Outbox + chat worker + Synthetic + e2e  (done)
-5B     context/source refs + chat UI
-6A…    DocumentVersion / FTS
+5A…   chat foundation + orchestration  (done)
+5B    context/source refs conversation_only  (done)
+UI    chat FSD widgets  (next optional)
+6A…   DocumentVersion / FTS
 ```
 
 ### Acceptance
 
-- [x] Models + migrations + RLS + runtime-role tests
-- [x] ConversationAccess + HTTP create/list/open; PRIVATE vs WORKSPACE
-- [x] Send message → Generation + AIJob + Outbox; idempotent; Synthetic persisted
-- [x] Reload restores history; ACL/idempotency e2e
-- [x] AS-IS `docs/26` + READMEs updated after 5A-2
+- [x] ContextSnapshot/Item/MessageSource + RLS
+- [x] Worker persists snapshot/sources with synthetic reply
+- [x] GET generation returns contextMode + sources
+- [x] AS-IS + READMEs + e2e
 
 ### Out of scope
 
-OpenAI, embeddings, DocumentVersion, chunks, FTS/pgvector, regenerate/edit product rules, OCR success path, workspace hard delete, chat UI.
+OpenAI, embeddings, DocumentVersion, chunks, FTS/pgvector, regenerate/edit, OCR, workspace hard delete, chat UI.

@@ -8,7 +8,7 @@
 
 | ID | Пробел | Срез | Статус |
 |---|---|---|---|
-| P5-01 | Conversation/Message Prisma + chat HTTP landed; **нет** chat UI | 5B/UI | partial |
+| P5-01 | Conversation/Message Prisma + chat HTTP + context sources landed; **нет** chat UI | UI | partial |
 | P5-02 | Chat ACL + RLS + Nest HTTP wired | 5A-2 | closed |
 | P5-03 | Chat orchestration via Outbox + worker + Synthetic (sync `/ai/generate` remains thin probe) | 5A-2 | closed |
 | P5-04 | AiGeneration + chat.generate AIJob path landed; extract unchanged | 5A-2 | closed |
@@ -41,8 +41,8 @@
 
 ## Порядок закрытия (канон инструкции)
 
-1. **5A** foundation (models/RLS/ACL) → orchestration (API/Outbox/worker/Synthetic) → e2e history  
-2. **5B** context/source refs (synthetic-safe)  
+1. **5A** foundation + orchestration — done  
+2. **5B** context/source refs conversation_only — done (chat UI still open)  
 3. **6A** DocumentVersion → structure/chunk experiment → FTS (FILE-009 остаётся OPEN до confirm)  
 4. **Gate B** → **6B** vector/HNSW/RRF  
 5. Optional quality (rewrite/rerank/MMR) только по метрикам

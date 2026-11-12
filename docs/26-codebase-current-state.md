@@ -1,7 +1,7 @@
 # Текущее состояние кодовой базы (AS-IS)
 
 **Статус:** CONFIRMED как снимок scaffold на дату ниже; не заменяет продуктовые спецификации и не утверждает MVP.  
-**Дата снимка кода:** 2026-11-12 (Phase 5A-2 chat API/Outbox/worker + 5A-1 models/RLS; web F1–F5k + documents UI; Phase 4 extract)  
+**Дата снимка кода:** 2026-11-12 (Phase 5B context snapshots + 5A chat API/worker; web F1–F5k + documents UI; Phase 4 extract)  
 **Сверка статусов решений:** 2026-11-10 (W-001–W-020, W-014a, **D-024**, **D-025–D-031**)  
 **Источник истины по решениям:** `docs/decisions-log.md`  
 **План:** `tasks/roadmap.md` / `tasks/plan.md`. Долги Фазы 2: `tasks/phase2-debt.md` (O-012, email, Chromatic…).
@@ -26,7 +26,7 @@
 | MFA / SSO (O-008) | **Не реализовано** |
 | Workspace как сущность | Prisma + `WorkspaceAccess` + HTTP; content-visible list — single SQL; cursor pagination (**D-026**) |
 | PostgreSQL RLS (W-020) | Org GUC на tenant tables; **documents** + **conversations/messages/ai_generations** — workspace + PRIVATE/WORKSPACE ACL (**W-020+ partial**); grant policies нет |
-| Chat (5A-1/5A-2) | Models+RLS+ACL; HTTP create/list/get + send message (idempotent) + generation get/cancel; Outbox + `worker:chat` + Synthetic; **нет** chat UI / ContextSnapshot |
+| Chat (5A–5B) | Models+RLS+ACL; HTTP chat; Outbox + Synthetic worker; ContextSnapshot/Item + MessageSource (conversation_only); **нет** chat UI / DocumentVersion docs in context |
 | Загрузка документов | Two-phase `uploading`→blob→`uploaded`; disk temp multipart; DOCX CD walk + PDF `/Encrypt` reject; enqueue extract |
 | AIJob + extract worker | Prisma `AIJob` / `DocumentExtraction`; BullMQ `ai-jobs`; `pnpm --filter @spectre/api worker:extract`; scan → failed (**D-031**) |
 | Rate limit / audit | Redis sliding window (login/upload/ai/invite); thin `audit_events` (login/logout/upload/download, без content) |
@@ -153,12 +153,12 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 
 - Prisma 7, URL в `prisma.config.ts`, клиент генерируется в `src/generated`.
 - `createPrismaClient({ purpose: "migrator" | "runtime" })` + `withActorContext` (GUC в interactive tx).
-- Модели: … **Conversation**, **Message**, **AiGeneration**, **OutboxEvent**.
+- Модели: … **Conversation**, **Message**, **AiGeneration**, **OutboxEvent**, **ContextSnapshot**, **ContextSnapshotItem**, **MessageSource**.
 - `Matter.workspaceId` legacy nullable без FK; связи Matter↔Workspace — `WorkspaceMatter`.
-- Миграции: … **`20261112120000_phase5a_chat_foundation`**; **`20261112200000_phase5a2_outbox`**.
-- RLS: org GUC на большинстве tenant tables; **documents** + **chat** workspace/PRIVATE ACL; **outbox_events** org-scoped; messages/ai_generations via parent conversation.
+- Миграции: … **`20261112200000_phase5a2_outbox`**; **`20261112230000_phase5b_context_snapshots`**.
+- RLS: org GUC; **documents** + **chat** workspace/PRIVATE ACL; snapshots/items/sources inherit conversation/message ACL; **outbox_events** org-scoped.
 - Auth bootstrap / e2e seed — migrator; tenant API — runtime + GUC; workers extract/chat — migrator + ACL re-check (chat).
-- Chat UI / ContextSnapshot / DocumentVersion / grant — **нет**. JOB-012 остаётся OPEN (scaffold Outbox shape only).
+- Chat UI / DocumentVersion-in-context / grant — **нет**. JOB-012 / CTX-* journal rows remain OPEN.
 - `created_by` на Client/Matter — ещё нет; Document имеет `uploadedByUserId` (**D-029** готов для будущего delete).
 
 ## 5. HTTP-контракт scaffold (фактический)
@@ -208,7 +208,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 | GET | `/conversations/:conversationId` | сессия + conversation ACL | Conversation | `401`; `404` |
 | GET | `/conversations/:conversationId/messages` | сессия + conversation ACL | `{ items, nextCursor }` | `401`; `404` |
 | POST | `/conversations/:conversationId/messages` | сессия + CSRF + mutate; `Idempotency-Key` and/or `clientMessageId` | `{ message, generationId, jobId, reused, synthetic }` (`201`) | `401`; `404`; `409`; `422` |
-| GET | `/ai-generations/:generationId` | сессия + conversation ACL | generation + `synthetic` | `401`; `404` |
+| GET | `/ai-generations/:generationId` | сессия + conversation ACL | generation + `synthetic` + `contextSnapshotId`/`contextMode`/`sources[]` | `401`; `404` |
 | POST | `/ai-generations/:generationId/cancel` | сессия + CSRF + mutate | `{ id, status, completedAt }` | `401`; `404` |
 
 Тело Client: `{ id, organizationId, name, status }` (`status`: `active` \| `archived`).  
@@ -312,7 +312,7 @@ Workflow: `.github/workflows/ci.yml`.
 - MFA/SSO (**O-008** / **W-013** — не в MVP), self-registration (**W-012** запрещает public self-reg), email verify, recovery, logout-all, session list.
 - Email delivery provider для invitations; полный `docs/12` (password policy product confirmation, idle timeout, logout-all, session list).
 - Hard delete Client/Matter/Workspace; полный W-020 (сверх текущих tenant/document policies); ACL матрица `docs/07` в коде; admin grant; ownership transfer.
-- Chat UI / Context Snapshot / MessageSource (**Phase 5B+**; HTTP+Outbox+worker 5A-2 есть; спека `docs/32`).
+- Chat UI (**Phase 5B UI**); document-backed context / DocumentVersion (**6A**; snapshot tables 5B conversation_only есть).
 - DocumentVersion; chunks; FTS/GIN; embeddings; pgvector/HNSW; hybrid retrieval/RRF (**Phase 6**; спека `docs/33`; Gate B / FILE-009 OPEN).
 - OCR success path (**O-004**); production object storage (**O-003**).
 - OpenAI adapter (запрещён до O-002; целевой провайдер D-015).
