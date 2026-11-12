@@ -1,6 +1,6 @@
 # `@spectre/access`
 
-Server-side access policy for Client/Matter (org isolation), Workspace ACL (**W-001–W-008**), and Document metadata org isolation (Phase 3).
+Server-side access policy for Client/Matter (org isolation), Workspace ACL (**W-001–W-008**), Document metadata org isolation (Phase 3), and Conversation ACL (Phase 5A-1 / **W-007**).
 
 Foreign or missing records → `null` (HTTP maps to identical `NOT_FOUND`).
 
@@ -10,6 +10,7 @@ Foreign or missing records → `null` (HTTP maps to identical `NOT_FOUND`).
 - `MatterRecord` / `MatterStore` / `MatterAccess` — org-scoped CRU+list
 - `WorkspaceRecord` / `WorkspaceStore` / `WorkspaceAccess` — content vs member-management
 - `DocumentRecord` / `DocumentStore` / `DocumentAccess` — org-scoped create/list/read; callers apply Workspace content ACL first
+- `ConversationRecord` / `ConversationStore` / `ConversationAccess` — PRIVATE/WORKSPACE chat ACL on top of Workspace content role; Org Admin ≠ content
 
 ## Workspace rules (S2)
 

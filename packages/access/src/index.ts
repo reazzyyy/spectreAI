@@ -1,10 +1,22 @@
 /**
  * Organization-scoped Client/Matter access policy (scaffold) + Workspace ACL (S2)
- * + Document metadata isolation (Phase 3; Workspace content ACL applied by callers).
+ * + Document metadata isolation (Phase 3; Workspace content ACL applied by callers)
+ * + Conversation ACL (Phase 5A-1; PRIVATE/WORKSPACE on top of Workspace content role).
  * Client/Matter: isolation by actor organizationId.
  * Workspace: content roles vs member-management (W-005/W-008); Org Admin ≠ content.
  * Wrong org or missing id → null so HTTP can map to identical NOT_FOUND.
  */
+
+export {
+  ConversationAccess,
+  type ConversationRecord,
+  type ConversationStore,
+  type ConversationCreateInput,
+  type ConversationVisibility,
+  type ConversationStatus,
+  type ConversationListCursor,
+  type ConversationListPage,
+} from "./conversation.js";
 
 export {
   DocumentAccess,
