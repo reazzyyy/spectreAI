@@ -2,6 +2,7 @@ import { Module, Scope } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD, REQUEST } from "@nestjs/core";
 import {
   ClientAccess,
+  ConversationAccess,
   DocumentAccess,
   MatterAccess,
   WorkspaceAccess,
@@ -14,10 +15,15 @@ import { ACTOR_CONTEXT, type ActorContext } from "./auth/actor-context.js";
 import { ActorGuard } from "./auth/actor.guard.js";
 import { SessionService } from "./auth/session.service.js";
 import { AuditService } from "./audit/audit.service.js";
+import { ChatController } from "./chat/chat.controller.js";
+import { ChatJobProcessor } from "./chat/chat-job.processor.js";
+import { ChatService } from "./chat/chat.service.js";
+import { OutboxPublisherService } from "./chat/outbox-publisher.service.js";
 import { ClientsController } from "./clients/clients.controller.js";
 import { ClientsService } from "./clients/clients.service.js";
 import {
   createActorScopedClientStore,
+  createActorScopedConversationStore,
   createActorScopedDocumentStore,
   createActorScopedMatterStore,
   createActorScopedWorkspaceStore,
@@ -60,6 +66,7 @@ import { WorkspacesService } from "./workspaces/workspaces.service.js";
     OrganizationMembersController,
     InvitationAcceptController,
     AiController,
+    ChatController,
   ],
   providers: [
     PrismaService,
@@ -103,6 +110,20 @@ import { WorkspacesService } from "./workspaces/workspaces.service.js";
         new DocumentAccess(createActorScopedDocumentStore(prisma, actor)),
     },
     {
+      provide: ConversationAccess,
+      scope: Scope.REQUEST,
+      inject: [PrismaService, ACTOR_CONTEXT, WorkspaceAccess],
+      useFactory: (
+        prisma: PrismaService,
+        actor: ActorContext | null,
+        workspaces: WorkspaceAccess,
+      ) =>
+        new ConversationAccess(
+          createActorScopedConversationStore(prisma, actor),
+          workspaces,
+        ),
+    },
+    {
       provide: LocalObjectStorage,
       useFactory: () => createLocalObjectStorageFromEnv(),
     },
@@ -112,6 +133,9 @@ import { WorkspacesService } from "./workspaces/workspaces.service.js";
       inject: [AiJobsQueueProvider],
       useFactory: (provider: AiJobsQueueProvider) => provider.queue,
     },
+    OutboxPublisherService,
+    ChatJobProcessor,
+    ChatService,
     AiJobsService,
     ClientsService,
     MattersService,
