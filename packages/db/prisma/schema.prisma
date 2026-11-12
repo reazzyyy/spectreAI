@@ -131,6 +131,30 @@ enum AiGenerationStatus {
   @@map("ai_generation_status")
 }
 
+/// ContextSnapshotItem kinds (docs/19 / docs/32). Phase 5B uses conversation_message only.
+enum ContextSnapshotItemType {
+  conversation_message
+  document_chunk
+  legal_evidence
+  workspace_instruction
+  organization_instruction
+  tool_result
+  summary
+
+  @@map("context_snapshot_item_type")
+}
+
+/// Server-authored citation link on an assistant message (docs/32 §5.5).
+enum MessageSourceType {
+  conversation_message
+  document
+  document_chunk
+  legal
+  synthetic
+
+  @@map("message_source_type")
+}
+
 model Organization {
   id           String                     @id @default(uuid()) @db.Uuid
   name         String
@@ -147,10 +171,13 @@ model Organization {
   aiJobs        AiJob[]
   extractions   DocumentExtraction[]
   auditEvents   AuditEvent[]
-  conversations Conversation[]
-  messages      Message[]
-  aiGenerations AiGeneration[]
-  outboxEvents  OutboxEvent[]
+  conversations        Conversation[]
+  messages             Message[]
+  aiGenerations        AiGeneration[]
+  outboxEvents         OutboxEvent[]
+  contextSnapshots     ContextSnapshot[]
+  contextSnapshotItems ContextSnapshotItem[]
+  messageSources       MessageSource[]
 
   @@map("organizations")
 }
@@ -292,8 +319,9 @@ model Workspace {
   archivedAt     DateTime?           @map("archived_at")
   members        WorkspaceMember[]
   matterLinks    WorkspaceMatter[]
-  documents      Document[]
-  conversations  Conversation[]
+  documents        Document[]
+  conversations    Conversation[]
+  contextSnapshots ContextSnapshot[]
 
   @@unique([organizationId, id])
   @@index([organizationId, status, updatedAt])
@@ -451,8 +479,9 @@ model Conversation {
   lastMessageAt   DateTime?              @map("last_message_at")
   createdAt       DateTime               @default(now()) @map("created_at")
   updatedAt       DateTime               @updatedAt @map("updated_at")
-  messages        Message[]
-  generations     AiGeneration[]
+  messages         Message[]
+  generations      AiGeneration[]
+  contextSnapshots ContextSnapshot[]
 
   @@unique([organizationId, id])
   @@index([organizationId, workspaceId, lastMessageAt, id])
@@ -475,8 +504,9 @@ model Message {
   generation         AiGeneration? @relation("MessageFromGeneration", fields: [generationId], references: [id], onDelete: SetNull)
   clientMessageId    String?       @map("client_message_id")
   createdAt          DateTime      @default(now()) @map("created_at")
-  generationsAsUser  AiGeneration[] @relation("GenerationUserMessage")
+  generationsAsUser      AiGeneration[] @relation("GenerationUserMessage")
   generationsAsAssistant AiGeneration[] @relation("GenerationAssistantMessage")
+  sources                MessageSource[]
 
   @@unique([organizationId, id])
   @@unique([conversationId, clientMessageId])
@@ -506,15 +536,96 @@ model AiGeneration {
   supersedesGenerationId String?            @map("supersedes_generation_id") @db.Uuid
   supersedes             AiGeneration?      @relation("GenerationSupersedes", fields: [supersedesGenerationId], references: [id], onDelete: SetNull)
   supersededBy           AiGeneration[]     @relation("GenerationSupersedes")
+  contextSnapshotId      String?            @unique @map("context_snapshot_id") @db.Uuid
+  contextSnapshot        ContextSnapshot?   @relation("GenerationContextSnapshot", fields: [contextSnapshotId], references: [id], onDelete: SetNull)
   startedAt              DateTime?          @map("started_at")
   completedAt            DateTime?          @map("completed_at")
   createdAt              DateTime           @default(now()) @map("created_at")
   resultMessages         Message[]          @relation("MessageFromGeneration")
+  ownedContextSnapshot   ContextSnapshot?   @relation("SnapshotForGeneration")
 
   @@unique([organizationId, id])
   @@index([organizationId, conversationId, createdAt])
   @@index([userMessageId])
   @@map("ai_generations")
+}
+
+/// Provenance of one generation's model context (Phase 5B; conversation_only first).
+/// Stores refs/hashes — not full document or prompt text (CTX-013 stays OPEN).
+model ContextSnapshot {
+  id                 String               @id @default(uuid()) @db.Uuid
+  organizationId     String               @map("organization_id") @db.Uuid
+  organization       Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  workspaceId        String               @map("workspace_id") @db.Uuid
+  workspace          Workspace            @relation(fields: [organizationId, workspaceId], references: [organizationId, id], onDelete: Cascade)
+  conversationId     String               @map("conversation_id") @db.Uuid
+  conversation       Conversation         @relation(fields: [organizationId, conversationId], references: [organizationId, id], onDelete: Cascade)
+  aiGenerationId     String               @unique @map("ai_generation_id") @db.Uuid
+  aiGeneration       AiGeneration         @relation("SnapshotForGeneration", fields: [aiGenerationId], references: [id], onDelete: Cascade)
+  aiJobId            String?              @map("ai_job_id") @db.Uuid
+  contextMode        String               @map("context_mode") @default("conversation_only")
+  /// Ordered message ids and selection params — never full message bodies.
+  contextManifest    Json                 @map("context_manifest")
+  contextHash        String?              @map("context_hash")
+  promptVersion      String?              @map("prompt_version")
+  providerId         String?              @map("provider_id")
+  modelId            String?              @map("model_id")
+  inputTokenEstimate Int?                 @map("input_token_estimate")
+  createdAt          DateTime             @default(now()) @map("created_at")
+  items              ContextSnapshotItem[]
+  generationLink     AiGeneration?        @relation("GenerationContextSnapshot")
+
+  @@unique([organizationId, id])
+  @@index([organizationId, conversationId, createdAt])
+  @@map("context_snapshots")
+}
+
+model ContextSnapshotItem {
+  id                 String                  @id @default(uuid()) @db.Uuid
+  organizationId     String                  @map("organization_id") @db.Uuid
+  organization       Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  contextSnapshotId  String                  @map("context_snapshot_id") @db.Uuid
+  contextSnapshot    ContextSnapshot         @relation(fields: [contextSnapshotId], references: [id], onDelete: Cascade)
+  ordinal            Int
+  itemType           ContextSnapshotItemType @map("item_type")
+  sourceEntityType   String                  @map("source_entity_type")
+  sourceEntityId     String                  @map("source_entity_id") @db.Uuid
+  /// Reserved for DocumentVersion; no FK until Phase 6A.
+  sourceVersionId    String?                 @map("source_version_id") @db.Uuid
+  contentHash        String?                 @map("content_hash")
+  sourceLocator      Json?                   @map("source_locator")
+  includedTokenEstimate Int?                 @map("included_token_estimate")
+  citationKey        String?                 @map("citation_key")
+  createdAt          DateTime                @default(now()) @map("created_at")
+  messageSources     MessageSource[]
+
+  @@unique([organizationId, id])
+  @@unique([contextSnapshotId, ordinal])
+  @@index([organizationId, contextSnapshotId])
+  @@map("context_snapshot_items")
+}
+
+/// Server-validated citation links for an assistant message (never trust model-invented ids).
+model MessageSource {
+  id                    String               @id @default(uuid()) @db.Uuid
+  organizationId        String               @map("organization_id") @db.Uuid
+  organization          Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  messageId             String               @map("message_id") @db.Uuid
+  message               Message              @relation(fields: [organizationId, messageId], references: [organizationId, id], onDelete: Cascade)
+  contextSnapshotItemId String               @map("context_snapshot_item_id") @db.Uuid
+  contextSnapshotItem   ContextSnapshotItem  @relation(fields: [contextSnapshotItemId], references: [id], onDelete: Restrict)
+  citationKey           String               @map("citation_key")
+  rank                  Int
+  sourceType            MessageSourceType    @map("source_type")
+  pageStart             Int?                 @map("page_start")
+  pageEnd               Int?                 @map("page_end")
+  quoteLocator          Json?                @map("quote_locator")
+  createdAt             DateTime             @default(now()) @map("created_at")
+
+  @@unique([organizationId, id])
+  @@unique([messageId, citationKey])
+  @@index([organizationId, messageId])
+  @@map("message_sources")
 }
 
 /// Transactional outbox for reliable queue publish (docs/15 §5.3; chat path docs/32 §8.1).

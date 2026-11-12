@@ -23,6 +23,10 @@ describe("chat RLS (runtime role)", () => {
   const workspaceMessageId = randomUUID();
   const privateGenerationId = randomUUID();
   const workspaceGenerationId = randomUUID();
+  const privateSnapshotId = randomUUID();
+  const workspaceSnapshotId = randomUUID();
+  const privateItemId = randomUUID();
+  const workspaceItemId = randomUUID();
 
   let ready = false;
 
@@ -144,6 +148,52 @@ describe("chat RLS (runtime role)", () => {
           },
         ],
       });
+      await migrator.contextSnapshot.createMany({
+        data: [
+          {
+            id: privateSnapshotId,
+            organizationId: orgA,
+            workspaceId,
+            conversationId: privateConvId,
+            aiGenerationId: privateGenerationId,
+            contextMode: "conversation_only",
+            contextManifest: { messageIds: [privateMessageId] },
+          },
+          {
+            id: workspaceSnapshotId,
+            organizationId: orgA,
+            workspaceId,
+            conversationId: workspaceConvId,
+            aiGenerationId: workspaceGenerationId,
+            contextMode: "conversation_only",
+            contextManifest: { messageIds: [workspaceMessageId] },
+          },
+        ],
+      });
+      await migrator.contextSnapshotItem.createMany({
+        data: [
+          {
+            id: privateItemId,
+            organizationId: orgA,
+            contextSnapshotId: privateSnapshotId,
+            ordinal: 0,
+            itemType: "conversation_message",
+            sourceEntityType: "message",
+            sourceEntityId: privateMessageId,
+            citationKey: "S1",
+          },
+          {
+            id: workspaceItemId,
+            organizationId: orgA,
+            contextSnapshotId: workspaceSnapshotId,
+            ordinal: 0,
+            itemType: "conversation_message",
+            sourceEntityType: "message",
+            sourceEntityId: workspaceMessageId,
+            citationKey: "S1",
+          },
+        ],
+      });
       ready = true;
     } catch (error) {
       console.warn(
@@ -156,6 +206,16 @@ describe("chat RLS (runtime role)", () => {
 
   afterAll(async () => {
     if (ready) {
+      await migrator.contextSnapshotItem.deleteMany({
+        where: { id: { in: [privateItemId, workspaceItemId] } },
+      });
+      await migrator.aiGeneration.updateMany({
+        where: { id: { in: [privateGenerationId, workspaceGenerationId] } },
+        data: { contextSnapshotId: null },
+      });
+      await migrator.contextSnapshot.deleteMany({
+        where: { id: { in: [privateSnapshotId, workspaceSnapshotId] } },
+      });
       await migrator.aiGeneration.deleteMany({
         where: { id: { in: [privateGenerationId, workspaceGenerationId] } },
       });
@@ -289,5 +349,37 @@ describe("chat RLS (runtime role)", () => {
         }),
       ),
     ).rejects.toBeTruthy();
+  });
+
+  it("context snapshots and items follow parent conversation ACL", async ({
+    skip,
+  }) => {
+    if (!ready) skip();
+
+    const editorPrivate = await withActorContext(
+      runtime,
+      { userId: userEditor, organizationId: orgA },
+      (tx) => tx.contextSnapshot.findMany({ where: { id: privateSnapshotId } }),
+    );
+    const editorShared = await withActorContext(
+      runtime,
+      { userId: userEditor, organizationId: orgA },
+      (tx) => tx.contextSnapshot.findMany({ where: { id: workspaceSnapshotId } }),
+    );
+    const editorPrivateItems = await withActorContext(
+      runtime,
+      { userId: userEditor, organizationId: orgA },
+      (tx) => tx.contextSnapshotItem.findMany({ where: { id: privateItemId } }),
+    );
+    const editorSharedItems = await withActorContext(
+      runtime,
+      { userId: userEditor, organizationId: orgA },
+      (tx) => tx.contextSnapshotItem.findMany({ where: { id: workspaceItemId } }),
+    );
+
+    expect(editorPrivate).toEqual([]);
+    expect(editorShared.map((row) => row.id)).toEqual([workspaceSnapshotId]);
+    expect(editorPrivateItems).toEqual([]);
+    expect(editorSharedItems.map((row) => row.id)).toEqual([workspaceItemId]);
   });
 });

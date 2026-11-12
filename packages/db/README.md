@@ -6,14 +6,15 @@ Prisma 7 schema, migrations, and runtime client factory (**D-009**, Workspace, d
 
 `Organization`, `Client`, `Matter`, `User`, `OrganizationMembership`, `Session`,  
 `Workspace`, `WorkspaceMember`, `WorkspaceMatter`, `Document`, `OrganizationInvitation`,  
-`AiJob`, `DocumentExtraction`, `AuditEvent`, `Conversation`, `Message`, `AiGeneration`, `OutboxEvent`.
+`AiJob`, `DocumentExtraction`, `AuditEvent`, `Conversation`, `Message`, `AiGeneration`, `OutboxEvent`,  
+`ContextSnapshot`, `ContextSnapshotItem`, `MessageSource`.
 
 - Workspace PERSONAL/TEAM (**W-002**); Matter link via `WorkspaceMatter` M:N (**W-003**).
 - `Matter.workspaceId` optional legacy, **no FK** — prefer join table; drop later after backfill.
 - Matter→Client and Workspace→Client FKs are composite on `(organizationId, clientId)`.
 - Document metadata (Phase 3 thin); binary in private storage by `storageKey`.
-- Chat (Phase 5A-1/5A-2): Conversation PRIVATE/WORKSPACE, Message, AiGeneration, OutboxEvent scaffold (JOB-012 remains OPEN); no ContextSnapshot yet.
-- No grant, DocumentVersion, or MFA/SSO models yet.
+- Chat (Phase 5A–5B): Conversation, Message, AiGeneration, OutboxEvent scaffold, ContextSnapshot conversation_only + MessageSource; no DocumentVersion yet.
+- No grant or MFA/SSO models yet. JOB-012 / CTX-* remain OPEN in the journal.
 
 ## Public API
 
@@ -30,6 +31,7 @@ Tenant-boundary policies (`organization_id` = GUC) + `FORCE ROW LEVEL SECURITY` 
 `documents` (org + workspace owner/active member),  
 `conversations` (org + workspace access + PRIVATE owner / WORKSPACE shared),  
 `messages` / `ai_generations` (via parent conversation EXISTS under same RLS),  
+`context_snapshots` / `context_snapshot_items` / `message_sources` (via conversation/message ACL),  
 `outbox_events` (org GUC),  
 `ai_jobs`, `document_extractions`, `audit_events`, `organization_invitations`.
 

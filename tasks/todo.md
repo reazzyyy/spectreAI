@@ -38,9 +38,14 @@
 - [x] 5A-2: API + Outbox + chat worker + Synthetic + e2e history (P5-03/05; HTTP of P5-01)
 - [x] Docs AS-IS / api+db READMEs / gaps after code
 
-## Next — Phase 5B / later
+## Closed — Phase 5B context refs (2026-11-12)
 
-- [ ] Phase 5B: context / source refs (synthetic-safe); chat UI
+- [x] ContextSnapshot / Item / MessageSource + RLS; conversation_only synthetic wiring
+- [x] Generation API returns sources; e2e + RLS coverage; AS-IS/trackers
+
+## Next
+
+- [ ] Chat UI (FSD widgets) — optional parallel
 - [ ] Phase 6A: DocumentVersion → structure/chunk experiment → FTS (FILE-009 OPEN until confirm)
 - [ ] Gate B → Phase 6B vector / HNSW / RRF
 - [ ] Remaining Phase 2 debt (`tasks/phase2-debt.md`) — O-012, email provider, idle session…

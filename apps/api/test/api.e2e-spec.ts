@@ -64,6 +64,19 @@ async function seedFixtures(): Promise<void> {
     await prisma.outboxEvent.deleteMany({
       where: { organizationId: { in: [ORG_A, ORG_B] } },
     });
+    await prisma.messageSource.deleteMany({
+      where: { organizationId: { in: [ORG_A, ORG_B] } },
+    });
+    await prisma.contextSnapshotItem.deleteMany({
+      where: { organizationId: { in: [ORG_A, ORG_B] } },
+    });
+    await prisma.aiGeneration.updateMany({
+      where: { organizationId: { in: [ORG_A, ORG_B] } },
+      data: { contextSnapshotId: null },
+    });
+    await prisma.contextSnapshot.deleteMany({
+      where: { organizationId: { in: [ORG_A, ORG_B] } },
+    });
     await prisma.aiGeneration.deleteMany({
       where: { organizationId: { in: [ORG_A, ORG_B] } },
     });
@@ -1094,6 +1107,14 @@ describe("API scaffold", () => {
       expect(generation.status).toBe(200);
       expect(generation.body.status).toBe("succeeded");
       expect(generation.body.synthetic).toBe(true);
+      expect(generation.body.contextMode).toBe("conversation_only");
+      expect(generation.body.contextSnapshotId).toEqual(expect.any(String));
+      expect(Array.isArray(generation.body.sources)).toBe(true);
+      expect(generation.body.sources.length).toBeGreaterThanOrEqual(1);
+      expect(generation.body.sources[0]).toMatchObject({
+        citationKey: "S1",
+        sourceType: "conversation_message",
+      });
 
       const history = await ownerAgent.get(
         `/api/v1/conversations/${sharedConv.body.id}/messages`,

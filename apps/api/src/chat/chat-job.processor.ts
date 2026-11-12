@@ -1,8 +1,15 @@
 import { Injectable } from "@nestjs/common";
 import { AiGateway } from "@spectre/ai-gateway";
 import { createPrismaClient, withActorContext } from "@spectre/db";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { CHAT_GENERATE_JOB_TYPE } from "./chat.constants.js";
+
+const CONTEXT_MODE = "conversation_only";
+const PROMPT_VERSION = "chat-conversation-only-v1";
+
+function sha256(text: string): string {
+  return createHash("sha256").update(text, "utf8").digest("hex");
+}
 
 /**
  * Processes chat.generate AIJobs via Synthetic AiGateway only (D-012 / O-002).
@@ -94,7 +101,9 @@ export class ChatJobProcessor {
         actor,
         async (
           tx,
-        ): Promise<Array<{ role: string; content: string }>> =>
+        ): Promise<
+          Array<{ id: string; role: string; content: string; createdAt: Date }>
+        > =>
           tx.message.findMany({
             where: {
               conversationId: conversation.id,
@@ -102,7 +111,7 @@ export class ChatJobProcessor {
             },
             orderBy: [{ createdAt: "asc" }, { id: "asc" }],
             take: 50,
-            select: { role: true, content: true },
+            select: { id: true, role: true, content: true, createdAt: true },
           }),
       );
 
@@ -137,7 +146,57 @@ export class ChatJobProcessor {
       }
 
       const assistantId = randomUUID();
+      const snapshotId = randomUUID();
+      const manifest = {
+        contextMode: CONTEXT_MODE,
+        promptVersion: PROMPT_VERSION,
+        messageIds: history.map((m) => m.id),
+        roles: history.map((m) => m.role),
+      };
+      const contextHash = sha256(JSON.stringify(manifest));
+
       await withActorContext(runtime, actor, async (tx) => {
+        await tx.contextSnapshot.create({
+          data: {
+            id: snapshotId,
+            organizationId: actor.organizationId,
+            workspaceId: conversation.workspaceId,
+            conversationId: conversation.id,
+            aiGenerationId: generation.id,
+            aiJobId: jobId,
+            contextMode: CONTEXT_MODE,
+            contextManifest: manifest,
+            contextHash,
+            promptVersion: PROMPT_VERSION,
+            providerId: result.providerId,
+            modelId: result.modelId,
+            inputTokenEstimate: result.usage.inputTokens,
+          },
+        });
+
+        const itemIds: string[] = [];
+        for (let i = 0; i < history.length; i += 1) {
+          const msg = history[i]!;
+          const itemId = randomUUID();
+          itemIds.push(itemId);
+          const citationKey = `S${i + 1}`;
+          await tx.contextSnapshotItem.create({
+            data: {
+              id: itemId,
+              organizationId: actor.organizationId,
+              contextSnapshotId: snapshotId,
+              ordinal: i,
+              itemType: "conversation_message",
+              sourceEntityType: "message",
+              sourceEntityId: msg.id,
+              contentHash: sha256(msg.content),
+              sourceLocator: { role: msg.role, createdAt: msg.createdAt.toISOString() },
+              includedTokenEstimate: msg.content.length,
+              citationKey,
+            },
+          });
+        }
+
         await tx.message.create({
           data: {
             id: assistantId,
@@ -149,13 +208,30 @@ export class ChatJobProcessor {
             createdByUserId: null,
           },
         });
+
+        for (let i = 0; i < itemIds.length; i += 1) {
+          await tx.messageSource.create({
+            data: {
+              id: randomUUID(),
+              organizationId: actor.organizationId,
+              messageId: assistantId,
+              contextSnapshotItemId: itemIds[i]!,
+              citationKey: `S${i + 1}`,
+              rank: i,
+              sourceType: "conversation_message",
+            },
+          });
+        }
+
         await tx.aiGeneration.update({
           where: { id: generation.id },
           data: {
             status: "succeeded",
             assistantMessageId: assistantId,
+            contextSnapshotId: snapshotId,
             providerId: result.providerId,
             modelId: result.modelId,
+            promptVersion: PROMPT_VERSION,
             completedAt: new Date(),
           },
         });

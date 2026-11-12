@@ -21,6 +21,9 @@ export type {
   Message,
   AiGeneration,
   OutboxEvent,
+  ContextSnapshot,
+  ContextSnapshotItem,
+  MessageSource,
 } from "./generated/client.js";
 export {
   WorkspaceVisibility,
@@ -33,6 +36,8 @@ export {
   ConversationStatus,
   MessageRole,
   AiGenerationStatus,
+  ContextSnapshotItemType,
+  MessageSourceType,
 } from "./generated/enums.js";
 export {
   withActorContext,
