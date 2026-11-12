@@ -1,0 +1,58 @@
+.form {
+  display: grid;
+  gap: 10px;
+}
+
+.composer {
+  display: grid;
+  gap: 6px;
+}
+
+.label {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--color-text-2);
+}
+
+.textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 88px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border, #d0d5dd);
+  border-radius: 8px;
+  background: var(--color-surface, #fff);
+  color: var(--color-text, #101828);
+  font: inherit;
+  font-size: var(--fs-sm);
+  resize: vertical;
+}
+
+.textarea:focus {
+  outline: 2px solid var(--color-focus, #98a2b3);
+  outline-offset: 1px;
+}
+
+.textarea[aria-invalid="true"] {
+  border-color: var(--color-danger, #b42318);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-text-2);
+  font-size: var(--fs-xs, 0.75rem);
+}
+
+.error {
+  margin: 0;
+  color: var(--color-danger, #b42318);
+  font-size: var(--fs-sm);
+}

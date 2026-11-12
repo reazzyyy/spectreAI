@@ -1,0 +1,154 @@
+.root {
+  display: grid;
+  gap: 20px;
+  padding-top: 8px;
+}
+
+.bannerWrap {
+  margin-bottom: 4px;
+}
+
+.layout {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sidebar {
+  display: grid;
+  gap: 16px;
+}
+
+.sidebarHead {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+.list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.itemButton {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.itemButton:hover {
+  background: var(--color-surface-2, #f2f4f7);
+}
+
+.itemActive {
+  border-color: var(--color-border, #d0d5dd);
+  background: var(--color-surface-2, #f2f4f7);
+}
+
+.itemTitle {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+}
+
+.itemMeta {
+  color: var(--color-text-2);
+  font-size: var(--fs-xs, 0.75rem);
+}
+
+.thread {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.threadHead {
+  display: grid;
+  gap: 4px;
+}
+
+.threadTitle {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+
+.threadMeta {
+  margin: 0;
+  color: var(--color-text-2);
+  font-size: var(--fs-sm);
+}
+
+.messages {
+  display: grid;
+  gap: 12px;
+  min-height: 12rem;
+  max-height: min(52vh, 520px);
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--color-border, #d0d5dd);
+  border-radius: 10px;
+  background: var(--color-surface, #fff);
+}
+
+.bubble {
+  display: grid;
+  gap: 4px;
+  max-width: min(100%, 36rem);
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: var(--fs-sm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.bubbleUser {
+  justify-self: end;
+  background: var(--color-surface-2, #f2f4f7);
+}
+
+.bubbleAssistant {
+  justify-self: start;
+  border: 1px solid var(--color-border, #d0d5dd);
+}
+
+.role {
+  color: var(--color-text-2);
+  font-size: var(--fs-xs, 0.75rem);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.status {
+  margin: 0;
+  color: var(--color-muted, #667085);
+  font-size: var(--fs-sm);
+}
+
+.error {
+  margin: 0;
+  color: var(--color-danger, #b42318);
+  font-size: var(--fs-sm);
+}
+
+.emptyInline {
+  padding: 24px 0;
+}
