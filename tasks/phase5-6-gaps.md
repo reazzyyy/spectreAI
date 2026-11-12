@@ -8,11 +8,11 @@
 
 | ID | Пробел | Срез | Статус |
 |---|---|---|---|
-| P5-01 | Нет Conversation / Message Prisma + API + UI | 5A | open |
-| P5-02 | Нет chat ACL + RLS (PRIVATE/WORKSPACE; Org Admin без auto content) | 5A | open |
-| P5-03 | `/ai/generate` синхронный synthetic — не chat orchestration | 5A | open |
-| P5-04 | Нет AI Generation entity; AIJob сейчас extract-centric | 5A | open |
-| P5-05 | Нет transactional Outbox / publisher для chat jobs | 5A | open |
+| P5-01 | Conversation / Message Prisma есть (5A-1); **нет** chat API + UI | 5A-2 | partial |
+| P5-02 | Chat ACL + RLS PRIVATE/WORKSPACE landed (5A-1); Nest HTTP still to wire | 5A-2 | partial |
+| P5-03 | `/ai/generate` синхронный synthetic — не chat orchestration | 5A-2 | open |
+| P5-04 | AiGeneration entity + optional aiJobId landed (5A-1); extract jobs unchanged; orchestration open | 5A-2 | partial |
+| P5-05 | Нет transactional Outbox / publisher для chat jobs | 5A-2 | open |
 | P6-01 | Нет DocumentVersion; extraction unique на documentId | 6A | open |
 | P6-02 | Нет chunk / embedding / index generation schema + indexing worker + retrieval SQL | 6A→6B | open |
 

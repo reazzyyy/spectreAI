@@ -1,14 +1,14 @@
 # Текущее состояние кодовой базы (AS-IS)
 
 **Статус:** CONFIRMED как снимок scaffold на дату ниже; не заменяет продуктовые спецификации и не утверждает MVP.  
-**Дата снимка кода:** 2026-11-10 (hardening + Phase 4 extract worker; web F1–F5k + documents UI)  
+**Дата снимка кода:** 2026-11-12 (Phase 5A-1 Conversation/Message/AiGeneration + chat RLS/ACL; web F1–F5k + documents UI; Phase 4 extract)  
 **Сверка статусов решений:** 2026-11-10 (W-001–W-020, W-014a, **D-024**, **D-025–D-031**)  
 **Источник истины по решениям:** `docs/decisions-log.md`  
 **План:** `tasks/roadmap.md` / `tasks/plan.md`. Долги Фазы 2: `tasks/phase2-debt.md` (O-012, email, Chromatic…).
 
 Этот документ описывает **только то, что реально есть в репозитории**. Спецификации в `docs/00–25` могут описывать целевое MVP шире; если код ещё не реализован — ниже явно указано «не реализовано».
 
-Исполняемые спеки следующего среза (ещё **не** код): Phase 5 Chat `docs/32`, Phase 6 RAG `docs/33`, audit gaps `docs/34`, инструкция `docs/CURSOR-INSTRUCTIONS-PHASE5-6.md` — все **PROPOSED**/отчётные. Трекер пробелов: `tasks/phase5-6-gaps.md`.
+Исполняемые спеки: Phase 5 Chat `docs/32` (**PROPOSED**; 5A-1 data/RLS в коде, API/UI ещё нет), Phase 6 RAG `docs/33`, audit gaps `docs/34`, инструкция `docs/CURSOR-INSTRUCTIONS-PHASE5-6.md`. Трекер: `tasks/phase5-6-gaps.md`.
 
 ## 1. Что это за репозиторий сейчас
 
@@ -25,7 +25,8 @@
 | Invitations (W-012 / D-028) | Prisma + HTTP create/list/resend/revoke/accept; TTL `INVITE_TTL_HOURS` default 72h; email stub/devToken |
 | MFA / SSO (O-008) | **Не реализовано** |
 | Workspace как сущность | Prisma + `WorkspaceAccess` + HTTP; content-visible list — single SQL; cursor pagination (**D-026**) |
-| PostgreSQL RLS (W-020) | Org GUC на tenant tables; **documents** — org + workspace owner/member (**W-020+ partial**); chat/grant policies нет |
+| PostgreSQL RLS (W-020) | Org GUC на tenant tables; **documents** + **conversations/messages/ai_generations** — workspace + PRIVATE/WORKSPACE ACL (**W-020+ partial**); grant policies нет |
+| Chat foundation (5A-1) | Prisma Conversation/Message/AiGeneration + `ConversationAccess` + RLS tests; **нет** HTTP chat / Outbox / chat worker / UI |
 | Загрузка документов | Two-phase `uploading`→blob→`uploaded`; disk temp multipart; DOCX CD walk + PDF `/Encrypt` reject; enqueue extract |
 | AIJob + extract worker | Prisma `AIJob` / `DocumentExtraction`; BullMQ `ai-jobs`; `pnpm --filter @spectre/api worker:extract`; scan → failed (**D-031**) |
 | Rate limit / audit | Redis sliding window (login/upload/ai/invite); thin `audit_events` (login/logout/upload/download, без content) |
@@ -41,7 +42,7 @@ spectreAI/
 │   ├── api/          @spectre/api    NestJS, префикс /api/v1, порт 3000
 │   └── web/          @spectre/web    Next.js shell, порт 3001
 ├── packages/
-│   ├── access/       @spectre/access Политика Client/Matter (org-isolation scaffold)
+│   ├── access/       @spectre/access Client/Matter/Workspace/Document/Conversation ACL
 │   ├── ai-gateway/   @spectre/ai-gateway SyntheticAIProvider + AiGateway
 │   └── db/           @spectre/db     Prisma 7 schema + migrations
 ├── docs/             Канонические спецификации и этот AS-IS снимок
@@ -125,19 +126,20 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 - Линтеры: ESLint + Steiger FSD + Stylelint (включая system-map SCSS).
 - Стили AS-IS: SCSS-токены (визуально близки к референсу `designSpectreAI`); `shared/ui` kit выше; shell/home/workspace-list/workspace-detail/system-map на SCSS Modules.
 - Тесты AS-IS: Vitest + RTL (Button, schemas, AppShell). Storybook 10 + stories `shared/ui`; Chromatic addon/CLI (publish — `CHROMATIC_PROJECT_TOKEN`). Playwright smoke: unauth `/` → `/login`; login → home (Postgres + bootstrap + `E2E_ORGANIZATION_ID`). CI `web-e2e`: bootstrap JSON file + direct API login preflight before Playwright; Chromatic publish ещё нет.
-- Нет регистрации, recovery, MFA, ownership transfer, OCR/worker; chat API/UI нет (вкладка «Чаты» — StateCard до Phase 5A).
+- Нет регистрации, recovery, MFA, ownership transfer, OCR/worker; chat API/UI нет (модели+RLS 5A-1 есть; вкладка «Чаты» — StateCard до 5A-2/UI).
 
 ## 4. Пакеты
 
 ### 4.1 `@spectre/access`
 
-Публичный API: Client/Matter org-isolation + **`WorkspaceAccess`** (S2) + **`DocumentAccess`** (Phase 3).
+Публичный API: Client/Matter org-isolation + **`WorkspaceAccess`** (S2) + **`DocumentAccess`** (Phase 3) + **`ConversationAccess`** (Phase 5A-1).
 
 - Client/Matter: чужой id → `null`; create штампует `organizationId` актёра.
 - Workspace: content (PERSONAL owner / TEAM owner+member) отдельно от member-management (Workspace Owner **или** Org Owner/Admin без content read, **W-008**).
 - Create Workspace: PERSONAL (default) или TEAM (**W-002**).
 - Document: org isolation на store; Workspace content ACL применяет API (`canReadContent` / `canMutateContent`) до list/upload/download.
-- Hard delete **нет**. Chat/grant ACL — ещё нет.
+- Conversation: PRIVATE → только `ownerUserId` при workspace content access; WORKSPACE → active content members; mutate OWNER/EDITOR; Org Admin without membership → null.
+- Hard delete **нет**. Grant ACL — ещё нет.
 
 ### 4.2 `@spectre/ai-gateway`
 
@@ -150,12 +152,12 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 
 - Prisma 7, URL в `prisma.config.ts`, клиент генерируется в `src/generated`.
 - `createPrismaClient({ purpose: "migrator" | "runtime" })` + `withActorContext` (GUC в interactive tx).
-- Модели: Organization, Client, Matter, User, OrganizationMembership, Session, Workspace*, Document, OrganizationInvitation, **AiJob**, **DocumentExtraction**, **AuditEvent**.
+- Модели: Organization, Client, Matter, User, OrganizationMembership, Session, Workspace*, Document, OrganizationInvitation, **AiJob**, **DocumentExtraction**, **AuditEvent**, **Conversation**, **Message**, **AiGeneration**.
 - `Matter.workspaceId` legacy nullable без FK; связи Matter↔Workspace — `WorkspaceMatter`.
-- Миграции: … documents; **`20261110180000_phase4_hardening`** (uploading status, AIJob, extractions, audit, documents workspace RLS).
-- RLS: org GUC на большинстве tenant tables; **documents** — org + owner/active member; ai_jobs/extractions/audit org-scoped.
+- Миграции: … **`20261110180000_phase4_hardening`**; **`20261112120000_phase5a_chat_foundation`** (conversations/messages/ai_generations + chat RLS).
+- RLS: org GUC на большинстве tenant tables; **documents** — org + owner/active member; **conversations** — org + workspace access + PRIVATE owner / WORKSPACE shared; messages/ai_generations via parent conversation EXISTS; ai_jobs/extractions/audit org-scoped.
 - Auth bootstrap / e2e seed — migrator; tenant API — runtime + GUC; worker extract — migrator (scaffold).
-- Chat / DocumentVersion / grant — **нет**.
+- Chat HTTP / Outbox / chat worker / ContextSnapshot / DocumentVersion / grant — **нет**.
 - `created_by` на Client/Matter — ещё нет; Document имеет `uploadedByUserId` (**D-029** готов для будущего delete).
 
 ## 5. HTTP-контракт scaffold (фактический)
@@ -274,7 +276,7 @@ Extract caps scaffold (**D-030**): 300 pages / 2M chars / 120s / maxAttempts 3. 
 
 | Место | Что проверяет |
 |---|---|
-| `packages/access` | Client/Matter org-isolation + WorkspaceAccess content/manage unit tests |
+| `packages/access` | Client/Matter/Workspace/Document + ConversationAccess PRIVATE/WORKSPACE unit tests |
 | `packages/ai-gateway` | Synthetic OK; блок несинтетики; статусы AIJob; нет `fetch` |
 | `apps/api` e2e | health, provider; 401 без cookie; CSRF Origin/header reject; Client/Matter/Workspace CRU+list; TEAM create; members + matter links; Document upload/list/download; чужой workspace/document → 404; bad type → 422; чужой clientId/matterId → 422; generate/block/validation |
 | `apps/api` unit | file magic/limits (PDF/DOCX/TXT); bootstrap; queue name |
@@ -302,7 +304,7 @@ Workflow: `.github/workflows/ci.yml`.
 - MFA/SSO (**O-008** / **W-013** — не в MVP), self-registration (**W-012** запрещает public self-reg), email verify, recovery, logout-all, session list.
 - Email delivery provider для invitations; полный `docs/12` (password policy product confirmation, idle timeout, logout-all, session list).
 - Hard delete Client/Matter/Workspace; полный W-020 (сверх текущих tenant/document policies); ACL матрица `docs/07` в коде; admin grant; ownership transfer.
-- Conversation / Message / AI Generation / Context Snapshot / chat API / chat RLS / chat UI (**Phase 5**; спека `docs/32`).
+- Chat HTTP API / UI / Context Snapshot / MessageSource (**Phase 5A-2/5B**; модели+RLS 5A-1 есть; спека `docs/32`).
 - Transactional Outbox + chat worker orchestration (extract worker есть; chat path — нет).
 - DocumentVersion; chunks; FTS/GIN; embeddings; pgvector/HNSW; hybrid retrieval/RRF (**Phase 6**; спека `docs/33`; Gate B / FILE-009 OPEN).
 - OCR success path (**O-004**); production object storage (**O-003**).

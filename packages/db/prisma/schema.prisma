@@ -1,8 +1,6 @@
-// Scaffold + Workspace Phase 2 + Phase 3 document metadata (D-010/D-017 thin).
-// Organization, Client, Matter, User, OrganizationMembership, Session,
-// Workspace, WorkspaceMember, WorkspaceMatter, Document.
+// Scaffold + Workspace Phase 2 + Documents + AIJob extract + Phase 5A-1 Chat foundation.
 // Matter.workspaceId remains legacy nullable without FK until a later contract drop (W-003).
-// MFA/SSO (O-008) / chat / grant / DocumentVersion / AIJob — out of this schema slice.
+// MFA/SSO (O-008) / grant / DocumentVersion / ContextSnapshot / chat API — later slices.
 
 generator client {
   provider = "prisma-client"
@@ -99,6 +97,40 @@ enum AiJobStatus {
   @@map("ai_job_status")
 }
 
+/// Chat visibility inside a Workspace (W-007).
+enum ConversationVisibility {
+  PRIVATE
+  WORKSPACE
+
+  @@map("conversation_visibility")
+}
+
+enum ConversationStatus {
+  ACTIVE
+  ARCHIVED
+
+  @@map("conversation_status")
+}
+
+enum MessageRole {
+  user
+  assistant
+
+  @@map("message_role")
+}
+
+/// Business status of one AiGeneration run (does not replace AiJobStatus / D-011).
+enum AiGenerationStatus {
+  queued
+  running
+  succeeded
+  failed
+  cancelled
+  timed_out
+
+  @@map("ai_generation_status")
+}
+
 model Organization {
   id           String                     @id @default(uuid()) @db.Uuid
   name         String
@@ -111,10 +143,13 @@ model Organization {
   sessions     Session[]
   workspaces   Workspace[]
   invitations  OrganizationInvitation[]
-  documents    Document[]
-  aiJobs       AiJob[]
-  extractions  DocumentExtraction[]
-  auditEvents  AuditEvent[]
+  documents     Document[]
+  aiJobs        AiJob[]
+  extractions   DocumentExtraction[]
+  auditEvents   AuditEvent[]
+  conversations Conversation[]
+  messages      Message[]
+  aiGenerations AiGeneration[]
 
   @@map("organizations")
 }
@@ -169,8 +204,11 @@ model User {
   workspaceMatters   WorkspaceMatter[]        @relation("WorkspaceMatterCreator")
   addedMembers       WorkspaceMember[]        @relation("WorkspaceMemberAdder")
   invitationsSent    OrganizationInvitation[]  @relation("InvitationInviter")
-  uploadedDocuments  Document[]                @relation("DocumentUploader")
-  createdAiJobs      AiJob[]                   @relation("AiJobCreator")
+  uploadedDocuments      Document[]       @relation("DocumentUploader")
+  createdAiJobs          AiJob[]          @relation("AiJobCreator")
+  ownedConversations     Conversation[]   @relation("ConversationOwner")
+  createdConversations   Conversation[]   @relation("ConversationCreator")
+  createdMessages        Message[]        @relation("MessageCreator")
 
   @@map("users")
 }
@@ -254,6 +292,7 @@ model Workspace {
   members        WorkspaceMember[]
   matterLinks    WorkspaceMatter[]
   documents      Document[]
+  conversations  Conversation[]
 
   @@unique([organizationId, id])
   @@index([organizationId, status, updatedAt])
@@ -350,6 +389,7 @@ model AiJob {
   startedAt       DateTime?    @map("started_at")
   completedAt     DateTime?    @map("completed_at")
   extractions     DocumentExtraction[]
+  aiGeneration    AiGeneration?
 
   @@unique([organizationId, idempotencyKey])
   @@index([organizationId, status, createdAt])
@@ -391,4 +431,87 @@ model AuditEvent {
   @@index([organizationId, createdAt])
   @@index([action, createdAt])
   @@map("audit_events")
+}
+
+/// Chat thread inside a Workspace (Phase 5A-1 / docs/32 §5.1, W-007).
+model Conversation {
+  id              String                 @id @default(uuid()) @db.Uuid
+  organizationId  String                 @map("organization_id") @db.Uuid
+  organization    Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  workspaceId     String                 @map("workspace_id") @db.Uuid
+  workspace       Workspace              @relation(fields: [organizationId, workspaceId], references: [organizationId, id], onDelete: Cascade)
+  ownerUserId     String                 @map("owner_user_id") @db.Uuid
+  owner           User                   @relation("ConversationOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  createdByUserId String                 @map("created_by_user_id") @db.Uuid
+  createdBy       User                   @relation("ConversationCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  visibility      ConversationVisibility
+  title           String?
+  status          ConversationStatus     @default(ACTIVE)
+  lastMessageAt   DateTime?              @map("last_message_at")
+  createdAt       DateTime               @default(now()) @map("created_at")
+  updatedAt       DateTime               @updatedAt @map("updated_at")
+  messages        Message[]
+  generations     AiGeneration[]
+
+  @@unique([organizationId, id])
+  @@index([organizationId, workspaceId, lastMessageAt, id])
+  @@index([organizationId, ownerUserId, status])
+  @@map("conversations")
+}
+
+/// Append-only chat message (docs/32 §5.2). Edit/regenerate semantics wait on DEC-05.
+model Message {
+  id                 String        @id @default(uuid()) @db.Uuid
+  organizationId     String        @map("organization_id") @db.Uuid
+  organization       Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  conversationId     String        @map("conversation_id") @db.Uuid
+  conversation       Conversation  @relation(fields: [organizationId, conversationId], references: [organizationId, id], onDelete: Cascade)
+  role               MessageRole
+  content            String        @db.Text
+  createdByUserId    String?       @map("created_by_user_id") @db.Uuid
+  createdBy          User?         @relation("MessageCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  generationId       String?       @map("generation_id") @db.Uuid
+  generation         AiGeneration? @relation("MessageFromGeneration", fields: [generationId], references: [id], onDelete: SetNull)
+  clientMessageId    String?       @map("client_message_id")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  generationsAsUser  AiGeneration[] @relation("GenerationUserMessage")
+  generationsAsAssistant AiGeneration[] @relation("GenerationAssistantMessage")
+
+  @@unique([organizationId, id])
+  @@unique([conversationId, clientMessageId])
+  @@index([organizationId, conversationId, createdAt, id])
+  @@map("messages")
+}
+
+/// One AI generation attempt for a user message (docs/32 §5.3). Not the AIJob row.
+model AiGeneration {
+  id                     String             @id @default(uuid()) @db.Uuid
+  organizationId         String             @map("organization_id") @db.Uuid
+  organization           Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  conversationId         String             @map("conversation_id") @db.Uuid
+  conversation           Conversation       @relation(fields: [organizationId, conversationId], references: [organizationId, id], onDelete: Cascade)
+  userMessageId          String             @map("user_message_id") @db.Uuid
+  userMessage            Message            @relation("GenerationUserMessage", fields: [userMessageId], references: [id], onDelete: Restrict)
+  assistantMessageId     String?            @map("assistant_message_id") @db.Uuid
+  assistantMessage       Message?           @relation("GenerationAssistantMessage", fields: [assistantMessageId], references: [id], onDelete: SetNull)
+  generationNumber       Int                @map("generation_number") @default(1)
+  status                 AiGenerationStatus @default(queued)
+  aiJobId                String?            @unique @map("ai_job_id") @db.Uuid
+  aiJob                  AiJob?             @relation(fields: [aiJobId], references: [id], onDelete: SetNull)
+  providerId             String?            @map("provider_id")
+  modelId                String?            @map("model_id")
+  promptVersion          String?            @map("prompt_version")
+  inputHash              String?            @map("input_hash")
+  supersedesGenerationId String?            @map("supersedes_generation_id") @db.Uuid
+  supersedes             AiGeneration?      @relation("GenerationSupersedes", fields: [supersedesGenerationId], references: [id], onDelete: SetNull)
+  supersededBy           AiGeneration[]     @relation("GenerationSupersedes")
+  startedAt              DateTime?          @map("started_at")
+  completedAt            DateTime?          @map("completed_at")
+  createdAt              DateTime           @default(now()) @map("created_at")
+  resultMessages         Message[]          @relation("MessageFromGeneration")
+
+  @@unique([organizationId, id])
+  @@index([organizationId, conversationId, createdAt])
+  @@index([userMessageId])
+  @@map("ai_generations")
 }

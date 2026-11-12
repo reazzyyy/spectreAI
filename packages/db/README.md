@@ -1,17 +1,19 @@
 # `@spectre/db`
 
-Prisma 7 schema, migrations, and runtime client factory (**D-009**, auth scaffold, Workspace S1).
+Prisma 7 schema, migrations, and runtime client factory (**D-009**, Workspace, documents, AIJob extract, Phase 5A-1 chat foundation).
 
 ## Models in schema
 
 `Organization`, `Client`, `Matter`, `User`, `OrganizationMembership`, `Session`,  
-`Workspace`, `WorkspaceMember`, `WorkspaceMatter`, `Document`, `OrganizationInvitation`.
+`Workspace`, `WorkspaceMember`, `WorkspaceMatter`, `Document`, `OrganizationInvitation`,  
+`AiJob`, `DocumentExtraction`, `AuditEvent`, `Conversation`, `Message`, `AiGeneration`.
 
 - Workspace PERSONAL/TEAM (**W-002**); Matter link via `WorkspaceMatter` M:N (**W-003**).
 - `Matter.workspaceId` optional legacy, **no FK** — prefer join table; drop later after backfill.
 - Matter→Client and Workspace→Client FKs are composite on `(organizationId, clientId)`.
 - Document metadata (Phase 3 thin); binary in private storage by `storageKey`.
-- No AIJob, Audit, Chat, DocumentVersion, or MFA/SSO models yet.
+- Chat foundation (Phase 5A-1): Conversation PRIVATE/WORKSPACE, Message, AiGeneration (optional `aiJobId`); no ContextSnapshot / chat API yet.
+- No grant, DocumentVersion, or MFA/SSO models yet.
 
 ## Public API
 
@@ -19,14 +21,18 @@ Prisma 7 schema, migrations, and runtime client factory (**D-009**, auth scaffol
   - **migrator** (`DATABASE_URL`): migrate, seed, auth bootstrap.
   - **runtime** (`DATABASE_URL_RUNTIME`): Nest tenant queries under RLS.
 - `withActorContext(prisma, actor, fn)` — interactive tx + `set_config` for `app.current_*` GUC.
-- Re-exports: `PrismaClient`, `Prisma`, model types, Workspace enums.
+- Re-exports: `PrismaClient`, `Prisma`, model types, Workspace / Document / Chat enums.
 
-## RLS (S1)
+## RLS
 
 Tenant-boundary policies (`organization_id` = GUC) + `FORCE ROW LEVEL SECURITY` on:  
-`clients`, `matters`, `organization_memberships`, `workspaces`, `workspace_members`, `workspace_matters`, `documents`.
+`clients`, `matters`, `organization_memberships`, `workspaces`, `workspace_members`, `workspace_matters`,  
+`documents` (org + workspace owner/active member),  
+`conversations` (org + workspace access + PRIVATE owner / WORKSPACE shared),  
+`messages` / `ai_generations` (via parent conversation EXISTS under same RLS),  
+`ai_jobs`, `document_extractions`, `audit_events`, `organization_invitations`.
 
-Runtime role `spectre_app` (no BYPASSRLS). **Incomplete W-020:** workspace-membership / chat / grant policies come in later slices — AS-IS must not claim full RLS.
+Runtime role `spectre_app` (no BYPASSRLS). **Incomplete W-020:** grant policies and full `docs/07` matrix still later — AS-IS must not claim full RLS. NestJS authz is not replaced by RLS.
 
 Auth still uses migrator URL until SECURITY DEFINER helpers (S0 §6).
 
@@ -43,4 +49,4 @@ pnpm --filter @spectre/db test   # validate + RLS harness (skips if DB down)
 Config: `prisma.config.ts` (migrate URL from `DATABASE_URL`).  
 Generated client: `src/generated` (do not hand-edit).
 
-**Consumers:** `@spectre/api` (migrator for auth; runtime + GUC for Client/Matter).
+**Consumers:** `@spectre/api` (migrator for auth; runtime + GUC for tenant queries).
