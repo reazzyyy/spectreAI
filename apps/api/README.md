@@ -51,7 +51,8 @@ On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` 
 | `src/db/` | Dual Prisma (`migrator` auth/seed, `runtime` + GUC); actor-scoped Client/Matter/Workspace stores |
 | `src/workspaces/` | Prisma WorkspaceStore + HTTP list/create/get/patch, members, matter links (S3) |
 | `src/documents/` | Upload (two-phase) / list cursor / download; extract enqueue; LocalObjectStorage |
-| `src/worker/` | `worker:extract` — BullMQ document text extract (D-025/D-031) |
+| `src/chat/` | Phase 5A-2: conversations/messages/generations HTTP, Outbox publisher, ChatJobProcessor |
+| `src/worker/` | `worker:extract` (D-025/D-031); `worker:chat` Synthetic chat.generate |
 | `src/audit/` | Thin audit_events (no content) |
 | `src/health/` | Liveness |
 | `src/auth/` | Login/logout/me, SessionService, REQUEST-scoped `ACTOR_CONTEXT`, `ActorGuard` |

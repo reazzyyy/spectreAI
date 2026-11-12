@@ -1,10 +1,12 @@
 import type {
   ClientStore,
+  ConversationStore,
   DocumentStore,
   MatterStore,
   WorkspaceStore,
 } from "@spectre/access";
 import type { ActorDbContext } from "@spectre/db";
+import { createPrismaConversationStore } from "../chat/prisma-conversation-store.js";
 import { createPrismaClientStore } from "../clients/prisma-client-store.js";
 import { createPrismaDocumentStore } from "../documents/prisma-document-store.js";
 import { createPrismaMatterStore } from "../matters/prisma-matter-store.js";
@@ -198,6 +200,45 @@ export function createActorScopedDocumentStore(
     async deleteById(id) {
       if (!actor) return false;
       return prisma.withActor(actor, (tx) => createPrismaDocumentStore(tx).deleteById(id));
+    },
+  };
+}
+
+/** ConversationStore with RLS GUC on every call (Phase 5A-2). */
+export function createActorScopedConversationStore(
+  prisma: PrismaService,
+  actor: ActorDbContext | null,
+): ConversationStore {
+  return {
+    async findById(id) {
+      if (!actor) return null;
+      return prisma.withActor(actor, (tx) =>
+        createPrismaConversationStore(tx).findById(id),
+      );
+    },
+    async listByWorkspace(organizationId, workspaceId, options) {
+      if (!actor) return { items: [], nextCursor: null };
+      return prisma.withActor(actor, (tx) =>
+        createPrismaConversationStore(tx).listByWorkspace(
+          organizationId,
+          workspaceId,
+          options,
+        ),
+      );
+    },
+    async create(organizationId, workspaceId, ownerUserId, createdByUserId, input) {
+      if (!actor) {
+        throw new Error("Authenticated actor required to create Conversation");
+      }
+      return prisma.withActor(actor, (tx) =>
+        createPrismaConversationStore(tx).create(
+          organizationId,
+          workspaceId,
+          ownerUserId,
+          createdByUserId,
+          input,
+        ),
+      );
     },
   };
 }
