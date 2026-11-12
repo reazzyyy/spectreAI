@@ -9,7 +9,7 @@
 
 | ID | Долг | Примечание |
 |---|---|---|
-| W-020+ | Chat / grant RLS policies; broaden beyond documents | **Documents** workspace-membership RLS landed 2026-11-10; chat/grant still open |
+| W-020+ | Grant RLS; broaden beyond documents/chat | **Documents** + **chat** (conversations/messages/ai_generations) RLS landed 2026-11-12; grant still open |
 | ACL-07 | Полная матрица `docs/07` для Client/Matter | Сейчас org-membership isolation scaffold |
 | W-010 / O-012 | Удаление TEAM Workspace + dual confirmation | Confirmer model **OPEN** — не кодировать |
 | W-009 | Ownership transfer PERSONAL/TEAM | Нет HTTP/UI |

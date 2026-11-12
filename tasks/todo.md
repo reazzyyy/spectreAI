@@ -28,11 +28,14 @@
 - [x] Copy `docs/32`–`34` + `CURSOR-INSTRUCTIONS-PHASE5-6.md`
 - [x] Governance / roadmap / plan / todo / `tasks/phase5-6-gaps.md` pointers (D/O/H statuses unchanged)
 
-## Next — Phase 5A Chat
+## Closed — Phase 5A-1 Chat foundation (2026-11-12)
 
-- [ ] 5A-1: Conversation / Message / Generation models + RLS + ACL tests (`docs/32`, gaps P5-01/02/04)
-- [ ] 5A-2: API + Outbox + chat worker + Synthetic + e2e history (P5-03/05)
-- [ ] Docs AS-IS after code
+- [x] 5A-1: Conversation / Message / AiGeneration models + RLS + `ConversationAccess` ACL tests (P5-01/02/04 data layer)
+- [x] Docs AS-IS / db+access READMEs / gaps tracker after code
+
+## Next — Phase 5A-2 Chat orchestration
+
+- [ ] 5A-2: API + Outbox + chat worker + Synthetic + e2e history (P5-03/05; remaining API/UI of P5-01)
 
 ## Later
 
@@ -40,5 +43,5 @@
 - [ ] Phase 6A: DocumentVersion → structure/chunk experiment → FTS (FILE-009 OPEN until confirm)
 - [ ] Gate B → Phase 6B vector / HNSW / RRF
 - [ ] Remaining Phase 2 debt (`tasks/phase2-debt.md`) — O-012, email provider, idle session…
-- [ ] Optional: CI Chromatic publish when token ready
+- [ ] Optional: CI Chromatic publish gate (token exists; wire secret in CI)
 - [ ] FILE-010 antivirus product integration
