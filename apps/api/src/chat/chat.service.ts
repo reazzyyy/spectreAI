@@ -284,19 +284,31 @@ export class ChatService {
   }
 
   async getGeneration(actor: ActorContext, generationId: string) {
+    type GenerationRow = {
+      id: string;
+      conversationId: string;
+      status: string;
+      aiJobId: string | null;
+      providerId: string | null;
+      modelId: string | null;
+      assistantMessageId: string | null;
+      contextSnapshotId: string | null;
+      promptVersion: string | null;
+      createdAt: Date;
+      completedAt: Date | null;
+    };
+    type SourceRow = {
+      citationKey: string;
+      rank: number;
+      sourceType: string;
+      contextSnapshotItemId: string;
+      sourceEntityId: string | null;
+      itemCitationKey: string | null;
+    };
+
     const row = await this.prisma.withActor(
       actor,
-      async (tx): Promise<{
-        id: string;
-        conversationId: string;
-        status: string;
-        aiJobId: string | null;
-        providerId: string | null;
-        modelId: string | null;
-        assistantMessageId: string | null;
-        createdAt: Date;
-        completedAt: Date | null;
-      } | null> =>
+      async (tx): Promise<GenerationRow | null> =>
         tx.aiGeneration.findFirst({
           where: { id: generationId, organizationId: actor.organizationId },
         }),
@@ -305,7 +317,77 @@ export class ChatService {
       throw new NotFoundException();
     }
     await this.getConversation(actor, row.conversationId);
-    return row;
+
+    let contextMode: string | null = null;
+    let contextHash: string | null = null;
+    let sources: SourceRow[] = [];
+    if (row.contextSnapshotId) {
+      const detail = await this.prisma.withActor(
+        actor,
+        async (
+          tx,
+        ): Promise<{
+          contextMode: string | null;
+          contextHash: string | null;
+          sources: SourceRow[];
+        }> => {
+          const snapshot = await tx.contextSnapshot.findUnique({
+            where: { id: row.contextSnapshotId! },
+          });
+          if (!snapshot) {
+            return { contextMode: null, contextHash: null, sources: [] };
+          }
+          const items: Array<{
+            id: string;
+            sourceEntityId: string;
+            citationKey: string | null;
+          }> = await tx.contextSnapshotItem.findMany({
+            where: { contextSnapshotId: snapshot.id },
+            orderBy: { ordinal: "asc" },
+            select: { id: true, sourceEntityId: true, citationKey: true },
+          });
+          const itemById = new Map(items.map((item) => [item.id, item]));
+          const messageSources: Array<{
+            citationKey: string;
+            rank: number;
+            sourceType: string;
+            contextSnapshotItemId: string;
+          }> =
+            row.assistantMessageId == null
+              ? []
+              : await tx.messageSource.findMany({
+                  where: { messageId: row.assistantMessageId },
+                  orderBy: { rank: "asc" },
+                  select: {
+                    citationKey: true,
+                    rank: true,
+                    sourceType: true,
+                    contextSnapshotItemId: true,
+                  },
+                });
+          return {
+            contextMode: snapshot.contextMode,
+            contextHash: snapshot.contextHash,
+            sources: messageSources.map((src) => {
+              const item = itemById.get(src.contextSnapshotItemId);
+              return {
+                citationKey: src.citationKey,
+                rank: src.rank,
+                sourceType: src.sourceType,
+                contextSnapshotItemId: src.contextSnapshotItemId,
+                sourceEntityId: item?.sourceEntityId ?? null,
+                itemCitationKey: item?.citationKey ?? null,
+              };
+            }),
+          };
+        },
+      );
+      contextMode = detail.contextMode;
+      contextHash = detail.contextHash;
+      sources = detail.sources;
+    }
+
+    return { ...row, contextMode, contextHash, sources };
   }
 
   async cancelGeneration(actor: ActorContext, generationId: string) {
