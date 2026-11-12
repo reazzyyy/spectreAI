@@ -69,7 +69,7 @@ On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` 
 - CSRF (**W-014a**): login sets non-HttpOnly `spectre_csrf`; mutating requests need matching `X-CSRF-Token` + `WEB_ORIGIN` when Origin/Referer present. Global `CsrfGuard`. Production boot **requires** non-empty `WEB_ORIGIN`.
 - `ACTOR_CONTEXT` comes from Session + live User/Membership checks — never from client `organizationId` / `userId`.
 - Password hashing: argon2id.
-- **OUT OF SCOPE:** MFA/SSO (**O-008**), invitations, register, recovery. Web login UI lives in `@spectre/web` (Фаза 1).
+- **OUT OF SCOPE:** MFA/SSO (**O-008**), public self-registration, recovery. Invitations HTTP is in scope (see Invitations above). Web login UI lives in `@spectre/web`.
 
 ## Client / Matter scaffold
 
@@ -80,13 +80,13 @@ On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` 
 - Status values: `active` | `archived` (no hard delete in this slice).
 - Access model: org-membership isolation via `@spectre/access` — **not** full `docs/07` ACL.
 
-## Documents (Phase 3 thin)
+## Documents (Phase 3 + Phase 4 extract)
 
 - `GET/POST /workspaces/:workspaceId/documents` — list / multipart `files` (≤10, PDF/DOCX/TXT, ≤25 МБ).
 - `GET /documents/:id`, `GET /documents/:id/download` — metadata / binary; `storageKey` never in JSON.
 - Access: Workspace `canReadContent` / `canMutateContent`; foreign workspace → `404`.
 - Storage: `LocalObjectStorage` under `DOCUMENT_STORAGE_ROOT` (default `.data/documents`) — local scaffold, not O-003 hoster.
-- Status after upload: `uploaded` (no worker/OCR in this slice).
+- After upload+enqueue status → `processing`; worker (`pnpm --filter @spectre/api worker:extract`, queue `ai-jobs`) → `ready` / `processing_failed`. Redis publish is best-effort (PG job row is source of truth; missing Redis does not block status→processing). OCR success path still OPEN (**O-004**).
 
 ## Workspace scaffold (S3)
 
