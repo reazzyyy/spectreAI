@@ -3,7 +3,7 @@
 **Статус:** живой рабочий план. Его можно менять и дополнять. Это не подтверждённое продуктовое решение и не описание уже написанного кода.  
 **Дата редакции:** 2026-11-12  
 **Опора:** `docs/decisions-log.md` (D-001–D-031, W-001–W-020, O-001–O-012, H-001–H-005), `docs/05-mvp-acceptance.md`, AS-IS `docs/26-codebase-current-state.md`.  
-**Детальный срез:** `tasks/plan.md` / `tasks/todo.md` — следующий: **Phase 5A-2 Chat orchestration**. 5A-1 models/RLS/ACL **в коде** (ветка/PR). Phase 4 extract **в `main`**. Спеки Phase 5–6: `docs/32`–`34` (**PROPOSED**); пробелы: `tasks/phase5-6-gaps.md`.
+**Детальный срез:** `tasks/plan.md` / `tasks/todo.md` — следующий: **Phase 5B** context/UI или **6A**. 5A-1/5A-2 chat foundation+orchestration **в коде**. Спеки Phase 5–6: `docs/32`–`34` (**PROPOSED**); пробелы: `tasks/phase5-6-gaps.md`.
 
 Если журнал решений и этот план расходятся, приоритет у журнала. Новое CONFIRMED сначала попадает в `docs/decisions-log.md`, затем сюда сдвигается соответствующее ворота.
 
@@ -26,7 +26,7 @@
 - документы: two-phase upload, download, extract enqueue; AIJob + DocumentExtraction; BullMQ extract worker (**Фаза 3–4**);
 - `SyntheticAIProvider` и тонкий `POST /ai/generate` (не chat orchestration);
 - web FSD (**D-023**) + quality bar (**D-024**): login, shell/home, CRM surfaces, documents UI; CI Playwright smoke;
-- chat foundation (Conversation/Message/AiGeneration + RLS/ACL) — **5A-1 есть**; chat HTTP/UI / RAG / grant / OCR success — ещё нет (5A-2+; спеки `docs/32`–`34`).
+- chat API + Outbox + Synthetic worker — **5A-1/5A-2 есть**; chat UI / RAG / grant / OCR success — ещё нет (5B+; спеки `docs/32`–`34`).
 
 Это база. Дальше план её наращивает, а не заменяет стек.
 

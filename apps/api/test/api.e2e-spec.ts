@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import { AppModule } from "../src/app.module.js";
 import { hashPassword } from "../src/auth/password.js";
+import { ChatJobProcessor } from "../src/chat/chat-job.processor.js";
 import { applyHttpMiddleware } from "../src/http/apply-http-middleware.js";
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from "../src/http/csrf.js";
 import {
@@ -58,6 +59,24 @@ async function seedFixtures(): Promise<void> {
       where: { userId: { in: [USER_A, USER_B, USER_ORG_B] } },
     });
     await prisma.organizationInvitation.deleteMany({
+      where: { organizationId: { in: [ORG_A, ORG_B] } },
+    });
+    await prisma.outboxEvent.deleteMany({
+      where: { organizationId: { in: [ORG_A, ORG_B] } },
+    });
+    await prisma.aiGeneration.deleteMany({
+      where: { organizationId: { in: [ORG_A, ORG_B] } },
+    });
+    await prisma.message.deleteMany({
+      where: { organizationId: { in: [ORG_A, ORG_B] } },
+    });
+    await prisma.conversation.deleteMany({
+      where: { organizationId: { in: [ORG_A, ORG_B] } },
+    });
+    await prisma.documentExtraction.deleteMany({
+      where: { organizationId: { in: [ORG_A, ORG_B] } },
+    });
+    await prisma.aiJob.deleteMany({
       where: { organizationId: { in: [ORG_A, ORG_B] } },
     });
     await prisma.document.deleteMany({
@@ -971,6 +990,130 @@ describe("API scaffold", () => {
 
       expect(response.status).toBe(422);
       expect(response.body.error.code).toBe("VALIDATION_ERROR");
+    });
+  });
+
+  describe("Phase 5A-2 chat orchestration", () => {
+    let app: INestApplication;
+    let ownerAgent: ReturnType<typeof request.agent>;
+    let memberAgent: ReturnType<typeof request.agent>;
+
+    beforeAll(async () => {
+      app = await createApp();
+      ownerAgent = request.agent(app.getHttpServer());
+      const ownerLogin = await ownerAgent.post("/api/v1/auth/login").send({
+        email: USER_A_EMAIL,
+        password: USER_A_PASSWORD,
+        organizationId: ORG_A,
+      });
+      expect(ownerLogin.status).toBe(200);
+      const ownerCsrf = extractCookieValue(
+        ownerLogin.headers["set-cookie"],
+        CSRF_COOKIE_NAME,
+      );
+      ownerAgent.set(CSRF_HEADER_NAME, ownerCsrf!);
+
+      const upsert = await ownerAgent
+        .post(`/api/v1/workspaces/${TEAM_WORKSPACE_A}/members`)
+        .send({ userId: USER_B, role: "EDITOR" });
+      expect(upsert.status).toBe(201);
+
+      memberAgent = request.agent(app.getHttpServer());
+      const memberLogin = await memberAgent.post("/api/v1/auth/login").send({
+        email: USER_B_EMAIL,
+        password: USER_B_PASSWORD,
+        organizationId: ORG_A,
+      });
+      expect(memberLogin.status).toBe(200);
+      const memberCsrf = extractCookieValue(
+        memberLogin.headers["set-cookie"],
+        CSRF_COOKIE_NAME,
+      );
+      memberAgent.set(CSRF_HEADER_NAME, memberCsrf!);
+    });
+
+    afterAll(async () => {
+      await app.close();
+    });
+
+    it("creates PRIVATE/WORKSPACE chats, sends synthetic reply, restores history, enforces ACL/idempotency", async () => {
+      const privateConv = await ownerAgent
+        .post(`/api/v1/workspaces/${TEAM_WORKSPACE_A}/conversations`)
+        .send({ visibility: "PRIVATE", title: "private-chat" });
+      expect(privateConv.status).toBe(201);
+      expect(privateConv.body.visibility).toBe("PRIVATE");
+
+      const sharedConv = await ownerAgent
+        .post(`/api/v1/workspaces/${TEAM_WORKSPACE_A}/conversations`)
+        .send({ visibility: "WORKSPACE", title: "shared-chat" });
+      expect(sharedConv.status).toBe(201);
+
+      const memberPrivate = await memberAgent.get(
+        `/api/v1/conversations/${privateConv.body.id}`,
+      );
+      expect(memberPrivate.status).toBe(404);
+
+      const memberShared = await memberAgent.get(
+        `/api/v1/conversations/${sharedConv.body.id}`,
+      );
+      expect(memberShared.status).toBe(200);
+
+      const foreign = await ownerAgent.get(
+        `/api/v1/conversations/${TEAM_WORKSPACE_B}`,
+      );
+      expect(foreign.status).toBe(404);
+
+      const send = await ownerAgent
+        .post(`/api/v1/conversations/${sharedConv.body.id}/messages`)
+        .set("Idempotency-Key", "chat-key-1")
+        .send({ content: "hello-synthetic", clientMessageId: "client-msg-1" });
+      expect(send.status).toBe(201);
+      expect(send.body.synthetic).toBe(true);
+      expect(send.body.jobId).toEqual(expect.any(String));
+
+      const reuse = await ownerAgent
+        .post(`/api/v1/conversations/${sharedConv.body.id}/messages`)
+        .set("Idempotency-Key", "chat-key-1")
+        .send({ content: "hello-synthetic", clientMessageId: "client-msg-1" });
+      expect(reuse.status).toBe(201);
+      expect(reuse.body.reused).toBe(true);
+      expect(reuse.body.jobId).toBe(send.body.jobId);
+
+      const conflict = await ownerAgent
+        .post(`/api/v1/conversations/${sharedConv.body.id}/messages`)
+        .set("Idempotency-Key", "chat-key-1")
+        .send({ content: "different-payload", clientMessageId: "client-msg-1" });
+      expect(conflict.status).toBe(409);
+
+      const processor = new ChatJobProcessor();
+      await processor.process(send.body.jobId);
+
+      const generation = await ownerAgent.get(
+        `/api/v1/ai-generations/${send.body.generationId}`,
+      );
+      expect(generation.status).toBe(200);
+      expect(generation.body.status).toBe("succeeded");
+      expect(generation.body.synthetic).toBe(true);
+
+      const history = await ownerAgent.get(
+        `/api/v1/conversations/${sharedConv.body.id}/messages`,
+      );
+      expect(history.status).toBe(200);
+      expect(history.body.items.length).toBeGreaterThanOrEqual(2);
+      const roles = history.body.items.map((m: { role: string }) => m.role);
+      expect(roles).toContain("user");
+      expect(roles).toContain("assistant");
+      const assistant = history.body.items.find(
+        (m: { role: string }) => m.role === "assistant",
+      );
+      expect(assistant.content).toMatch(/^synthetic:/);
+
+      const reload = await ownerAgent.get(
+        `/api/v1/conversations/${sharedConv.body.id}/messages`,
+      );
+      expect(reload.body.items.map((m: { id: string }) => m.id).sort()).toEqual(
+        history.body.items.map((m: { id: string }) => m.id).sort(),
+      );
     });
   });
 });

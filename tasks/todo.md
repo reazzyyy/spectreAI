@@ -33,13 +33,14 @@
 - [x] 5A-1: Conversation / Message / AiGeneration models + RLS + `ConversationAccess` ACL tests (P5-01/02/04 data layer)
 - [x] Docs AS-IS / db+access READMEs / gaps tracker after code
 
-## Next — Phase 5A-2 Chat orchestration
+## Closed — Phase 5A-2 Chat orchestration (2026-11-12)
 
-- [ ] 5A-2: API + Outbox + chat worker + Synthetic + e2e history (P5-03/05; remaining API/UI of P5-01)
+- [x] 5A-2: API + Outbox + chat worker + Synthetic + e2e history (P5-03/05; HTTP of P5-01)
+- [x] Docs AS-IS / api+db READMEs / gaps after code
 
-## Later
+## Next — Phase 5B / later
 
-- [ ] Phase 5B: context / source refs (synthetic-safe)
+- [ ] Phase 5B: context / source refs (synthetic-safe); chat UI
 - [ ] Phase 6A: DocumentVersion → structure/chunk experiment → FTS (FILE-009 OPEN until confirm)
 - [ ] Gate B → Phase 6B vector / HNSW / RRF
 - [ ] Remaining Phase 2 debt (`tasks/phase2-debt.md`) — O-012, email provider, idle session…
