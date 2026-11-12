@@ -17,6 +17,9 @@ export type {
   AiJob,
   DocumentExtraction,
   AuditEvent,
+  Conversation,
+  Message,
+  AiGeneration,
 } from "./generated/client.js";
 export {
   WorkspaceVisibility,
@@ -25,6 +28,10 @@ export {
   WorkspaceMemberStatus,
   DocumentStatus,
   AiJobStatus,
+  ConversationVisibility,
+  ConversationStatus,
+  MessageRole,
+  AiGenerationStatus,
 } from "./generated/enums.js";
 export {
   withActorContext,
