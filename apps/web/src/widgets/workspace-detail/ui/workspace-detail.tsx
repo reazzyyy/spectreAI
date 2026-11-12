@@ -9,6 +9,7 @@ import { WorkspaceMembersPanel } from "@/features/manage-workspace-members";
 import { WorkspaceMattersPanel } from "@/features/manage-workspace-matters";
 import { isApiError } from "@/shared/api";
 import { Button, StateCard } from "@/shared/ui";
+import { ChatWorkspace } from "./chat-workspace";
 import {
   ProjectBar,
   type ProjectBarPanel,
@@ -22,7 +23,7 @@ export interface WorkspaceDetailProps {
 
 /**
  * Workspace screen: full-width sticky ProjectBar + centered body (Make).
- * Чаты — empty chrome until Phase 5A; Access keeps ProjectBar visible.
+ * Чаты — Phase 5 UI (`ChatWorkspace`); Access keeps ProjectBar visible.
  */
 export function WorkspaceDetail({ workspaceId }: WorkspaceDetailProps) {
   const [tab, setTab] = useState<ProjectTabId>("chats");
@@ -95,14 +96,7 @@ export function WorkspaceDetail({ workspaceId }: WorkspaceDetailProps) {
 
       <div className={bodyClass}>
         {panel === "tab" && tab === "chats" ? (
-          <div className={styles.chatsEmpty}>
-            <StateCard
-              icon="folder"
-              tone="accent"
-              title="Пока нет чатов"
-              text="Чаты появятся после Phase 5A. Composer и ответы ИИ не показываем заранее — без фиктивных действий."
-            />
-          </div>
+          <ChatWorkspace workspaceId={workspaceId} />
         ) : null}
 
         {panel === "access" ? (

@@ -1,14 +1,14 @@
 # Текущее состояние кодовой базы (AS-IS)
 
 **Статус:** CONFIRMED как снимок scaffold на дату ниже; не заменяет продуктовые спецификации и не утверждает MVP.  
-**Дата снимка кода:** 2026-11-12 (Phase 5B context snapshots + 5A chat API/worker; web F1–F5k + documents UI; Phase 4 extract)  
+**Дата снимка кода:** 2026-11-13 (Phase 5 chat UI thin slice; 5B snapshots + 5A API/worker; web F1–F5k + documents; Phase 4 extract)  
 **Сверка статусов решений:** 2026-11-10 (W-001–W-020, W-014a, **D-024**, **D-025–D-031**)  
 **Источник истины по решениям:** `docs/decisions-log.md`  
 **План:** `tasks/roadmap.md` / `tasks/plan.md`. Долги Фазы 2: `tasks/phase2-debt.md` (O-012, email, Chromatic…).
 
 Этот документ описывает **только то, что реально есть в репозитории**. Спецификации в `docs/00–25` могут описывать целевое MVP шире; если код ещё не реализован — ниже явно указано «не реализовано».
 
-Исполняемые спеки: Phase 5 Chat `docs/32` (**PROPOSED**; 5A-1 data/RLS в коде, API/UI ещё нет), Phase 6 RAG `docs/33`, audit gaps `docs/34`, инструкция `docs/CURSOR-INSTRUCTIONS-PHASE5-6.md`. Трекер: `tasks/phase5-6-gaps.md`.
+Исполняемые спеки: Phase 5 Chat `docs/32` (**PROPOSED**; 5A–5B API + thin chat UI в коде), Phase 6 RAG `docs/33`, audit gaps `docs/34`, инструкция `docs/CURSOR-INSTRUCTIONS-PHASE5-6.md`. Трекер: `tasks/phase5-6-gaps.md`.
 
 ## 1. Что это за репозиторий сейчас
 
@@ -26,7 +26,7 @@
 | MFA / SSO (O-008) | **Не реализовано** |
 | Workspace как сущность | Prisma + `WorkspaceAccess` + HTTP; content-visible list — single SQL; cursor pagination (**D-026**) |
 | PostgreSQL RLS (W-020) | Org GUC на tenant tables; **documents** + **conversations/messages/ai_generations** — workspace + PRIVATE/WORKSPACE ACL (**W-020+ partial**); grant policies нет |
-| Chat (5A–5B) | Models+RLS+ACL; HTTP chat; Outbox + Synthetic worker; ContextSnapshot/Item + MessageSource (conversation_only); **нет** chat UI / DocumentVersion docs in context |
+| Chat (5A–5B) | Models+RLS+ACL; HTTP chat; Outbox + Synthetic worker; ContextSnapshot/Item + MessageSource (conversation_only); **thin chat UI** on project Чаты tab; **нет** DocumentVersion docs in context |
 | Загрузка документов | Two-phase `uploading`→blob→`uploaded`; disk temp multipart; DOCX CD walk + PDF `/Encrypt` reject; enqueue extract |
 | AIJob + extract worker | Prisma `AIJob` / `DocumentExtraction`; BullMQ `ai-jobs`; `pnpm --filter @spectre/api worker:extract`; scan → failed (**D-031**) |
 | Rate limit / audit | Redis sliding window (login/upload/ai/invite); thin `audit_events` (login/logout/upload/download, без content) |
@@ -110,7 +110,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 - `/` — `widgets/app-shell` + `widgets/home-overview`: product chrome; `GET /auth/me` (+ `organization.name`) + краткий список Workspace; 401 → `/login`; Make profile menu (имя из email до User.name, org name, logout).
 - `/projects` — `widgets/workspace-list` + `features/create-workspace`: `GET/POST /workspaces` (PERSONAL|TEAM); UI-фильтры `?visibility=` / `?q=` и клиентский поиск по загруженному списку; create modal с опциональными Client/Matter.
 - Command palette — `features/search-workspaces` в `widgets/app-shell`: попап поиска проектов (Ctrl/Cmd+K), клиентский матч по name/client/matter из загруженных списков (не server search API).
-- `/projects/[workspaceId]` — full-bleed sticky Make `ProjectBar` (на всю ширину main); тело страницы centered `max-width: 1040`; switcher→palette, Доступ/Участники, ⋮, tabs; Чаты StateCard до Phase 5A; Access → Make Members page (1240, back «К проекту», table + sticky role guide; TEAM upsert/revoke); Переименовать → edit + matters; docs/research/drafts disabled.
+- `/projects/[workspaceId]` — full-bleed sticky Make `ProjectBar` (на всю ширину main); тело страницы centered `max-width: 1040`; switcher→palette, Доступ/Участники, ⋮, tabs; Чаты → `ChatWorkspace` (list/create PRIVATE|WORKSPACE, thread, Synthetic composer + generation poll); Access → Make Members page (1240, back «К проекту», table + sticky role guide; TEAM upsert/revoke); Переименовать → edit + matters; docs/research/drafts disabled.
 - AppShell `.content` — full main column (без max-width); ограничение 1040 на widget `.page` / project `.body` (как Make); sidebar: collapse без overflow текста, footer avatar+имя+org, fixed profile popup.
 - `shared/ui` kit (D-024): Button, Input, Select (forwardRef + RHF), Icon, IconButton, Badge, Dialog, StateCard, Avatar, TextAction, SearchField, Eyebrow, PageHead, Page — adopted across shell / home / lists / org / members / forms / details / auth; helpers `displayNameFromEmail` / `orgRoleLabel` in `shared/lib`. Org invite UI lives in `widgets/organization-invites` (not unused `CreateInvitationForm` / `InvitationActions`).
 - **UI-референс:** каталог `designSpectreAI/` (Figma Make) — только визуальный/IA ориентир. В runtime `@spectre/web` **не** импортируется. UI «Проект» = API/сущность **Workspace**. Перенос — переписывание под FSD + SCSS Modules (D-023/D-024), не копипаст прототипа (Tailwind, hash-routing, demo-context, `sim`).
@@ -120,14 +120,14 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 - `/organization` — Make Organization page (1240): boundary banner, staff search/list with avatars, Owner invite dialog + invite table (resend/revoke); role patch admin|member (SEC-01/SEC-03). Admin grant / offboard / TEAM admin list — не в этом срезе.
 - `/invite/accept` — принять приглашение (токен + пароль для нового пользователя; существующий — с сессией, без пароля); без product shell.
 - Matter/Workspace edit forms: optional `clientId` link/unlink (CRM + WS-07).
-- `entities/matter`, `entities/client`, `entities/document`, `entities/invitation`, `entities/org-member` — list/detail/create/update (+ invite mutate / upload).
+- `entities/matter`, `entities/client`, `entities/document`, `entities/invitation`, `entities/org-member`, `entities/conversation`, `entities/message`, `entities/ai-generation` — list/detail/create/update (+ invite mutate / upload / chat send+poll).
 - `/system` — `widgets/system-map`: карта AS-IS без shell; не live health.
 - Сессия: `entities/session`. Workspace: `entities/workspace` (типы, API, Query).
 - Browser `fetch` на `/api/v1/*` с `credentials: "same-origin"` + CSRF header на мутациях; FormData upload без JSON Content-Type; rewrite в `next.config.ts` на `API_ORIGIN` (по умолчанию `http://localhost:3000`).
 - Линтеры: ESLint + Steiger FSD + Stylelint (включая system-map SCSS).
 - Стили AS-IS: SCSS-токены (визуально близки к референсу `designSpectreAI`); `shared/ui` kit выше; shell/home/workspace-list/workspace-detail/system-map на SCSS Modules.
 - Тесты AS-IS: Vitest + RTL (Button, schemas, AppShell). Storybook 10 + stories `shared/ui`; Chromatic addon/CLI (publish — `CHROMATIC_PROJECT_TOKEN`). Playwright smoke: unauth `/` → `/login`; login → home (Postgres + bootstrap + `E2E_ORGANIZATION_ID`). CI `web-e2e`: bootstrap JSON file + direct API login preflight before Playwright; Chromatic publish ещё нет.
-- Нет регистрации, recovery, MFA, ownership transfer, OCR success; chat UI нет (API 5A-2 есть; вкладка «Чаты» — StateCard до UI).
+- Нет регистрации, recovery, MFA, ownership transfer, OCR success; chat UI thin (conversation_only + Synthetic; без DocumentVersion picker / OpenAI / streaming).
 
 ## 4. Пакеты
 
@@ -312,7 +312,7 @@ Workflow: `.github/workflows/ci.yml`.
 - MFA/SSO (**O-008** / **W-013** — не в MVP), self-registration (**W-012** запрещает public self-reg), email verify, recovery, logout-all, session list.
 - Email delivery provider для invitations; полный `docs/12` (password policy product confirmation, idle timeout, logout-all, session list).
 - Hard delete Client/Matter/Workspace; полный W-020 (сверх текущих tenant/document policies); ACL матрица `docs/07` в коде; admin grant; ownership transfer.
-- Chat UI (**Phase 5B UI**); document-backed context / DocumentVersion (**6A**; snapshot tables 5B conversation_only есть).
+- Chat UI polish / streaming / citations UX; document-backed context / DocumentVersion (**6A**; snapshot tables 5B conversation_only есть).
 - DocumentVersion; chunks; FTS/GIN; embeddings; pgvector/HNSW; hybrid retrieval/RRF (**Phase 6**; спека `docs/33`; Gate B / FILE-009 OPEN).
 - OCR success path (**O-004**); production object storage (**O-003**).
 - OpenAI adapter (запрещён до O-002; целевой провайдер D-015).

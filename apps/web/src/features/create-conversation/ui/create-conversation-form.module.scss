@@ -1,0 +1,22 @@
+.form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.fieldGrow {
+  flex: 1 1 12rem;
+  min-width: 10rem;
+}
+
+.visibility {
+  flex: 0 0 10rem;
+}
+
+.error {
+  flex: 1 1 100%;
+  margin: 0;
+  color: var(--color-danger, #b42318);
+  font-size: var(--fs-sm);
+}
