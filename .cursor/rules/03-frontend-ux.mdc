@@ -3,6 +3,7 @@ description: Интерфейс и пользовательские сценар
 alwaysApply: false
 ---
 - Следуй `docs/01-ux-ui-design.md` и `docs/21-frontend-architecture.md`.
+- **Make-first UI:** перед любым product UI сверяйся с `designSpectreAI/` — правило `.cursor/rules/10-design-make-ui.mdc` (не сдавать функциональный layout мимо макета).
 - **FSD обязателен (D-023 / ADR-0002):** слои `app → widgets → features → entities → shared`; правила импортов `docs/21` §4.1 и правило `.cursor/rules/08-frontend-fsd.mdc`. Не складывай логику в плоский `components/` вне слайсов. Проверки: `pnpm --filter @spectre/web lint` + `lint:fsd` (Steiger).
 - **Quality bar (D-024 / ADR-0004):** SCSS Modules + CSS-токены; свой `shared/ui` (не обязательный shadcn); формы RHF+Zod; серверные данные — TanStack Query; тесты Vitest+RTL, Storybook+Chromatic, Playwright. Внедрять срезами; не объявлять AS-IS готовым заранее; Loki не использовать.
 - Декомпозируй UI на переиспользуемые примитивы; props — `interface`; не копируй монолитные экраны между маршрутами.
