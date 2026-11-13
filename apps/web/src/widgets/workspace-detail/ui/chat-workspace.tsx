@@ -30,6 +30,11 @@ import styles from "./chat-workspace.module.scss";
 
 export interface ChatWorkspaceProps {
   workspaceId: string;
+  /**
+   * Incremented when ProjectBar «Чаты» is clicked — return to ask bar + list
+   * (leave open thread / access overlay context).
+   */
+  listEpoch?: number;
 }
 
 const PROMPT_IDEAS = [
@@ -74,7 +79,10 @@ function pairTurns(messages: Message[]): Array<{
  * Make-aligned project chats: ask bar + row list, then ChatScreen workspace.
  * Context remains conversation_only — no DocumentVersion / materials picker.
  */
-export function ChatWorkspace({ workspaceId }: ChatWorkspaceProps) {
+export function ChatWorkspace({
+  workspaceId,
+  listEpoch = 0,
+}: ChatWorkspaceProps) {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [ask, setAsk] = useState("");
@@ -86,6 +94,16 @@ export function ChatWorkspace({ workspaceId }: ChatWorkspaceProps) {
   );
   const [startError, setStartError] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
+
+  useEffect(() => {
+    if (listEpoch === 0) {
+      return;
+    }
+    setSelectedId(null);
+    setComposerSeed("");
+    setPendingGenerationId(null);
+    setShareOpen(false);
+  }, [listEpoch]);
 
   const listQuery = useQuery(conversationListQueryOptions(workspaceId));
   const conversations = listQuery.data?.items ?? [];

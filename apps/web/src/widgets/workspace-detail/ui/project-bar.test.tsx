@@ -57,6 +57,41 @@ describe("ProjectBar", () => {
     expect(onOpenAccess).toHaveBeenCalled();
   });
 
+  it("shows chat tab count from tabCounts", () => {
+    render(
+      <ProjectBar
+        workspace={workspace}
+        activeTab="chats"
+        panel="tab"
+        onTabChange={vi.fn()}
+        onOpenAccess={vi.fn()}
+        onAction={vi.fn()}
+        tabCounts={{ chats: 3 }}
+      />,
+    );
+
+    expect(screen.getByRole("tab", { name: /Чаты/i })).toHaveTextContent("3");
+  });
+
+  it("calls onTabChange when Чаты is clicked from access panel", async () => {
+    const user = userEvent.setup();
+    const onTabChange = vi.fn();
+    render(
+      <ProjectBar
+        workspace={workspace}
+        activeTab="chats"
+        panel="access"
+        onTabChange={onTabChange}
+        onOpenAccess={vi.fn()}
+        onAction={vi.fn()}
+        tabCounts={{ chats: 2 }}
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: /Чаты/i }));
+    expect(onTabChange).toHaveBeenCalledWith("chats");
+  });
+
   it("exposes rename via actions menu", async () => {
     const user = userEvent.setup();
     const onAction = vi.fn();

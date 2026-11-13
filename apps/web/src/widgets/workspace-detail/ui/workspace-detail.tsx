@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import { conversationListQueryOptions } from "@/entities/conversation";
 import { workspaceDetailQueryOptions } from "@/entities/workspace";
 import { EditWorkspaceForm } from "@/features/edit-workspace";
 import { WorkspaceMembersPanel } from "@/features/manage-workspace-members";
@@ -28,9 +29,13 @@ export interface WorkspaceDetailProps {
 export function WorkspaceDetail({ workspaceId }: WorkspaceDetailProps) {
   const [tab, setTab] = useState<ProjectTabId>("chats");
   const [panel, setPanel] = useState<ProjectBarPanel>("tab");
+  /** Bumps when ProjectBar «Чаты» is activated → ChatWorkspace returns to list. */
+  const [chatsListEpoch, setChatsListEpoch] = useState(0);
   const { data, error, isPending, isError } = useQuery(
     workspaceDetailQueryOptions(workspaceId),
   );
+  const conversationsQuery = useQuery(conversationListQueryOptions(workspaceId));
+  const chatCount = conversationsQuery.data?.items.length ?? 0;
 
   if (isPending) {
     return (
@@ -86,17 +91,23 @@ export function WorkspaceDetail({ workspaceId }: WorkspaceDetailProps) {
         onTabChange={(next) => {
           setTab(next);
           setPanel("tab");
+          if (next === "chats") {
+            setChatsListEpoch((epoch) => epoch + 1);
+          }
         }}
         onOpenAccess={() => setPanel("access")}
         onAction={(action) => {
           if (action === "rename") setPanel("settings");
         }}
-        tabCounts={{ chats: 0, docs: 0, research: 0, drafts: 0 }}
+        tabCounts={{ chats: chatCount }}
       />
 
       <div className={bodyClass}>
         {panel === "tab" && tab === "chats" ? (
-          <ChatWorkspace workspaceId={workspaceId} />
+          <ChatWorkspace
+            workspaceId={workspaceId}
+            listEpoch={chatsListEpoch}
+          />
         ) : null}
 
         {panel === "access" ? (
