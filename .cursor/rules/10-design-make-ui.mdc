@@ -1,0 +1,30 @@
+---
+description: UI сразу по Make/designSpectreAI — без «функционального» черновика мимо макета
+alwaysApply: true
+---
+
+# Make-first UI (обязательно)
+
+Канонический визуальный/IA референс: корневая папка `designSpectreAI/` (Figma Make). Не runtime-зависимость и не копипаст Vite/Tailwind в продукт — перенос в FSD + SCSS Modules + токены (`apps/web`, **D-023/D-024**).
+
+## Перед кодом UI
+
+1. Найди экран/компонент в `designSpectreAI/src/screens` и `components`.
+2. Прочитай разметку **и** стили в `designSpectreAI/src/index.css` (классы экрана).
+3. Сверь существующие порты: `shared/ui`, соседние widgets (ProjectBar, members, auth).
+4. Только потом пиши product UI.
+
+## Жёсткие правила
+
+- **С первого среза** chrome = Make: иерархия (eyebrow / title / meta), empty, list rows, composer, spacing, типографика (`--font-serif` / tokens). Не сдавать «временный» sidebar/bubble layout «потом подтянем».
+- Нет API / нет данных для части макета → **тот же каркас**, disabled / empty / «в следующем срезе»; не подменять другим layout.
+- Не выдумывать параллельную IA (свой sidebar чатов, свои карточки), если в Make уже есть паттерн (ask bar + rows → thread).
+- Не переносить demo-only / фиктивные действия (materials picker до DocumentVersion, fake regenerate и т.п.) — см. `03-frontend-ux.mdc`; chrome при этом остаётся Make.
+- Стили — SCSS Modules + CSS-переменные из `apps/web/src/app/styles/_tokens.scss`, не Tailwind из Make.
+
+## Антипример
+
+```text
+❌ Чаты: sidebar + bubble chat «чтобы API заработало»
+✅ Чаты: Make Project ask+rows → Make ChatScreen thread/composer; API в том же chrome
+```
