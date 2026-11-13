@@ -1,58 +1,77 @@
-.form {
-  display: grid;
-  gap: 10px;
+.area {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin-top: auto;
+  padding-top: 14px;
+  background: var(--color-canvas);
+}
+
+.contextLine {
+  display: inline-flex;
+  margin: 0 0 6px 4px;
+  padding: 4px 8px 4px 4px;
+  border: 0;
+  background: none;
+  color: var(--color-text-2);
+  font: inherit;
+  font-size: var(--fs-sm);
+  gap: 6px;
+  align-items: center;
 }
 
 .composer {
-  display: grid;
-  gap: 6px;
+  padding: 12px 12px 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 14px;
+  background: var(--color-surface);
+  box-shadow: 0 3px 14px rgb(30 30 25 / 4%);
 }
 
 .label {
+  display: block;
+  margin: 0 0 2px 4px;
   font-size: var(--fs-sm);
-  font-weight: 500;
   color: var(--color-text-2);
 }
 
 .textarea {
   box-sizing: border-box;
   width: 100%;
-  min-height: 88px;
-  padding: 10px 12px;
-  border: 1px solid var(--color-border, #d0d5dd);
-  border-radius: 8px;
-  background: var(--color-surface, #fff);
-  color: var(--color-text, #101828);
+  min-height: 56px;
+  padding: 2px 4px;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: var(--color-text);
   font: inherit;
-  font-size: var(--fs-sm);
-  resize: vertical;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: none;
 }
 
-.textarea:focus {
-  outline: 2px solid var(--color-focus, #98a2b3);
-  outline-offset: 1px;
+.textarea:disabled {
+  opacity: 0.6;
 }
 
-.textarea[aria-invalid="true"] {
-  border-color: var(--color-danger, #b42318);
-}
-
-.actions {
+.footer {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
   align-items: center;
   justify-content: space-between;
-}
-
-.hint {
-  margin: 0;
-  color: var(--color-text-2);
-  font-size: var(--fs-xs, 0.75rem);
+  gap: 12px;
+  font-size: 11px;
+  color: var(--color-muted);
 }
 
 .error {
-  margin: 0;
-  color: var(--color-danger, #b42318);
+  margin: 8px 0 0;
+  color: var(--color-danger);
   font-size: var(--fs-sm);
+}
+
+.disclaimer {
+  margin: 9px 0 0;
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 10px;
 }

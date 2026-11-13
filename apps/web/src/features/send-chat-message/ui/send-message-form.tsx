@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { messageHistoryQueryOptions, sendMessage } from "@/entities/message";
 import type { SendMessageResponse } from "@/entities/message";
 import { isApiError } from "@/shared/api";
-import { Button } from "@/shared/ui";
+import { Button, Icon } from "@/shared/ui";
 import {
   sendMessageSchema,
   type SendMessageFormValues,
@@ -17,13 +17,16 @@ import styles from "./send-message-form.module.scss";
 export interface SendMessageFormProps {
   conversationId: string;
   disabled?: boolean;
+  /** Prefill when opening a new dialog from the project ask bar. */
+  initialContent?: string;
   onSent?: (result: SendMessageResponse) => void;
 }
 
-/** Sends a user message and enqueues Synthetic generation (D-012). */
+/** Make-aligned sticky composer → POST message + Synthetic generation (D-012). */
 export function SendMessageForm({
   conversationId,
   disabled = false,
+  initialContent = "",
   onSent,
 }: SendMessageFormProps) {
   const queryClient = useQueryClient();
@@ -35,7 +38,7 @@ export function SendMessageForm({
     formState: { errors, isSubmitting },
   } = useForm<SendMessageFormValues>({
     resolver: zodResolver(sendMessageSchema),
-    defaultValues: { content: "" },
+    defaultValues: { content: initialContent },
   });
 
   const mutation = useMutation({
@@ -80,45 +83,48 @@ export function SendMessageForm({
   const busy = disabled || isSubmitting || mutation.isPending;
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit(onSubmit)} noValidate>
-      <div className={styles.composer}>
+    <div className={styles.area}>
+      <p className={styles.contextLine}>
+        <Icon name="folder" size={15} />
+        Контекст: только история этого чата (conversation_only)
+      </p>
+      <form className={styles.composer} onSubmit={handleSubmit(onSubmit)} noValidate>
         <label className={styles.label} htmlFor="send-message-content">
-          Сообщение
+          Ваш вопрос
         </label>
         <textarea
           id="send-message-content"
           className={styles.textarea}
-          rows={3}
-          placeholder="Спросите по истории этого чата…"
+          rows={2}
+          placeholder="Например, уточните условие об ответственности"
           disabled={busy}
           aria-invalid={errors.content ? true : undefined}
           aria-describedby={
-            errors.content ? "send-message-content-error" : "send-message-hint"
+            errors.content ? "send-message-content-error" : undefined
           }
           {...register("content")}
         />
+        <div className={styles.footer}>
+          <span>SyntheticAIProvider · документы в контекст пока не подключаются</span>
+          <Button type="submit" icon="arrow" disabled={busy}>
+            {mutation.isPending ? "Отправка…" : "Отправить"}
+          </Button>
+        </div>
         {errors.content ? (
           <p id="send-message-content-error" className={styles.error} role="alert">
             {errors.content.message}
           </p>
-        ) : (
-          <p id="send-message-hint" className={styles.hint}>
-            Ответ только из истории чата (conversation_only). Документы в контекст
-            пока не подключаются.
+        ) : null}
+        {formError ? (
+          <p className={styles.error} role="alert">
+            {formError}
           </p>
-        )}
-      </div>
-      <div className={styles.actions}>
-        <p className={styles.hint}>Режим: SyntheticAIProvider (D-012)</p>
-        <Button type="submit" disabled={busy}>
-          {mutation.isPending ? "Отправка…" : "Отправить"}
-        </Button>
-      </div>
-      {formError ? (
-        <p className={styles.error} role="alert">
-          {formError}
-        </p>
-      ) : null}
-    </form>
+        ) : null}
+      </form>
+      <p className={styles.disclaimer}>
+        ИИ может ошибаться. Проверяйте выводы. Синтетический режим — до закрытия
+        O-002.
+      </p>
+    </div>
   );
 }
