@@ -106,6 +106,12 @@ describe("ChatWorkspace", () => {
     await user.click(screen.getByRole("button", { name: /черновик иска/i }));
 
     expect(await screen.findByText("Диалог по материалам")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /открыть проекту/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /новый чат/i }),
+    ).toBeInTheDocument();
     expect(await screen.findByText("Кратко опиши спор")).toBeInTheDocument();
     expect(
       await screen.findByText("Синтетический разбор спора"),

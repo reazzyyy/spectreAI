@@ -171,6 +171,36 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
+}
+
+.headActions :global(button) {
+  min-height: 30px;
+  padding-inline: 10px;
+  font-size: 12px;
+}
+
+.shareTitle {
+  margin: 0 0 12px;
+  font-size: var(--fs-xl);
+  font-weight: 500;
+}
+
+.shareBody {
+  margin: 0 0 12px;
+  color: var(--color-text-2);
+  font-size: var(--fs-sm);
+  line-height: 1.7;
+}
+
+.shareWarn {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
 }
 
 .empty {

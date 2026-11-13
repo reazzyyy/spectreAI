@@ -20,6 +20,7 @@ import {
   Avatar,
   Badge,
   Button,
+  Dialog,
   Eyebrow,
   Icon,
   StateCard,
@@ -84,6 +85,7 @@ export function ChatWorkspace({ workspaceId }: ChatWorkspaceProps) {
     null,
   );
   const [startError, setStartError] = useState<string | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const listQuery = useQuery(conversationListQueryOptions(workspaceId));
   const conversations = listQuery.data?.items ?? [];
@@ -224,19 +226,19 @@ export function ChatWorkspace({ workspaceId }: ChatWorkspaceProps) {
               </p>
             </div>
             <div className={styles.headActions}>
+              {vis === "PRIVATE" ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  icon="users"
+                  onClick={() => setShareOpen(true)}
+                >
+                  Открыть проекту
+                </Button>
+              ) : null}
               <Button
                 type="button"
-                variant="secondary"
-                onClick={() => {
-                  setSelectedId(null);
-                  setComposerSeed("");
-                  setPendingGenerationId(null);
-                }}
-              >
-                К списку
-              </Button>
-              <Button
-                type="button"
+                variant="ghost"
                 icon="plus"
                 disabled={startMutation.isPending}
                 onClick={() => void startDialog("")}
@@ -245,6 +247,37 @@ export function ChatWorkspace({ workspaceId }: ChatWorkspaceProps) {
               </Button>
             </div>
           </header>
+
+          <Dialog
+            title="Открыть историю участникам проекта"
+            open={shareOpen}
+            onClose={() => setShareOpen(false)}
+            footer={
+              <>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setShareOpen(false)}
+                >
+                  Отмена
+                </Button>
+                <Button type="button" disabled title="PATCH visibility ещё не в API">
+                  Открыть участникам
+                </Button>
+              </>
+            }
+          >
+            <h2 className={styles.shareTitle}>Открыть весь диалог проекту?</h2>
+            <p className={styles.shareBody}>
+              Участники проекта увидят историю вопросов и доступные им ответы.
+              Проверьте, нет ли в переписке личных или конфиденциальных сведений.
+            </p>
+            <p className={styles.shareWarn}>
+              Это явное раскрытие всей истории. Вернуть чат в PRIVATE в MVP
+              нельзя. Серверное переключение visibility (PATCH) подключится
+              отдельным срезом — подтверждение пока недоступно.
+            </p>
+          </Dialog>
 
           {messagesQuery.isError ? (
             <p className={styles.error} role="alert">
