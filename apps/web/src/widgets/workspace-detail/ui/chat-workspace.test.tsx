@@ -1,4 +1,5 @@
 import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { queryOptions } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -48,6 +49,16 @@ vi.mock("@/entities/message", async () => {
         queryFn: async () => ({
           items: [
             {
+              id: "m2",
+              conversationId,
+              role: "assistant" as const,
+              content: "Синтетический разбор спора",
+              createdByUserId: null,
+              generationId: "g1",
+              clientMessageId: null,
+              createdAt: "2026-11-12T10:02:00.000Z",
+            },
+            {
               id: "m1",
               conversationId,
               role: "user" as const,
@@ -81,13 +92,24 @@ describe("ChatWorkspace", () => {
     cleanup();
   });
 
-  it("lists conversations and shows message history", async () => {
+  it("shows Make-style ask bar and opens a conversation row", async () => {
+    const user = userEvent.setup();
     renderChat();
 
     expect(await screen.findByText(/синтетический режим/i)).toBeInTheDocument();
-    expect(await screen.findAllByText("Черновик иска")).toHaveLength(2);
+    expect(screen.getByLabelText("Новый вопрос")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /начать диалог/i }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText("Черновик иска")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /черновик иска/i }));
+
+    expect(await screen.findByText("Диалог по материалам")).toBeInTheDocument();
     expect(await screen.findByText("Кратко опиши спор")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /новый чат/i })).toBeInTheDocument();
-    expect(screen.getByLabelText("Сообщение")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Синтетический разбор спора"),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Ваш вопрос")).toBeInTheDocument();
   });
 });

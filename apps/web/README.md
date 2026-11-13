@@ -43,14 +43,14 @@ src/
 ```
 
 
-**Chat (AS-IS thin):** `entities/conversation|message|ai-generation`, `features/create-conversation` + `send-chat-message`, UI в `widgets/workspace-detail/ui/chat-workspace` на вкладке Чаты. Без DocumentVersion picker, streaming, OpenAI.
+**Chat (AS-IS thin, Make-aligned):** ask bar + row list (Project) → workspace thread (ChatScreen chrome); `entities/conversation|message|ai-generation`, `features/send-chat-message` (+ create-conversation helpers). Без DocumentVersion picker / materials panel, streaming, OpenAI.
 
 ## Behaviour
 
 - `/login`, `/invite/accept` — Make-aligned `widgets/auth-layout` (story + form card); product session/invite API only.
 - `/invite/accept` — accept org invite (token + optional password); no product shell.
 - `/` — home + recent workspaces.
-- `/projects` — list + client search/`?visibility=` + create; `/projects/[id]` — full-width sticky ProjectBar + centered 1040 body; Чаты → list/create/send + Synthetic poll; Access → Make Members (1240, table + role guide); settings for edit/matters; docs/research/drafts disabled.
+- `/projects` — list + client search/`?visibility=` + create; `/projects/[id]` — full-width sticky ProjectBar + centered 1040 body; Чаты → Make ask bar + rows, then ChatScreen-style thread + sticky composer (Synthetic poll); Access → Make Members; settings for edit/matters; docs/research/drafts disabled.
 - Shell content is full main width; page widgets apply `--content-max-width` (1040) themselves.
 - `/matters`, `/matters/[id]` — Matter list/create/edit.
 - `/clients`, `/clients/[id]` — Client list/create/edit.

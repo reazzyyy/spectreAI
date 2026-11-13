@@ -63,6 +63,10 @@ const paths = {
       <circle cx="19" cy="12" r="1" />
     </>
   ),
+  chat: <path d="M4 5h16v11H8l-4 4z" />,
+  sparkle: (
+    <path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" />
+  ),
 } as const;
 
 export type IconName = keyof typeof paths;
