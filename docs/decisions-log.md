@@ -3,7 +3,7 @@
 **Последняя актуализация:** 2026-11-11  
 **Назначение:** единственный источник истины для статуса продуктовых и архитектурных решений.
 
-> **Указатель (не меняет статусы):** исполняемые спецификации Phase 5–6 — `docs/32`, `docs/33`; audit gaps — `docs/34`; инструкция агенту — `docs/CURSOR-INSTRUCTIONS-PHASE5-6.md`. Все они **PROPOSED** / отчётные и **не** закрывают OPEN (FILE-009, Gate B, O-002, O-012, DEC-05 и др.).
+> **Указатель (не меняет статусы):** исполняемые спецификации Phase 5–6 — `docs/32`, `docs/33`; audit gaps — `docs/34`; инструкция агенту — `docs/CURSOR-INSTRUCTIONS-PHASE5-6.md`. Концепт Retrieval Engine (legal knowledge) — `docs/ai/retrieval/` **v0.2** (**PROPOSED**; temporal-модель и T-01–T-03 не закрывают O-006; сверка `INTEGRATION-NOTES.md`). Все они **PROPOSED** / отчётные и **не** закрывают OPEN (FILE-009, Gate B, O-002, O-006, O-012, DEC-05 и др.).
 
 ## Как читать журнал
 

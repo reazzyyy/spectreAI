@@ -74,6 +74,8 @@ pnpm dev:web   # http://localhost:3001
 | `docs/15-ai-jobs-and-background-processing.md` | Очереди и фоновые AI-задачи |
 | `docs/16-prompt-management-and-ai-safety.md` | Промпты и безопасность AI |
 | `docs/17-rag-and-knowledge-retrieval.md` | RAG и поиск по разрешённым материалам |
+| `docs/ai/README.md` | **PROPOSED** AI/Retrieval пакеты (вход); не заменяет `17`/`18`/`33` |
+| `docs/ai/retrieval/README.md` | **PROPOSED** Retrieval Engine: exact/hybrid/temporal/evaluation |
 | `docs/18-legal-research-and-external-sources.md` | Юридическое исследование и внешние источники |
 | `docs/19-conversation-and-workspace-context.md` | Контекст бесед и рабочих пространств |
 | `docs/20-ai-product-workflows.md` | Сквозные продуктовые сценарии |
@@ -116,8 +118,9 @@ pnpm dev:web   # http://localhost:3001
 2. Статусы решений из `docs/decisions-log.md`.
 3. Каноническая спецификация соответствующей области.
 4. `docs/security/` — PROPOSED security governance (не заменяет п. 2–3).
-5. Явные инструкции текущей задачи.
-6. Примеры и предположения в коде.
+5. `docs/ai/` — PROPOSED AI/Retrieval концепт-пакеты (не заменяет п. 2–3; не закрывает O-006 / Gate B / FILE-009).
+6. Явные инструкции текущей задачи.
+7. Примеры и предположения в коде.
 
 Если источники противоречат друг другу, Cursor не должен выбирать удобный вариант самостоятельно. Нужно описать конфликт, влияние и варианты решения, затем дождаться согласования.
 

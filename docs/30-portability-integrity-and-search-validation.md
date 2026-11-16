@@ -2,7 +2,7 @@
 
 **Статус: PROPOSED.** Проверки полноты переноса, целостности корпуса и сохранения качества retrieval.
 
-**Связанные документы:** `17-rag-and-knowledge-retrieval.md`, `18-legal-research-and-external-sources.md`, `27-data-portability-and-index-transfer.md`, `28-index-build-manifest-and-reproducibility.md`, `29-corpus-export-import-runbook.md`, `22-testing-and-quality-strategy.md`.
+**Связанные документы:** `17-rag-and-knowledge-retrieval.md`, `18-legal-research-and-external-sources.md`, `27-data-portability-and-index-transfer.md`, `28-index-build-manifest-and-reproducibility.md`, `29-corpus-export-import-runbook.md`, `22-testing-and-quality-strategy.md`, `ai/retrieval/07-retrieval-evaluation.md` (**PROPOSED** метрики/golden-set для legal retrieval; не заменяет этот документ).
 
 ## 1. Что требуется доказать
 

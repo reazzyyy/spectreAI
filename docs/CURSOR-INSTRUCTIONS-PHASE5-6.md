@@ -13,6 +13,7 @@
 7. `docs/06-data-model.md`, `docs/07-access-control-matrix.md`, `11-api-conventions.md`, `12-authentication-and-sessions.md`, `15-ai-jobs-and-background-processing.md`, `docs/16-prompt-management-and-ai-safety.md`, `17-rag-and-knowledge-retrieval.md`, `19-conversation-and-workspace-context.md`, `20-ai-product-workflows.md`.
 8. `docs/workspace-phase2/02-data-model-and-rls.md`, `03-api-auth-and-invitations.md`, `05-testing-and-acceptance.md`.
 9. `docs/27–30` — portability, index manifest, runbook and search validation.
+9a. `docs/ai/retrieval/` — **PROPOSED** legal-knowledge Retrieval Engine (ориентир для research/norms; **не** scope Phase 6 user-document schema). Не реализовывать LegalAct* / ParadeDB / embedding choice из пакета в Phase 5–6 без отдельного решения.
 10. Figma flow register only as UX reference; identify which flows are accepted vs unresolved.
 
 ## 2. Non-negotiable constraints
