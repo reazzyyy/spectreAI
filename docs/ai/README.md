@@ -4,8 +4,8 @@
 
 | Пакет | Назначение | Вход |
 |---|---|---|
-| `retrieval/` | Концепция Retrieval Engine для нормативных актов, судебной практики и (логически) пользовательских документов: ingestion, exact/hybrid search, temporal applicability, evaluation | [`retrieval/README.md`](retrieval/README.md) |
+| `retrieval/` | Концепция Retrieval Engine, версия **0.2**: ingestion, exact/hybrid search, temporal applicability (`LegalProvisionTextVersion` / `AmendmentOperation` / `ApplicabilityRule`), evaluation и кейсы T-01–T-03 | [`retrieval/README.md`](retrieval/README.md) |
 
 Приоритет при конфликте: `docs/decisions-log.md` → канон области (`docs/17`, `docs/18`, …) → исполняемые спеки Phase 6 (`docs/33`) → этот каталог.
 
-Сверка интеграции: [`retrieval/INTEGRATION-NOTES.md`](retrieval/INTEGRATION-NOTES.md).
+Сверка интеграции v0.2: [`retrieval/INTEGRATION-NOTES.md`](retrieval/INTEGRATION-NOTES.md).

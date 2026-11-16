@@ -40,7 +40,7 @@
 | Фоновые задачи | `15-ai-jobs-and-background-processing.md` | Redis/BullMQ (**D-008**); статусы только D-011. |
 | Промпты и AI safety | `16-prompt-management-and-ai-safety.md` | Модель не является источником прав доступа. |
 | RAG и поиск | `17-rag-and-knowledge-retrieval.md` | PostgreSQL + `pgvector` + FTS (**D-018**); ACL до контекста. |
-| Retrieval Engine (legal knowledge; дополнение) | `ai/retrieval/` (вход: `ai/README.md`, `ai/retrieval/README.md`) | **PROPOSED.** Концепт exact/hybrid/temporal/evaluation для норм и практики. Не заменяет `17`/`18`/`30`/`33`. Не закрывает O-006 / Gate B / FILE-009. Сверка: `ai/retrieval/INTEGRATION-NOTES.md`. |
+| Retrieval Engine (legal knowledge; дополнение) | `ai/retrieval/` (вход: `ai/README.md`, `ai/retrieval/README.md`) | **PROPOSED v0.2.** Exact/hybrid плюс логическая temporal-модель и кейсы T-01–T-03. Не Prisma-схема, не заменяет `17`/`18`/`30`/`33`, не закрывает O-006 / Gate B / FILE-009. Кейсы не приёмка, пока не сверены с официальным текстом. Сверка: `ai/retrieval/INTEGRATION-NOTES.md`. |
 | Юридические источники | `18-legal-research-and-external-sources.md` | Лицензии источников — OPEN (O-006). |
 | Контекст бесед и workspace | `19-conversation-and-workspace-context.md` | Client/Matter (D-009); согласовывать с правами, RAG и удалением. |
 | Сквозные продуктовые сценарии | `20-ai-product-workflows.md` | Synthetic до разрешения передачи реальных данных. |
