@@ -53,7 +53,8 @@
 | Перенос корпуса и индекса | `27`–`30` | **PROPOSED.** Не заменяет backup/DR и не закрывает O-006 / O-009. |
 | Phase 5 Chat (исполнимая спецификация) | `32-phase5-chat-implementation-specification.md` | **PROPOSED.** Дополняет `06`/`07`/`15`/`19`/`20`/`workspace-phase2`; не меняет D/O/H. Инструкция агенту: `CURSOR-INSTRUCTIONS-PHASE5-6.md`. |
 | Phase 6 Search/RAG (исполнимая спецификация) | `33-phase6-rag-implementation-specification.md` | **PROPOSED.** Дополняет `13`/`17`/`27`–`30`; FILE-009 и Gate B остаются OPEN. |
-| Phase 5–6 AS-IS audit gaps | `34-phase5-6-code-and-design-audit.md` | Отчёт о пробелах кода/дизайна (снимок); не канон решений. Рабочий трекер: `tasks/phase5-6-gaps.md`. |
+| Phase 5–6 AS-IS audit gaps | `34-phase5-6-code-and-design-audit.md` | Исторический снимок **2026-11-10**; не текущий AS-IS. Актуально: `26` и `tasks/phase5-6-gaps.md`. |
+| Stage 1–2 алгоритмические контракты RAG | `2026-11-16-stage1-consolidation.md`, `2026-11-17-*-contract.md`, `STAGE2-INTEGRATION-NOTES.md` | **PROPOSED / AUDIT.** Не заменяют `17`/`33`/`decisions-log`. Не закрывают FILE-009, Gate B, O-002, O-006. Пять контрактов читать вместе с consistency review: enum и семантика `ready` ещё не согласованы. |
 | Живой план реализации | `tasks/roadmap.md` | Порядок работ и ворота недостающих вводных. Можно менять. Не канон требований и не повышает OPEN/PROPOSED до CONFIRMED. Детали среза — `tasks/plan.md` / `tasks/todo.md`. |
 | Архитектурные решения | `adr/` и `decisions-log.md` | ADR фиксирует отдельные решения; журнал показывает общий статус. ADR-0003 — PostgreSQL RLS (**W-020**). |
 

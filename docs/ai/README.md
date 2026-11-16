@@ -9,3 +9,5 @@
 Приоритет при конфликте: `docs/decisions-log.md` → канон области (`docs/17`, `docs/18`, …) → исполняемые спеки Phase 6 (`docs/33`) → этот каталог.
 
 Сверка интеграции v0.2: [`retrieval/INTEGRATION-NOTES.md`](retrieval/INTEGRATION-NOTES.md).
+
+Аудит этапа 1 (находки, не решения): [`../2026-11-16-stage1-consolidation.md`](../2026-11-16-stage1-consolidation.md). Контракты Stage 2: [`../STAGE2-INTEGRATION-NOTES.md`](../STAGE2-INTEGRATION-NOTES.md).

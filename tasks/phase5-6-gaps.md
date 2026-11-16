@@ -38,6 +38,7 @@
 | DEC-05 regenerate/edit/cancel details | design flow register | не внедрять product semantics до решения |
 | O-012 workspace delete confirmer | decisions-log | вне scope Phase 5/6 |
 | O-004 / D-031 OCR/scan | decisions-log | scan → failed; OCR не в 5/6 |
+| Stage 2 RAG contracts | `docs/STAGE2-INTEGRATION-NOTES.md` | PROPOSED. Не закрывают P6-01…P6-09 и не меняют `ready` / Prisma |
 
 ## Порядок закрытия (канон инструкции)
 
