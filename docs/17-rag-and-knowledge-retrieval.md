@@ -4,11 +4,6 @@
 
 **Связанные документы:**
 
-## Подтверждённое решение о поисковом хранилище (D-018)
-
-MVP использует PostgreSQL full-text search вместе с `pgvector`. Embedding-модель не выбрана. Retrieval обязан фильтровать документы по организации, workspace и текущим правам пользователя до передачи фрагментов модели.
-
-
 - `docs/06-data-model.md` — модель данных.
 - `docs/07-access-control-matrix.md` — права доступа.
 - `docs/08-data-lifecycle-and-deletion.md` — жизненный цикл данных.
@@ -16,6 +11,14 @@ MVP использует PostgreSQL full-text search вместе с `pgvector`.
 - `docs/14-ai-provider-and-model-gateway.md` — AI Gateway.
 - `docs/15-ai-jobs-and-background-processing.md` — фоновые задачи.
 - `docs/16-prompt-management-and-ai-safety.md` — промпты и безопасность.
+- `docs/18-legal-research-and-external-sources.md` — внешние правовые источники (**O-006**).
+- `docs/30-portability-integrity-and-search-validation.md` — retrieval validation.
+- `docs/33-phase6-rag-implementation-specification.md` — исполняемая спека Phase 6 (user documents).
+- `docs/ai/retrieval/` — **PROPOSED** концепт Retrieval Engine (exact/hybrid/temporal/evaluation); не заменяет этот документ и не закрывает OPEN.
+
+## Подтверждённое решение о поисковом хранилище (D-018)
+
+MVP использует PostgreSQL full-text search вместе с `pgvector`. Embedding-модель не выбрана. Retrieval обязан фильтровать документы по организации, workspace и текущим правам пользователя до передачи фрагментов модели.
 
 ---
 

@@ -10,10 +10,13 @@
 2. `docs/decisions-log.md` — статус продуктовых решений (включая **D-008–D-024**).
 3. Каноническая спецификация соответствующей области из таблицы ниже.
 4. `docs/security/` — **PROPOSED** security governance (дополнение; не заменяет п. 2–3).
-5. Текущая задача и явные уточнения владельца продукта.
-6. Примеры, комментарии и предположения в коде.
+5. `docs/ai/` — **PROPOSED** AI/Retrieval концепт-пакеты (дополнение; не заменяет п. 2–3 и не закрывает OPEN).
+6. Текущая задача и явные уточнения владельца продукта.
+7. Примеры, комментарии и предположения в коде.
 
 Для содержательных требований безопасности при конфликте внутри документации: **`docs/decisions-log.md` → канон области → `docs/security/`**. Пакет `docs/security/` не подтверждает реализацию контролей и не повышает `PROPOSED`/`OPEN`/`HYPOTHESIS` до `CONFIRMED`.
+
+Для retrieval / legal knowledge при конфликте: **`docs/decisions-log.md` → канон (`17`/`18`/`30`) → Phase 6 (`33`) → `docs/ai/retrieval/`**. Пакет не закрывает **O-006**, Gate B, **FILE-009** и не подтверждает реализацию Retrieval Engine.
 
 Этот список не разрешает конфликт между подтверждёнными требованиями. Если источники противоречат друг другу, Cursor должен остановить затронутую часть работы, описать варианты и запросить решение.
 
@@ -37,6 +40,7 @@
 | Фоновые задачи | `15-ai-jobs-and-background-processing.md` | Redis/BullMQ (**D-008**); статусы только D-011. |
 | Промпты и AI safety | `16-prompt-management-and-ai-safety.md` | Модель не является источником прав доступа. |
 | RAG и поиск | `17-rag-and-knowledge-retrieval.md` | PostgreSQL + `pgvector` + FTS (**D-018**); ACL до контекста. |
+| Retrieval Engine (legal knowledge; дополнение) | `ai/retrieval/` (вход: `ai/README.md`, `ai/retrieval/README.md`) | **PROPOSED.** Концепт exact/hybrid/temporal/evaluation для норм и практики. Не заменяет `17`/`18`/`30`/`33`. Не закрывает O-006 / Gate B / FILE-009. Сверка: `ai/retrieval/INTEGRATION-NOTES.md`. |
 | Юридические источники | `18-legal-research-and-external-sources.md` | Лицензии источников — OPEN (O-006). |
 | Контекст бесед и workspace | `19-conversation-and-workspace-context.md` | Client/Matter (D-009); согласовывать с правами, RAG и удалением. |
 | Сквозные продуктовые сценарии | `20-ai-product-workflows.md` | Synthetic до разрешения передачи реальных данных. |
@@ -75,6 +79,21 @@
 - до закрытия **O-002** реальные клиентские документы во внешний AI не передаются — только `SyntheticAIProvider` (**D-012**).
 
 Сверка пакета с каноном: `security/CONTRADICTIONS-AND-INTEGRATION-PLAN.md`. Открытые operational-вопросы: `security/DECISIONS-TO-REVIEW.md`.
+
+## 3.2. Пакет `docs/ai/` (PROPOSED)
+
+Каталог `docs/ai/` — предложенные концепт-пакеты по AI/Retrieval. Первый пакет: `docs/ai/retrieval/` (Retrieval Engine для normative / court / logical user-document collections).
+
+Ограничения:
+
+- не заменяет `17`, `18`, `30`, `33` и не является Prisma/API-контрактом;
+- не закрывает **O-006**, Gate B, **FILE-009**, **O-002**, **O-004**;
+- ParadeDB BM25 и конкретные embedding-модели — только `TO_VALIDATE` / эксперимент; production-направление до нового решения — **D-018** (PostgreSQL FTS + pgvector);
+- LegalAct* сущности в пакете — логическая модель, не инструкция создавать таблицы;
+- OCR «по необходимости» не отменяет **D-031** / **H-002** / **O-004** для клиентских документов;
+- не считать компоненты реализованными (AS-IS — `docs/26`).
+
+Сверка: `ai/retrieval/INTEGRATION-NOTES.md`, `ai/retrieval/CONTRADICTIONS-AND-INTEGRATION-PLAN.md`.
 
 ## 4. Значение статусов
 

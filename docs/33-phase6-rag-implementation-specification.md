@@ -6,6 +6,8 @@
 
 **Назначение:** определить физическую и алгоритмическую реализацию индексации и retrieval. Документ дополняет, а не пересказывает `docs/17`, `docs/19`, `docs/27–30`.
 
+**Связанное дополнение:** `docs/ai/retrieval/` — **PROPOSED** концепт legal-knowledge Retrieval Engine (нормы / практика / temporal). Phase 6 фокусируется на **user documents** (DocumentVersion, chunks, FTS/vector). Не смешивать LegalAct* логическую модель пакета с Prisma Phase 6 без отдельного решения; не закрывать Gate B / FILE-009 / O-006 из пакета.
+
 ## 1. Ключевой вывод аудита
 
 Проект уже подтверждает D-018: PostgreSQL FTS + pgvector. Документы 17 и 27–30 описывают логические этапы, provenance, переносимость и retrieval validation. Но в текущем коде отсутствуют `DocumentVersion`, `DocumentChunk`, `Embedding`, index generation, FTS/vector retrieval и соответствующие workers.

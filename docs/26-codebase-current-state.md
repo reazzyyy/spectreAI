@@ -314,6 +314,7 @@ Workflow: `.github/workflows/ci.yml`.
 - Hard delete Client/Matter/Workspace; полный W-020 (сверх текущих tenant/document policies); ACL матрица `docs/07` в коде; admin grant; ownership transfer.
 - Chat UI polish / streaming / citations UX; document-backed context / DocumentVersion (**6A**; snapshot tables 5B conversation_only есть).
 - DocumentVersion; chunks; FTS/GIN; embeddings; pgvector/HNSW; hybrid retrieval/RRF (**Phase 6**; спека `docs/33`; Gate B / FILE-009 OPEN).
+- LegalAct* / normative ingestion / temporal legal retrieval (**PROPOSED** пакет `docs/ai/retrieval/`; **O-006** OPEN) — в коде нет.
 - OCR success path (**O-004**); production object storage (**O-003**).
 - OpenAI adapter (запрещён до O-002; целевой провайдер D-015).
 - Полный audit/WORM на год, метрики production, деплой в РФ (D-014 — требование, реализации нет).
