@@ -85,7 +85,9 @@ pnpm dev:web   # http://localhost:3001
 | `docs/archive/24-security-and-threat-model-legacy.md` | Архив прежней модели угроз; не нормативный источник |
 | `docs/25-logging-monitoring-and-audit.md` | Технические логи, метрики и аудит |
 | `docs/26-codebase-current-state.md` | AS-IS снимок исполняемого scaffold (что есть в коде сейчас) |
-| `docs/32`–`34`, `CURSOR-INSTRUCTIONS-PHASE5-6.md` | Phase 5–6 Chat/RAG спеки + audit (**PROPOSED**/отчёт; не закрывают OPEN) |
+| `docs/32`–`34`, `CURSOR-INSTRUCTIONS-PHASE5-6.md` | Phase 5–6 Chat/RAG спеки + исторический audit `34` (снимок 2026-11-10) |
+| `docs/STAGE2-INTEGRATION-NOTES.md` | Как читать Stage 1 audit и Stage 2 контракты (**PROPOSED**; не канон) |
+| `docs/2026-11-16-stage1-consolidation.md` | Аудит этапа 1 (находки A-01…A-11); код не меняет |
 | `tasks/phase5-6-gaps.md` | Рабочий трекер пробелов Phase 5–6 |
 | `docs/workspace-phase2/README.md` | Workspace Phase 2: продукт, RLS, auth/invite, lifecycle, тесты (**W-001–W-020**) |
 | `docs/PACKAGE-README.md` | Указатель путей пакета Workspace Phase 2 после интеграции |

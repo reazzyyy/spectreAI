@@ -24,6 +24,7 @@
 - **D-013 / D-016:** admin content-grant TTL ≤ 60 минут; одобряет только независимый участник с `admin_grant:approve` (назначает owner); без согласующего доступ не выдаётся; break-glass не в MVP; продление запрещено (**W-016**).
 - **D-014:** инфраструктура, БД и файловое хранилище в России (учитывать копии/логи/индексы/бэкапы).
 - **D-018:** поиск — PostgreSQL + `pgvector` + полнотекстовый поиск PostgreSQL.
+- **D-032–D-034:** кандидаты поиска фильтруются в SQL до выдачи; `ready` не означает searchable; `searchEligible` не включается самим extract; индекс и цитата привязаны к `DocumentVersion`. FILE-009, Gate B и O-006 остаются открытыми.
 - **D-019 / D-020:** после подтверждённого удаления — недоступность сразу; удаление из основной системы/текста/индексов/производных ≤ 24 ч; бэкапы 35 дней с повторным применением журнала удалений при restore.
 - **D-021 / D-022:** цель хранения аудита 1 год (проверка до production); RPO ≤ 24 ч, RTO ≤ 8 ч — цели, проверяемые restore-тестами.
 - **H-002:** OCRmyPDF + Tesseract — гипотеза до тестов качества.
@@ -79,6 +80,7 @@
 - Для фактов о текущем коде (AS-IS scaffold) используй `docs/26-codebase-current-state.md` и README в `apps/*` / `packages/*`; не подменяй их целевыми спецификациями MVP.
 - Для реализации Chat / Search-RAG следуй `docs/32` / `docs/33` и `docs/CURSOR-INSTRUCTIONS-PHASE5-6.md` (**PROPOSED**); пробелы — `docs/34` / `tasks/phase5-6-gaps.md`. Не закрывай FILE-009, Gate B, O-002, DEC-05 самостоятельно.
 - Для концепции Retrieval Engine / legal knowledge (**PROPOSED v0.2**) смотри `docs/ai/retrieval/` — дополнение к `docs/17`/`18`/`30`/`33`; приоритет: `docs/decisions-log.md` → канон → Phase 6 (`33`) → `docs/ai/retrieval/`. Не закрывай O-006, Gate B, FILE-009; не создавай LegalAct* / AmendmentOperation / ApplicabilityRule schema и не подключай ParadeDB/embedding без решения. Кейсы T-01–T-03 не приёмка и не корпус. Сверка: `docs/ai/retrieval/INTEGRATION-NOTES.md`.
+- Stage 1 audit и Stage 2 контракты (`docs/2026-11-16-stage1-consolidation.md`, `docs/2026-11-17-*.md`) — **PROPOSED**. Читать через `docs/STAGE2-INTEGRATION-NOTES.md`. Не переносить их enum в Prisma и не менять смысл `Document.status=ready`, пока владелец не подтвердит. `docs/34` — снимок 2026-11-10, не текущий AS-IS.
 - Обязательная документация при изменении кода: `.cursor/rules/07-code-documentation.mdc`.
 - Для security governance (IR, vuln, BCDR, evidence, inventory; **PROPOSED**) смотри `docs/security/` — дополнение, не замена канонов; приоритет: `docs/decisions-log.md` → канон области → `docs/security/`. Классификация данных нормативна как **D0–D4** в `docs/03-data-security.md` (C0–C4 только mapping).
 - Файлы в `docs/archive/` сохранены для истории и сверки, но не являются нормативными. Если найдено уникальное требование, предложи перенести его в канонический документ и не реализуй его напрямую из архива.

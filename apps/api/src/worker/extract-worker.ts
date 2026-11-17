@@ -67,6 +67,22 @@ async function main(): Promise<void> {
         return;
       }
 
+      if (!document.currentVersionId) {
+        await prisma.aiJob.update({
+          where: { id: jobId },
+          data: {
+            status: "failed",
+            lastErrorCode: "VERSION_MISSING",
+            completedAt: new Date(),
+          },
+        });
+        await prisma.document.update({
+          where: { id: documentId },
+          data: { status: "processing_failed" },
+        });
+        return;
+      }
+
       const bytes = await storage.get(document.storageKey);
       const result = await Promise.race([
         extractDocumentText(bytes, document.mimeType),
@@ -102,6 +118,7 @@ async function main(): Promise<void> {
           id: randomUUID(),
           organizationId: document.organizationId,
           documentId,
+          documentVersionId: document.currentVersionId,
           aiJobId: jobId,
           charCount: result.text.length,
           pageCount: result.pageCount,
@@ -109,6 +126,7 @@ async function main(): Promise<void> {
           textContent: result.text,
         },
         update: {
+          documentVersionId: document.currentVersionId,
           aiJobId: jobId,
           charCount: result.text.length,
           pageCount: result.pageCount,

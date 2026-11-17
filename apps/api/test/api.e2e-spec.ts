@@ -86,7 +86,14 @@ async function seedFixtures(): Promise<void> {
     await prisma.conversation.deleteMany({
       where: { organizationId: { in: [ORG_A, ORG_B] } },
     });
+    await prisma.document.updateMany({
+      where: { organizationId: { in: [ORG_A, ORG_B] } },
+      data: { currentVersionId: null },
+    });
     await prisma.documentExtraction.deleteMany({
+      where: { organizationId: { in: [ORG_A, ORG_B] } },
+    });
+    await prisma.documentVersion.deleteMany({
       where: { organizationId: { in: [ORG_A, ORG_B] } },
     });
     await prisma.aiJob.deleteMany({
@@ -884,6 +891,21 @@ describe("API scaffold", () => {
       expect(upload.body.items[0].storageKey).toBeUndefined();
 
       const documentId = upload.body.items[0].id as string;
+      const versionCheck = createPrismaClient({ purpose: "migrator" });
+      try {
+        const versions = await versionCheck.documentVersion.findMany({
+          where: { documentId },
+        });
+        expect(versions).toHaveLength(1);
+        expect(versions[0]?.versionNumber).toBe(1);
+        expect(versions[0]?.searchEligible).toBe(false);
+        const stored = await versionCheck.document.findUnique({
+          where: { id: documentId },
+        });
+        expect(stored?.currentVersionId).toBe(versions[0]?.id);
+      } finally {
+        await versionCheck.$disconnect();
+      }
 
       const listed = await agent.get(
         `/api/v1/workspaces/${TEAM_WORKSPACE_A}/documents`,

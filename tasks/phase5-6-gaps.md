@@ -13,7 +13,7 @@
 | P5-03 | Chat orchestration via Outbox + worker + Synthetic (sync `/ai/generate` remains thin probe) | 5A-2 | closed |
 | P5-04 | AiGeneration + chat.generate AIJob path landed; extract unchanged | 5A-2 | closed |
 | P5-05 | OutboxEvent + publisher for chat.generate (JOB-012 still OPEN as product decision) | 5A-2 | closed (scaffold) |
-| P6-01 | Нет DocumentVersion; extraction unique на documentId | 6A | open |
+| P6-01 | DocumentVersion v1 есть при загрузке; extraction привязан к version, но unique ещё и на documentId. FTS нет, searchEligible=false | 6A | partial |
 | P6-02 | Нет chunk / embedding / index generation schema + indexing worker + retrieval SQL | 6A→6B | open |
 
 ## P1 — нужны до полноценного RAG
@@ -38,6 +38,7 @@
 | DEC-05 regenerate/edit/cancel details | design flow register | не внедрять product semantics до решения |
 | O-012 workspace delete confirmer | decisions-log | вне scope Phase 5/6 |
 | O-004 / D-031 OCR/scan | decisions-log | scan → failed; OCR не в 5/6 |
+| Stage 2 RAG contracts | `docs/STAGE2-INTEGRATION-NOTES.md` | PROPOSED. Не закрывают P6-01…P6-09 и не меняют `ready` / Prisma |
 
 ## Порядок закрытия (канон инструкции)
 
