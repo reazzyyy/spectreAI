@@ -312,8 +312,8 @@ Workflow: `.github/workflows/ci.yml`.
 - MFA/SSO (**O-008** / **W-013** — не в MVP), self-registration (**W-012** запрещает public self-reg), email verify, recovery, logout-all, session list.
 - Email delivery provider для invitations; полный `docs/12` (password policy product confirmation, idle timeout, logout-all, session list).
 - Hard delete Client/Matter/Workspace; полный W-020 (сверх текущих tenant/document policies); ACL матрица `docs/07` в коде; admin grant; ownership transfer.
-- Chat UI polish / streaming / citations UX; document-backed context / DocumentVersion (**6A**; snapshot tables 5B conversation_only есть).
-- DocumentVersion; chunks; FTS/GIN; embeddings; pgvector/HNSW; hybrid retrieval/RRF (**Phase 6**; спека `docs/33`; Gate B / FILE-009 OPEN).
+- Chat UI polish / streaming / citations UX; document-backed chat context (snapshot tables 5B остаются conversation_only). `DocumentVersion` v1 есть; FTS по ней ещё нет.
+- Chunks; FTS/GIN; embeddings; pgvector/HNSW; hybrid retrieval/RRF (**Phase 6** после версии; спека `docs/33`; Gate B / FILE-009 OPEN). `DocumentVersion` v1 создаётся при загрузке, `searchEligible` остаётся false (**D-033** / **D-034**): `ready` после extract не означает поиск.
 - LegalAct* / normative ingestion / temporal legal retrieval (**PROPOSED** пакет `docs/ai/retrieval/`; **O-006** OPEN) — в коде нет.
 - OCR success path (**O-004**); production object storage (**O-003**).
 - OpenAI adapter (запрещён до O-002; целевой провайдер D-015).

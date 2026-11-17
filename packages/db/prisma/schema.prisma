@@ -167,7 +167,8 @@ model Organization {
   sessions     Session[]
   workspaces   Workspace[]
   invitations  OrganizationInvitation[]
-  documents     Document[]
+  documents        Document[]
+  documentVersions DocumentVersion[]
   aiJobs        AiJob[]
   extractions   DocumentExtraction[]
   auditEvents   AuditEvent[]
@@ -232,7 +233,8 @@ model User {
   workspaceMatters   WorkspaceMatter[]        @relation("WorkspaceMatterCreator")
   addedMembers       WorkspaceMember[]        @relation("WorkspaceMemberAdder")
   invitationsSent    OrganizationInvitation[]  @relation("InvitationInviter")
-  uploadedDocuments      Document[]       @relation("DocumentUploader")
+  uploadedDocuments        Document[]        @relation("DocumentUploader")
+  uploadedDocumentVersions DocumentVersion[] @relation("DocumentVersionUploader")
   createdAiJobs          AiJob[]          @relation("AiJobCreator")
   ownedConversations     Conversation[]   @relation("ConversationOwner")
   createdConversations   Conversation[]   @relation("ConversationCreator")
@@ -386,15 +388,46 @@ model Document {
   storageKey       String              @map("storage_key")
   uploadedByUserId String              @map("uploaded_by_user_id") @db.Uuid
   uploadedBy       User                @relation("DocumentUploader", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+  /// Pointer to the immutable file version used for new processing (D-032/D-033).
+  currentVersionId String?             @unique @map("current_version_id") @db.Uuid
+  currentVersion   DocumentVersion?    @relation("DocumentCurrentVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
   createdAt        DateTime            @default(now()) @map("created_at")
   updatedAt        DateTime            @updatedAt @map("updated_at")
   aiJobs           AiJob[]
   extraction       DocumentExtraction?
+  versions         DocumentVersion[]   @relation("DocumentVersions")
 
   @@unique([organizationId, id])
   @@index([organizationId, workspaceId, createdAt])
   @@index([organizationId, status])
   @@map("documents")
+}
+
+/// Immutable uploaded file for one Document (Phase 6A). Search stays off until a later FTS slice (D-033).
+model DocumentVersion {
+  id               String    @id @default(uuid()) @db.Uuid
+  organizationId   String    @map("organization_id") @db.Uuid
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  documentId       String    @map("document_id") @db.Uuid
+  document         Document  @relation("DocumentVersions", fields: [organizationId, documentId], references: [organizationId, id], onDelete: Cascade)
+  versionNumber    Int       @map("version_number")
+  originalFileName String    @map("original_file_name")
+  mimeType         String    @map("mime_type")
+  byteSize         Int       @map("byte_size")
+  checksumSha256   String    @map("checksum_sha256")
+  storageKey       String    @map("storage_key")
+  uploadedByUserId String    @map("uploaded_by_user_id") @db.Uuid
+  uploadedBy       User      @relation("DocumentVersionUploader", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+  /// False until an explicit FTS publication slice. Extraction success must not flip this (D-033, D-034).
+  searchEligible   Boolean   @default(false) @map("search_eligible")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  currentFor       Document? @relation("DocumentCurrentVersion")
+  extraction       DocumentExtraction?
+
+  @@unique([documentId, versionNumber])
+  @@unique([organizationId, id])
+  @@index([organizationId, documentId])
+  @@map("document_versions")
 }
 
 /// Background job source of truth (D-011 / D-027). BullMQ is delivery only.
@@ -431,8 +464,11 @@ model DocumentExtraction {
   id             String       @id @default(uuid()) @db.Uuid
   organizationId String       @map("organization_id") @db.Uuid
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  documentId     String       @unique @map("document_id") @db.Uuid
-  document       Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId        String          @unique @map("document_id") @db.Uuid
+  document          Document        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  /// Immutable extraction is bound to the file version it was read from (D-034).
+  documentVersionId String          @unique @map("document_version_id") @db.Uuid
+  documentVersion   DocumentVersion @relation(fields: [documentVersionId], references: [id], onDelete: Cascade)
   aiJobId        String?      @map("ai_job_id") @db.Uuid
   aiJob          AiJob?       @relation(fields: [aiJobId], references: [id], onDelete: SetNull)
   charCount      Int          @map("char_count")

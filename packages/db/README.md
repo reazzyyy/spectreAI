@@ -6,14 +6,15 @@ Prisma 7 schema, migrations, and runtime client factory (**D-009**, Workspace, d
 
 `Organization`, `Client`, `Matter`, `User`, `OrganizationMembership`, `Session`,  
 `Workspace`, `WorkspaceMember`, `WorkspaceMatter`, `Document`, `OrganizationInvitation`,  
-`AiJob`, `DocumentExtraction`, `AuditEvent`, `Conversation`, `Message`, `AiGeneration`, `OutboxEvent`,  
+`AiJob`, `DocumentVersion`, `DocumentExtraction`, `AuditEvent`, `Conversation`, `Message`, `AiGeneration`, `OutboxEvent`,  
 `ContextSnapshot`, `ContextSnapshotItem`, `MessageSource`.
 
 - Workspace PERSONAL/TEAM (**W-002**); Matter link via `WorkspaceMatter` M:N (**W-003**).
 - `Matter.workspaceId` optional legacy, **no FK** — prefer join table; drop later after backfill.
 - Matter→Client and Workspace→Client FKs are composite on `(organizationId, clientId)`.
 - Document metadata (Phase 3 thin); binary in private storage by `storageKey`.
-- Chat (Phase 5A–5B): Conversation, Message, AiGeneration, OutboxEvent scaffold, ContextSnapshot conversation_only + MessageSource; no DocumentVersion yet.
+- Chat (Phase 5A–5B): Conversation, Message, AiGeneration, OutboxEvent scaffold, ContextSnapshot conversation_only + MessageSource.
+- DocumentVersion (Phase 6A): immutable file version 1 on upload; extraction binds `documentVersionId`. `searchEligible` stays false until a later FTS slice (**D-033**, **D-034**).
 - No grant or MFA/SSO models yet. JOB-012 / CTX-* remain OPEN in the journal.
 
 ## Public API
@@ -28,7 +29,7 @@ Prisma 7 schema, migrations, and runtime client factory (**D-009**, Workspace, d
 
 Tenant-boundary policies (`organization_id` = GUC) + `FORCE ROW LEVEL SECURITY` on:  
 `clients`, `matters`, `organization_memberships`, `workspaces`, `workspace_members`, `workspace_matters`,  
-`documents` (org + workspace owner/active member),  
+`documents` (org + workspace owner/active member), `document_versions` (via parent document),  
 `conversations` (org + workspace access + PRIVATE owner / WORKSPACE shared),  
 `messages` / `ai_generations` (via parent conversation EXISTS under same RLS),  
 `context_snapshots` / `context_snapshot_items` / `message_sources` (via conversation/message ACL),  

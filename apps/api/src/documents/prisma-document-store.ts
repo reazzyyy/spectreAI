@@ -92,6 +92,24 @@ export function createPrismaDocumentStore(tx: PrismaTxClient): DocumentStore {
           uploadedByUserId: input.uploadedByUserId,
         },
       });
+      const version = await tx.documentVersion.create({
+        data: {
+          organizationId,
+          documentId: row.id,
+          versionNumber: 1,
+          originalFileName: row.originalFileName,
+          mimeType: row.mimeType,
+          byteSize: row.byteSize,
+          checksumSha256: row.checksumSha256,
+          storageKey: row.storageKey,
+          uploadedByUserId: row.uploadedByUserId,
+          searchEligible: false,
+        },
+      });
+      await tx.document.update({
+        where: { id: row.id },
+        data: { currentVersionId: version.id },
+      });
       return mapRow(row);
     },
     async updateStatus(id, status) {
@@ -107,6 +125,11 @@ export function createPrismaDocumentStore(tx: PrismaTxClient): DocumentStore {
     },
     async deleteById(id) {
       try {
+        await tx.document.update({
+          where: { id },
+          data: { currentVersionId: null },
+        });
+        await tx.documentVersion.deleteMany({ where: { documentId: id } });
         await tx.document.delete({ where: { id } });
         return true;
       } catch {
