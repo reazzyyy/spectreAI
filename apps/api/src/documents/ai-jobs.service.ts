@@ -1,14 +1,17 @@
 import { Inject, Injectable, Optional } from "@nestjs/common";
 import { Queue } from "bullmq";
 import { randomUUID } from "node:crypto";
+import type { PrismaTxClient } from "@spectre/db";
 import { PrismaService } from "../db/prisma.service.js";
 import {
+  EXTRACT_JOB_TYPE,
   EXTRACT_MAX_ATTEMPTS,
   extractIdempotencyKey,
 } from "./extract-limits.js";
 import { AI_JOBS_QUEUE_TOKEN } from "../queue/ai-jobs.tokens.js";
+import { deliverOutboxJob } from "../queue/deliver-outbox-job.js";
 
-export const EXTRACT_JOB_TYPE = "document.extract";
+export { EXTRACT_JOB_TYPE } from "./extract-limits.js";
 const PUBLISH_TIMEOUT_MS = 1_500;
 
 @Injectable()
@@ -19,8 +22,9 @@ export class AiJobsService {
   ) {}
 
   /**
-   * Idempotent extract enqueue (D-027). Reuses existing job for same key.
-   * PostgreSQL row is source of truth; Redis publish is best-effort (fail-open).
+   * Idempotent extract enqueue (D-027). The AIJob and outbox row commit together.
+   * Redis publish is best-effort. An unpublished outbox row is the recovery path
+   * when Redis is down. The payload is jobId and type only — never file text.
    */
   async enqueueDocumentExtract(input: {
     organizationId: string;
@@ -38,45 +42,83 @@ export class AiJobsService {
       },
     });
     if (existing) {
-      if (existing.status === "queued" || existing.status === "running") {
-        await this.publish(existing.id, input.documentId);
+      if (existing.status === "queued") {
+        await this.ensureOutbox(existing.id, input.organizationId);
+        await this.publish(existing.id);
       }
       return { jobId: existing.id, created: false };
     }
 
     const jobId = randomUUID();
-    await this.prisma.migrator.aiJob.create({
-      data: {
-        id: jobId,
-        organizationId: input.organizationId,
-        workspaceId: input.workspaceId,
-        documentId: input.documentId,
-        createdByUserId: input.createdByUserId,
-        type: EXTRACT_JOB_TYPE,
-        status: "queued",
-        idempotencyKey,
-        maxAttempts: EXTRACT_MAX_ATTEMPTS,
-      },
+    const outboxId = randomUUID();
+    await this.prisma.migrator.$transaction(async (tx: PrismaTxClient) => {
+      await tx.aiJob.create({
+        data: {
+          id: jobId,
+          organizationId: input.organizationId,
+          workspaceId: input.workspaceId,
+          documentId: input.documentId,
+          createdByUserId: input.createdByUserId,
+          type: EXTRACT_JOB_TYPE,
+          status: "queued",
+          idempotencyKey,
+          maxAttempts: EXTRACT_MAX_ATTEMPTS,
+        },
+      });
+      await tx.document.update({
+        where: { id: input.documentId },
+        data: { status: "processing" },
+      });
+      await tx.outboxEvent.create({
+        data: {
+          id: outboxId,
+          organizationId: input.organizationId,
+          eventType: EXTRACT_JOB_TYPE,
+          aggregateId: jobId,
+          payload: { jobId, type: EXTRACT_JOB_TYPE },
+        },
+      });
     });
-    await this.prisma.migrator.document.update({
-      where: { id: input.documentId },
-      data: { status: "processing" },
-    });
-    await this.publish(jobId, input.documentId);
+    await this.publish(jobId);
     return { jobId, created: true };
   }
 
-  private async publish(jobId: string, documentId: string): Promise<void> {
+  private async ensureOutbox(jobId: string, organizationId: string): Promise<void> {
+    const pending = await this.prisma.migrator.outboxEvent.findFirst({
+      where: { aggregateId: jobId, eventType: EXTRACT_JOB_TYPE, publishedAt: null },
+    });
+    if (pending) {
+      return;
+    }
+    await this.prisma.migrator.outboxEvent.create({
+      data: {
+        id: randomUUID(),
+        organizationId,
+        eventType: EXTRACT_JOB_TYPE,
+        aggregateId: jobId,
+        payload: { jobId, type: EXTRACT_JOB_TYPE },
+      },
+    });
+  }
+
+  /**
+   * Publishes the newest unpublished extract outbox row for this job.
+   * Failure leaves publishedAt null so the poller can try again.
+   */
+  private async publish(jobId: string): Promise<void> {
     if (!this.queue) {
       return;
     }
+    const event = await this.prisma.migrator.outboxEvent.findFirst({
+      where: { aggregateId: jobId, eventType: EXTRACT_JOB_TYPE, publishedAt: null },
+      orderBy: { createdAt: "desc" },
+    });
+    if (!event) {
+      return;
+    }
     try {
-      await Promise.race([
-        this.queue.add(
-          EXTRACT_JOB_TYPE,
-          { jobId, documentId },
-          { jobId, removeOnComplete: 100, removeOnFail: 100 },
-        ),
+      const result = await Promise.race([
+        deliverOutboxJob(this.queue, this.prisma.migrator, event),
         new Promise<never>((_, reject) => {
           setTimeout(
             () => reject(new Error("AI_JOBS_PUBLISH_TIMEOUT")),
@@ -84,8 +126,27 @@ export class AiJobsService {
           );
         }),
       ]);
-    } catch {
-      // Job stays queued in PG; worker/republisher can pick it up when Redis is back.
+      if (result !== "published") {
+        throw new Error("AI_JOBS_PUBLISH_FAILED");
+      }
+      await this.prisma.migrator.outboxEvent.update({
+        where: { id: event.id },
+        data: {
+          publishedAt: new Date(),
+          attemptCount: { increment: 1 },
+          lastError: null,
+        },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "publish_failed";
+      await this.prisma.migrator.outboxEvent.update({
+        where: { id: event.id },
+        data: {
+          attemptCount: { increment: 1 },
+          lastError: message.slice(0, 200),
+          nextAttemptAt: new Date(Date.now() + 5_000),
+        },
+      });
     }
   }
 }

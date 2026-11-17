@@ -1,5 +1,5 @@
 import JSZip from "jszip";
-import pdfParse from "pdf-parse";
+import { PDFParse } from "pdf-parse";
 import {
   MAX_EXTRACT_CHARS,
   MAX_PDF_PAGES,
@@ -82,12 +82,16 @@ async function extractDocx(buffer: Buffer): Promise<ExtractResult> {
 }
 
 async function extractPdf(buffer: Buffer): Promise<ExtractResult> {
+  let parser: PDFParse | undefined;
   try {
-    const parsed = await pdfParse(buffer, { max: MAX_PDF_PAGES });
-    const pageCount = parsed.numpages ?? null;
+    parser = new PDFParse({ data: new Uint8Array(buffer) });
+    const info = await parser.getInfo();
+    const pageCount = info.total ?? null;
     if (pageCount !== null && pageCount > MAX_PDF_PAGES) {
       return { ok: false, errorCode: "TOO_MANY_PAGES" };
     }
+    // Empty pageJoiner: the library's default page banner is not document text.
+    const parsed = await parser.getText({ first: MAX_PDF_PAGES, pageJoiner: "" });
     const text = (parsed.text ?? "").trim();
     if (text.length === 0) {
       // Scan / image-only PDF — D-031
@@ -99,5 +103,7 @@ async function extractPdf(buffer: Buffer): Promise<ExtractResult> {
     return { ok: true, text, pageCount, extractor: "pdf-parse" };
   } catch {
     return { ok: false, errorCode: "PDF_PARSE_FAILED" };
+  } finally {
+    await parser?.destroy().catch(() => undefined);
   }
 }

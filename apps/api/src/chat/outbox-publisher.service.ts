@@ -8,8 +8,10 @@ import {
 } from "@nestjs/common";
 import { Queue } from "bullmq";
 import { PrismaService } from "../db/prisma.service.js";
+import { EXTRACT_JOB_TYPE } from "../documents/extract-limits.js";
+import { deliverOutboxJob } from "../queue/deliver-outbox-job.js";
 import { AI_JOBS_QUEUE_TOKEN } from "../queue/ai-jobs.tokens.js";
-import { CHAT_GENERATE_JOB_TYPE, CHAT_GENERATE_OUTBOX_EVENT } from "./chat.constants.js";
+import { CHAT_GENERATE_OUTBOX_EVENT } from "./chat.constants.js";
 
 const POLL_MS = 2_000;
 const BATCH = 20;
@@ -32,11 +34,13 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit(): void {
     this.timer = setInterval(() => {
-      void this.publishPending(BATCH).catch((error: unknown) => {
-        this.log.warn(
-          `outbox poll failed: ${error instanceof Error ? error.message : "unknown"}`,
-        );
-      });
+      void this.publishPending(BATCH, [CHAT_GENERATE_OUTBOX_EVENT, EXTRACT_JOB_TYPE]).catch(
+        (error: unknown) => {
+          this.log.warn(
+            `outbox poll failed: ${error instanceof Error ? error.message : "unknown"}`,
+          );
+        },
+      );
     }, POLL_MS);
     this.timer.unref?.();
   }
@@ -48,14 +52,21 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async publishPending(limit = BATCH): Promise<number> {
+  /**
+   * Drains unpublished rows. Callers that just wrote one chat event should pass
+   * that event type so an older extract row is not published instead of it.
+   */
+  async publishPending(
+    limit = BATCH,
+    eventTypes: readonly string[] = [CHAT_GENERATE_OUTBOX_EVENT, EXTRACT_JOB_TYPE],
+  ): Promise<number> {
     if (!this.queue) {
       return 0;
     }
     const now = new Date();
     const events = await this.prisma.migrator.outboxEvent.findMany({
       where: {
-        eventType: CHAT_GENERATE_OUTBOX_EVENT,
+        eventType: { in: [...eventTypes] },
         publishedAt: null,
         OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }],
       },
@@ -65,19 +76,16 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
 
     let published = 0;
     for (const event of events) {
-      const payload = event.payload as { jobId?: string; type?: string };
-      const jobId = payload.jobId ?? event.aggregateId;
       try {
-        await Promise.race([
-          this.queue.add(
-            CHAT_GENERATE_JOB_TYPE,
-            { jobId, type: CHAT_GENERATE_JOB_TYPE },
-            { jobId, removeOnComplete: 100, removeOnFail: 100 },
-          ),
+        const result = await Promise.race([
+          deliverOutboxJob(this.queue, this.prisma.migrator, event),
           new Promise<never>((_, reject) => {
             setTimeout(() => reject(new Error("OUTBOX_PUBLISH_TIMEOUT")), PUBLISH_TIMEOUT_MS);
           }),
         ]);
+        if (result !== "published") {
+          throw new Error("OUTBOX_PUBLISH_FAILED");
+        }
         await this.prisma.migrator.outboxEvent.update({
           where: { id: event.id },
           data: {
