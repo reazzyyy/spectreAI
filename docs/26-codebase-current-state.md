@@ -28,7 +28,7 @@
 | PostgreSQL RLS (W-020) | Org GUC на tenant tables; **documents** + **conversations/messages/ai_generations** — workspace + PRIVATE/WORKSPACE ACL (**W-020+ partial**); grant policies нет |
 | Chat (5A–5B) | Models+RLS+ACL; HTTP chat; Outbox + Synthetic worker; ContextSnapshot/Item + MessageSource (conversation_only); **thin chat UI** on project Чаты tab; **нет** DocumentVersion docs in context |
 | Загрузка документов | Two-phase `uploading`→blob→`uploaded`; disk temp multipart; DOCX CD walk + PDF `/Encrypt` reject; enqueue extract |
-| AIJob + extract worker | Prisma `AIJob` / `DocumentExtraction`; BullMQ `ai-jobs`; `pnpm --filter @spectre/api worker:extract`; scan → failed (**D-031**) |
+| AIJob + ai-jobs worker | Prisma `AIJob` / `DocumentExtraction`; BullMQ `ai-jobs`; one dispatcher (`worker:ai`, aliases `worker:extract` / `worker:chat`); scan → failed (**D-031**) |
 | Rate limit / audit | Redis sliding window (login/upload/ai/invite); thin `audit_events` (login/logout/upload/download, без content) |
 | Admin content-grant | **Не реализован** |
 | FILE-010 AV / O-012 delete confirmer | **Не реализованы** (OPEN) |
@@ -81,7 +81,7 @@ spectreAI/
 | Matters | `src/matters/*` | list/create/get/patch под `ActorGuard`; Prisma store + `MatterAccess` |
 | Workspaces | `src/workspaces/*` | list/create PERSONAL\|TEAM/get/patch, members, matter links под `ActorGuard` + `WorkspaceAccess` |
 | Documents | `src/documents/*` | list/upload/get/download; two-phase upload; extract enqueue; `LocalObjectStorage`; disk multipart |
-| Worker | `src/worker/extract-worker.ts`, `chat-worker.ts` | BullMQ extract + chat.generate consumers |
+| Worker | `src/worker/ai-jobs-worker.ts` | One BullMQ consumer for `document.extract` and `chat.generate`. Old entry files call the same dispatcher |
 | Chat | `src/chat/*` | Conversations/messages/generations HTTP; Outbox publisher; ChatJobProcessor |
 | Audit | `src/audit/*` | Thin `audit_events` append |
 | Org members | `src/organizations/*` | `GET …/members` (SEC-01); `PATCH …/members/:userId` owner→admin\|member (SEC-03 thin); runtime RLS |
@@ -217,7 +217,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 Тело Member: `{ id, organizationId, workspaceId, userId, role, status }` (`role`: `EDITOR` \| `VIEWER`; `status`: `ACTIVE` \| `REVOKED`).  
 Тело Document: `{ id, organizationId, workspaceId, title, status, originalFileName, mimeType, byteSize, checksumSha256, uploadedByUserId, createdAt, updatedAt }`. После успешного upload+enqueue типично `processing`; `ready` / `processing_failed` после worker. `storageKey` **не** отдаётся.  
 `organizationId` / `ownerUserId` только из сессии. Hard `DELETE` Client/Matter/Workspace/Document **нет** (**O-012** OPEN).  
-Локальный storage: `DOCUMENT_STORAGE_ROOT` — scaffold (**O-003**). Workers: `worker:extract`, `worker:chat` (Synthetic only). Outbox publisher drains `chat.generate` in API process. Sweeper: `sweep:uploading`.  
+Локальный storage: `DOCUMENT_STORAGE_ROOT` — scaffold (**O-003**). Worker: `worker:ai` (Synthetic chat only; `worker:extract` и `worker:chat` — тот же dispatcher). Outbox publisher drains `chat.generate` in API process. Sweeper: `sweep:uploading`.  
 Extract caps scaffold (**D-030**): 300 pages / 2M chars / 120s / maxAttempts 3. AV (**FILE-010**) не включён.
 
 **CSRF (W-014a):** mutating методы (кроме `POST /auth/login`) при наличии session/CSRF cookie требуют заголовок `X-CSRF-Token` = cookie `spectre_csrf`. Если `Origin`/`Referer` присутствует — должен входить в `WEB_ORIGIN`. Отсутствие обоих заголовков допускается для non-browser tooling (e2e). Ошибка: `403 CSRF_REJECTED`. При `NODE_ENV=production` пустой `WEB_ORIGIN` → процесс не стартует.
