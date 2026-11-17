@@ -7,8 +7,9 @@
     "dev": "tsx --env-file=../../.env src/main.ts",
     "start": "tsx --env-file=../../.env src/main.ts",
     "bootstrap:dev": "tsx --env-file=../../.env src/scripts/run-dev-bootstrap.ts",
-    "worker:extract": "tsx --env-file=../../.env src/worker/extract-worker.ts",
-    "worker:chat": "tsx --env-file=../../.env src/worker/chat-worker.ts",
+    "worker:ai": "tsx --env-file=../../.env src/worker/ai-jobs-worker.ts",
+    "worker:extract": "tsx --env-file=../../.env src/worker/ai-jobs-worker.ts",
+    "worker:chat": "tsx --env-file=../../.env src/worker/ai-jobs-worker.ts",
     "sweep:uploading": "tsx --env-file=../../.env src/scripts/sweep-uploading-documents.ts",
     "build": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"

@@ -52,7 +52,7 @@ On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` 
 | `src/workspaces/` | Prisma WorkspaceStore + HTTP list/create/get/patch, members, matter links (S3) |
 | `src/documents/` | Upload (two-phase) / list cursor / download; extract enqueue; LocalObjectStorage |
 | `src/chat/` | Phase 5A–5B: conversations/messages/generations HTTP, Outbox, Synthetic worker, conversation_only ContextSnapshot/MessageSource |
-| `src/worker/` | `worker:extract` (D-025/D-031); `worker:chat` Synthetic chat.generate |
+| `src/worker/` | `worker:ai` dispatcher for `document.extract` and `chat.generate` on `ai-jobs`. `worker:extract` / `worker:chat` start that same dispatcher |
 | `src/audit/` | Thin audit_events (no content) |
 | `src/health/` | Liveness |
 | `src/auth/` | Login/logout/me, SessionService, REQUEST-scoped `ACTOR_CONTEXT`, `ActorGuard` |
@@ -87,7 +87,7 @@ On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` 
 - `GET /documents/:id`, `GET /documents/:id/download` — metadata / binary; `storageKey` never in JSON.
 - Access: Workspace `canReadContent` / `canMutateContent`; foreign workspace → `404`.
 - Storage: `LocalObjectStorage` under `DOCUMENT_STORAGE_ROOT` (default `.data/documents`) — local scaffold, not O-003 hoster.
-- After upload+enqueue status → `processing`; worker (`pnpm --filter @spectre/api worker:extract`, queue `ai-jobs`) → `ready` / `processing_failed`. Redis publish is best-effort (PG job row is source of truth; missing Redis does not block status→processing). OCR success path still OPEN (**O-004**).
+- After upload+enqueue status → `processing`; worker (`pnpm --filter @spectre/api worker:ai`, queue `ai-jobs`) → `ready` / `processing_failed`. `worker:extract` and `worker:chat` are aliases of that dispatcher: a type-specific consumer must not ack a foreign job. Redis publish is best-effort (PG job row is source of truth; missing Redis does not block status→processing). OCR success path still OPEN (**O-004**).
 
 ## Workspace scaffold (S3)
 
