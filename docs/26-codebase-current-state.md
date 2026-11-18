@@ -82,7 +82,7 @@ spectreAI/
 | Workspaces | `src/workspaces/*` | list/create PERSONAL\|TEAM/get/patch, members, matter links под `ActorGuard` + `WorkspaceAccess` |
 | Documents | `src/documents/*` | list/upload/get/download; two-phase upload; extract enqueue; `LocalObjectStorage`; disk multipart |
 | Worker | `src/worker/ai-jobs-worker.ts` | One BullMQ consumer for `document.extract` and `chat.generate`. Extract retries use BullMQ backoff; parser errors are not `timed_out` |
-| Chat | `src/chat/*` | Conversations/messages/generations HTTP; Outbox publisher; ChatJobProcessor. History is the last 50 unambiguous messages at or before `userMessageId`, then trimmed to an 8000-character input budget |
+| Chat | `src/chat/*` | Conversations/messages/generations HTTP; Outbox publisher claims one row; ChatJobProcessor claims one running attempt (30s lease). History is the last 50 unambiguous messages at or before `userMessageId`, then trimmed to an 8000-character input budget. One assistant message per generation |
 | Audit | `src/audit/*` | Thin `audit_events` append |
 | Org members | `src/organizations/*` | `GET …/members` (SEC-01); `PATCH …/members/:userId` owner→admin\|member (SEC-03 thin); runtime RLS |
 | Invitations | `src/invitations/*` | Org Owner invite CRUD-lite + accept; migrator store; TTL config |
@@ -155,7 +155,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 - `createPrismaClient({ purpose: "migrator" | "runtime" })` + `withActorContext` (GUC в interactive tx).
 - Модели: … **Conversation**, **Message**, **AiGeneration**, **OutboxEvent**, **ContextSnapshot**, **ContextSnapshotItem**, **MessageSource**.
 - `Matter.workspaceId` legacy nullable без FK; связи Matter↔Workspace — `WorkspaceMatter`.
-- Миграции: … **`20261112200000_phase5a2_outbox`**; **`20261112230000_phase5b_context_snapshots`**.
+- Миграции: … **`20261112200000_phase5a2_outbox`**; **`20261112230000_phase5b_context_snapshots`**; **`20261119000000_chat_one_assistant_per_generation`** (partial unique, no row deletes).
 - RLS: org GUC; **documents** + **chat** workspace/PRIVATE ACL; snapshots/items/sources inherit conversation/message ACL; **outbox_events** org-scoped.
 - Auth bootstrap / e2e seed — migrator; tenant API — runtime + GUC; workers extract/chat — migrator + ACL re-check (chat).
 - Chat UI / DocumentVersion-in-context / grant — **нет**. JOB-012 / CTX-* journal rows remain OPEN.

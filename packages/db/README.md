@@ -13,7 +13,7 @@ Prisma 7 schema, migrations, and runtime client factory (**D-009**, Workspace, d
 - `Matter.workspaceId` optional legacy, **no FK** — prefer join table; drop later after backfill.
 - Matter→Client and Workspace→Client FKs are composite on `(organizationId, clientId)`.
 - Document metadata (Phase 3 thin); binary in private storage by `storageKey`.
-- Chat (Phase 5A–5B): Conversation, Message, AiGeneration, OutboxEvent scaffold, ContextSnapshot conversation_only + MessageSource.
+- Chat (Phase 5A–5B): Conversation, Message, AiGeneration, OutboxEvent scaffold, ContextSnapshot conversation_only + MessageSource. Partial unique index: one assistant message per generation.
 - DocumentVersion (Phase 6A): immutable file version 1 on upload; extraction binds `documentVersionId`. `searchEligible` stays false until a later FTS slice (**D-033**, **D-034**).
 - No grant or MFA/SSO models yet. JOB-012 / CTX-* remain OPEN in the journal.
 

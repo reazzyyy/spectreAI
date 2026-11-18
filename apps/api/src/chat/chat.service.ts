@@ -10,6 +10,7 @@ import {
   type ConversationRecord,
   type ConversationVisibility,
 } from "@spectre/access";
+import { Prisma } from "@spectre/db";
 import { randomUUID } from "node:crypto";
 import type { ActorContext } from "../auth/actor-context.js";
 import { PrismaService } from "../db/prisma.service.js";
@@ -66,6 +67,12 @@ function toMessage(row: {
 
 @Injectable()
 export class ChatService {
+  /**
+   * Test seam. Runs after the idempotency read misses and before the insert,
+   * still inside the transaction. Production leaves this unset.
+   */
+  static beforeCreate: (() => Promise<void>) | null = null;
+
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(ConversationAccess) private readonly conversations: ConversationAccess,
@@ -169,7 +176,31 @@ export class ChatService {
     }
     const idempotencyKey = chatIdempotencyKey(conversationId, idemKeyRaw);
 
-    const result = await this.prisma.withActor(actor, async (tx) => {
+    let result: SendMessageResult;
+    try {
+      result = await this.insertMessage(actor, conversation, conversationId, content, input, idempotencyKey, idemKeyRaw);
+    } catch (error) {
+      if (!isUniqueViolation(error)) {
+        throw error;
+      }
+      result = await this.replayIdempotentSend(actor, idempotencyKey, content);
+    }
+
+    // Best-effort immediate drain; unpublished rows remain for publisher retry.
+    await this.outbox.publishPending(1, [CHAT_GENERATE_OUTBOX_EVENT]);
+    return result;
+  }
+
+  private async insertMessage(
+    actor: ActorContext,
+    conversation: ConversationRecord,
+    conversationId: string,
+    content: string,
+    input: { content: string; clientMessageId?: string | null; idempotencyKey?: string | null },
+    idempotencyKey: string,
+    idemKeyRaw: string,
+  ): Promise<SendMessageResult> {
+    return this.prisma.withActor(actor, async (tx) => {
       const existingJob = await tx.aiJob.findUnique({
         where: {
           organizationId_idempotencyKey: {
@@ -209,6 +240,10 @@ export class ChatService {
         if (byClient && byClient.content !== content) {
           throw new ConflictException();
         }
+      }
+
+      if (ChatService.beforeCreate) {
+        await ChatService.beforeCreate();
       }
 
       const messageId = randomUUID();
@@ -277,10 +312,38 @@ export class ChatService {
         reused: false,
       } satisfies SendMessageResult;
     });
+  }
 
-    // Best-effort immediate drain; unpublished rows remain for publisher retry.
-    await this.outbox.publishPending(1, [CHAT_GENERATE_OUTBOX_EVENT]);
-    return result;
+  private async replayIdempotentSend(
+    actor: ActorContext,
+    idempotencyKey: string,
+    content: string,
+  ): Promise<SendMessageResult> {
+    return this.prisma.withActor(actor, async (tx) => {
+      const existingJob = await tx.aiJob.findUnique({
+        where: {
+          organizationId_idempotencyKey: {
+            organizationId: actor.organizationId,
+            idempotencyKey,
+          },
+        },
+        include: { aiGeneration: true },
+      });
+      const userMessageId = existingJob?.aiGeneration?.userMessageId;
+      if (!existingJob?.aiGeneration || !userMessageId) {
+        throw new ConflictException();
+      }
+      const userMessage = await tx.message.findUnique({ where: { id: userMessageId } });
+      if (!userMessage || userMessage.content !== content) {
+        throw new ConflictException();
+      }
+      return {
+        message: toMessage(userMessage),
+        generationId: existingJob.aiGeneration.id,
+        jobId: existingJob.id,
+        reused: true,
+      } satisfies SendMessageResult;
+    });
   }
 
   async getGeneration(actor: ActorContext, generationId: string) {
@@ -400,37 +463,44 @@ export class ChatService {
       if (!current) {
         throw new NotFoundException();
       }
-      if (current.status === "succeeded" || current.status === "failed" || current.status === "timed_out") {
+      if (
+        current.status === "succeeded" ||
+        current.status === "failed" ||
+        current.status === "timed_out" ||
+        current.status === "cancelled"
+      ) {
         return current;
       }
-      if (current.status === "cancelled") {
-        return current;
-      }
-      if (current.status === "running") {
-        // Cooperative cancel only: mark cancelled; worker must not publish after this.
-        const updated = await tx.aiGeneration.update({
-          where: { id: generationId },
-          data: { status: "cancelled", completedAt: new Date() },
-        });
-        if (current.aiJobId) {
-          await tx.aiJob.updateMany({
-            where: { id: current.aiJobId, status: { in: ["queued", "running"] } },
-            data: { status: "cancelled", completedAt: new Date(), lastErrorCode: "CANCELLED" },
-          });
-        }
-        return updated;
-      }
-      const updated = await tx.aiGeneration.update({
-        where: { id: generationId },
+      const won = await tx.aiGeneration.updateMany({
+        where: { id: generationId, status: { in: ["queued", "running"] } },
         data: { status: "cancelled", completedAt: new Date() },
       });
+      if (won.count !== 1) {
+        const latest = await tx.aiGeneration.findUnique({ where: { id: generationId } });
+        if (!latest) {
+          throw new NotFoundException();
+        }
+        return latest;
+      }
       if (current.aiJobId) {
         await tx.aiJob.updateMany({
-          where: { id: current.aiJobId, status: "queued" },
+          where: { id: current.aiJobId, status: { in: ["queued", "running"] } },
           data: { status: "cancelled", completedAt: new Date(), lastErrorCode: "CANCELLED" },
         });
+      }
+      const updated = await tx.aiGeneration.findUnique({ where: { id: generationId } });
+      if (!updated) {
+        throw new NotFoundException();
       }
       return updated;
     });
   }
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
+    return false;
+  }
+  const code = (error as { code?: unknown }).code;
+  return code === "P2002";
 }
