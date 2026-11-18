@@ -5,6 +5,7 @@ import {
   dispatchAiJob,
 } from "../queue/ai-job-dispatch.js";
 import { AI_JOBS_QUEUE, bullmqRedisConnection } from "../queue/ai-jobs.queue.js";
+import type { AiJobHandler } from "../queue/ai-job-dispatch.js";
 import { ExtractJobProcessor } from "./extract-job.processor.js";
 
 /**
@@ -26,6 +27,8 @@ export interface StartAiJobsWorkerOptions {
    */
   queueName?: string;
   concurrency?: number;
+  /** Test seam. Production uses ExtractJobProcessor. */
+  extract?: AiJobHandler;
 }
 
 /**
@@ -38,7 +41,7 @@ export async function startAiJobsWorker(
   options: StartAiJobsWorkerOptions,
 ): Promise<Worker> {
   const queueName = options.queueName ?? AI_JOBS_QUEUE;
-  const extract = new ExtractJobProcessor();
+  const extract = options.extract ?? new ExtractJobProcessor();
   const chat = new ChatJobProcessor();
   const worker = new Worker(
     queueName,

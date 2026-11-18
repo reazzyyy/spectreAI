@@ -279,7 +279,7 @@ export class ChatService {
     });
 
     // Best-effort immediate drain; unpublished rows remain for publisher retry.
-    await this.outbox.publishPending(1);
+    await this.outbox.publishPending(1, [CHAT_GENERATE_OUTBOX_EVENT]);
     return result;
   }
 
