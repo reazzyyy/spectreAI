@@ -88,7 +88,7 @@ spectreAI/
 | Invitations | `src/invitations/*` | Org Owner invite CRUD-lite + accept; migrator store; TTL config |
 | AI | `src/ai/*` | `GET /api/v1/ai/provider`, `POST /api/v1/ai/generate` |
 | Ошибки | `src/http/api-exception.filter.ts` | Единый JSON `{ error: { code, message, requestId } }` |
-| Prisma | `src/db/prisma.service.ts` | `createPrismaClient` из `@spectre/db`; `$disconnect` на destroy |
+| Prisma | `src/db/prisma.service.ts` | `createPrismaClient` из `@spectre/db`; runtime role проверяется на старте; `$disconnect` на destroy |
 | Очередь | `src/queue/*` | Имя `ai-jobs`, фабрика `createAiJobsQueue`; **воркер не стартует**; в AppModule только имя очереди |
 
 **Хранилище Client/Matter/Workspace в API:** Prisma stores + actor-scoped GUC wrappers + `ClientAccess` / `MatterAccess` / `WorkspaceAccess` (не матрица `docs/07`). E2e: cross-org `404`, чужой `clientId`/`matterId` → `422`, bad visibility → `422`.
@@ -157,7 +157,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 - `Matter.workspaceId` legacy nullable без FK; связи Matter↔Workspace — `WorkspaceMatter`.
 - Миграции: … **`20261112200000_phase5a2_outbox`**; **`20261112230000_phase5b_context_snapshots`**; **`20261119000000_chat_one_assistant_per_generation`** (partial unique, no row deletes).
 - RLS: org GUC; **documents** + **chat** workspace/PRIVATE ACL; snapshots/items/sources inherit conversation/message ACL; **outbox_events** org-scoped.
-- Auth bootstrap / e2e seed — migrator; tenant API — runtime + GUC; workers extract/chat — migrator + ACL re-check (chat).
+- Auth bootstrap / e2e seed — migrator; tenant API — runtime + GUC; workers extract/chat — migrator + ACL re-check (chat). Runtime URL больше не подменяется `DATABASE_URL`. Перевод воркеров с migrator — отдельный срез.
 - Chat UI / DocumentVersion-in-context / grant — **нет**. JOB-012 / CTX-* journal rows remain OPEN.
 - `created_by` на Client/Matter — ещё нет; Document имеет `uploadedByUserId` (**D-029** готов для будущего delete).
 

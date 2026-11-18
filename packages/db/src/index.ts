@@ -1,5 +1,6 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "./generated/client.js";
+import { resolveRuntimeDatabaseUrl } from "./runtime-role.js";
 
 export { PrismaClient, Prisma } from "./generated/client.js";
 export type {
@@ -44,10 +45,13 @@ export {
   type ActorDbContext,
   type PrismaTxClient,
 } from "./actor-context.js";
+export {
+  assertRuntimeDatabaseRole,
+  resolveRuntimeDatabaseUrl,
+  RuntimeDatabaseRoleError,
+} from "./runtime-role.js";
 
 const DEFAULT_DATABASE_URL = "postgresql://spectre:spectre@localhost:5432/spectre";
-const DEFAULT_RUNTIME_URL =
-  "postgresql://spectre_app:spectre_app@localhost:5432/spectre";
 
 export type PrismaClientPurpose = "migrator" | "runtime";
 
@@ -71,11 +75,7 @@ function resolveDatabaseUrl(
   }
 
   if (urlOrOptions?.purpose === "runtime") {
-    return (
-      process.env.DATABASE_URL_RUNTIME ??
-      process.env.DATABASE_URL ??
-      DEFAULT_RUNTIME_URL
-    );
+    return resolveRuntimeDatabaseUrl();
   }
 
   return process.env.DATABASE_URL ?? DEFAULT_DATABASE_URL;
@@ -85,6 +85,8 @@ function resolveDatabaseUrl(
  * Builds a Prisma 7 client with the PostgreSQL driver adapter.
  * - `purpose: "migrator"` (default): owner/migrate URL — seed, auth bootstrap, migrate deploy.
  * - `purpose: "runtime"`: `DATABASE_URL_RUNTIME` — Nest tenant queries under RLS.
+ *   Does not fall back to `DATABASE_URL`. Production startup must pass
+ *   `assertRuntimeDatabaseRole` before listen.
  * Callers must `$disconnect()` (Nest does this via `PrismaService.onModuleDestroy`).
  */
 export function createPrismaClient(

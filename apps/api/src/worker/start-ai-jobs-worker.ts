@@ -1,4 +1,5 @@
 import { Worker, type Job } from "bullmq";
+import { assertRuntimeDatabaseRole } from "@spectre/db";
 import { ChatJobProcessor } from "../chat/chat-job.processor.js";
 import {
   AiJobDispatchError,
@@ -83,6 +84,7 @@ export async function runAiJobsWorker(): Promise<void> {
   if (!redisUrl) {
     throw new Error("REDIS_URL is required for ai-jobs worker");
   }
+  await assertRuntimeDatabaseRole();
   const worker = await startAiJobsWorker({ redisUrl });
   console.info(`[ai-jobs-worker] listening on queue ${AI_JOBS_QUEUE}`);
 
