@@ -21,7 +21,7 @@ Prisma 7 schema, migrations, and runtime client factory (**D-009**, Workspace, d
 
 - `createPrismaClient({ purpose: "migrator" | "runtime" })` — Prisma 7 + `@prisma/adapter-pg`.
   - **migrator** (`DATABASE_URL`): migrate, seed, auth bootstrap.
-  - **runtime** (`DATABASE_URL_RUNTIME`): Nest tenant queries under RLS.
+  - **runtime** (`DATABASE_URL_RUNTIME`): Nest tenant queries under RLS. Does not fall back to `DATABASE_URL`. Production must set it; startup rejects a superuser, BYPASSRLS, or table-owner role.
 - `withActorContext(prisma, actor, fn)` — interactive tx + `set_config` for `app.current_*` GUC.
 - Re-exports: `PrismaClient`, `Prisma`, model types, Workspace / Document / Chat enums.
 
