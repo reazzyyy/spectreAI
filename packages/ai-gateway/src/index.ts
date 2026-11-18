@@ -1,3 +1,12 @@
+import {
+  AiGatewayError,
+  assertTransferAllowed,
+  isDataClass,
+  requestedExecutionMode,
+  type DataClass,
+  type ExecutionMode,
+} from "./transfer-policy.js";
+
 export const AI_JOB_STATUSES = [
   "queued",
   "running",
@@ -9,15 +18,16 @@ export const AI_JOB_STATUSES = [
 
 export type AiJobStatus = (typeof AI_JOB_STATUSES)[number];
 
-export class AiGatewayError extends Error {
-  readonly code: string;
-
-  constructor(code: string, message: string) {
-    super(message);
-    this.name = "AiGatewayError";
-    this.code = code;
-  }
-}
+export {
+  AiGatewayError,
+  assertTransferAllowed,
+  classifyUntrustedText,
+  DATA_CLASSES,
+  isDataClass,
+  requestedExecutionMode,
+  type DataClass,
+  type ExecutionMode,
+} from "./transfer-policy.js";
 
 export interface GenerateTextMessage {
   role: "user" | "assistant";
@@ -26,7 +36,7 @@ export interface GenerateTextMessage {
 
 export interface GenerateTextRequest {
   operationId: string;
-  dataClass: string;
+  dataClass: DataClass;
   messages: readonly GenerateTextMessage[];
 }
 
@@ -43,19 +53,13 @@ export interface GenerateTextResult {
 
 /**
  * In-process adapter used until external transfer is approved (D-012 / O-002).
- * It never calls a network provider and refuses anything except synthetic data.
+ * It does not read the network and does not decide whether the text may leave
+ * the process. That decision is `assertTransferAllowed`.
  */
 export class SyntheticAIProvider {
   readonly providerId = "synthetic" as const;
 
   async generateText(request: GenerateTextRequest): Promise<GenerateTextResult> {
-    if (request.dataClass !== "synthetic") {
-      throw new AiGatewayError(
-        "AI_DATA_POLICY_BLOCKED",
-        "Only synthetic data is allowed",
-      );
-    }
-
     const operationId = request.operationId.trim();
     if (operationId === "" || request.messages.length === 0) {
       throw new AiGatewayError("VALIDATION_ERROR", "Synthetic request is incomplete");
@@ -81,13 +85,31 @@ export class SyntheticAIProvider {
 }
 
 export class AiGateway {
-  private readonly provider = new SyntheticAIProvider();
+  private readonly provider: TextGenerator;
+
+  constructor(provider: TextGenerator = new SyntheticAIProvider()) {
+    this.provider = provider;
+  }
 
   get providerId(): "synthetic" {
-    return this.provider.providerId;
+    return "synthetic";
   }
 
-  generateText(request: GenerateTextRequest): Promise<GenerateTextResult> {
+  async generateText(
+    request: GenerateTextRequest,
+    env: NodeJS.ProcessEnv = process.env,
+  ): Promise<GenerateTextResult> {
+    if (!isDataClass(request.dataClass)) {
+      throw new AiGatewayError("AI_DATA_POLICY_BLOCKED", "AI_DATA_POLICY_BLOCKED");
+    }
+    const mode: ExecutionMode =
+      this.provider.providerId === "synthetic" ? requestedExecutionMode(env) : "external";
+    assertTransferAllowed(request.dataClass, mode);
     return this.provider.generateText(request);
   }
+}
+
+interface TextGenerator {
+  readonly providerId: string;
+  generateText(request: GenerateTextRequest): Promise<GenerateTextResult>;
 }

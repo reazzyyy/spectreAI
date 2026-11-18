@@ -11,7 +11,7 @@ import {
   UnprocessableEntityException,
   UseGuards,
 } from "@nestjs/common";
-import { AiGateway, AiGatewayError } from "@spectre/ai-gateway";
+import { AiGateway, AiGatewayError, classifyUntrustedText } from "@spectre/ai-gateway";
 import { ACTOR_CONTEXT, type ActorContext } from "../auth/actor-context.js";
 import { ActorGuard } from "../auth/actor.guard.js";
 import { assertRateLimit } from "../http/rate-limit.js";
@@ -50,10 +50,9 @@ export class AiController {
     }
 
     try {
-      // Server-derived data class only (D-012). Client claim ignored for policy.
       const result = await this.gateway.generateText({
         operationId: input.operationId,
-        dataClass: "synthetic",
+        dataClass: classifyUntrustedText(),
         messages: [{ role: "user", content: input.content }],
       });
       return {
@@ -63,8 +62,11 @@ export class AiController {
         text: result.text,
       };
     } catch (error) {
-      if (error instanceof AiGatewayError && error.code === "AI_DATA_POLICY_BLOCKED") {
-        throw new ForbiddenException({ code: "AI_DATA_POLICY_BLOCKED" });
+      if (
+        error instanceof AiGatewayError &&
+        (error.code === "AI_DATA_POLICY_BLOCKED" || error.code === "AI_TRANSFER_BLOCKED")
+      ) {
+        throw new ForbiddenException({ code: error.code });
       }
       throw error;
     }

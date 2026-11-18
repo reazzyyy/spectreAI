@@ -1003,7 +1003,7 @@ describe("API scaffold", () => {
       fetchSpy.mockRestore();
     });
 
-    it("ignores client dataClass and always uses server synthetic", async () => {
+    it("ignores client dataClass and keeps the text in-process", async () => {
       const fetchSpy = vi.spyOn(globalThis, "fetch");
       const response = await agent.post("/api/v1/ai/generate").send({
         operationId: "op-2",

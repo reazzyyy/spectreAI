@@ -6,11 +6,13 @@ In-process AI adapter. Until **O-002** is closed, only `SyntheticAIProvider` is 
 
 - `AI_JOB_STATUSES` / `AiJobStatus` — D-011 values only
 - `AiGateway` / `SyntheticAIProvider.generateText`
-- `AiGatewayError` with codes such as `AI_DATA_POLICY_BLOCKED`, `VALIDATION_ERROR`
+- `AiGatewayError` with codes `AI_DATA_POLICY_BLOCKED`, `AI_TRANSFER_BLOCKED`, `VALIDATION_ERROR`
+- `classifyUntrustedText` — server label for chat and posted text (`D3`)
+- `assertTransferAllowed` — refuses an external mode. D3 and D4 stay refused even if another class is later allowed. Env `AI_PROVIDER` / `AI_EXECUTION_MODE` cannot open a network path.
 
 ## Policy
 
-`dataClass` must be `"synthetic"`. Any other class is refused.
+Chat and posted text are `D3`. The in-process synthetic adapter may run them. An external provider is refused before any network call, and the refusal does not include the text. `O-002` stays open.
 
 ```bash
 pnpm --filter @spectre/ai-gateway test

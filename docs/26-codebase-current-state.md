@@ -145,7 +145,9 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 ### 4.2 `@spectre/ai-gateway`
 
 - Константа статусов AIJob (D-011): `queued|running|succeeded|failed|cancelled|timed_out`.
-- `SyntheticAIProvider.generateText` — только `dataClass === "synthetic"`; иначе `AiGatewayError` / `AI_DATA_POLICY_BLOCKED`.
+- `SyntheticAIProvider.generateText` — in-process echo. It does not classify data and does not call the network.
+- `classifyUntrustedText()` — chat and posted text are `D3`. A client `dataClass` is not used.
+- `assertTransferAllowed` — external mode (`AI_PROVIDER` / `AI_EXECUTION_MODE` other than `synthetic`) throws `AI_TRANSFER_BLOCKED` before any network call. D3 and D4 stay blocked. `O-002` is open.
 - Сети нет: результат вида `synthetic:{operationId}:{inputTokens}`; `providerId: "synthetic"`, `modelId: "synthetic-echo"`.
 - `AiGateway` — тонкая обёртка над единственным Synthetic-провайдером.
 
@@ -172,7 +174,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 | POST | `/auth/logout` | cookie + CSRF | `{ ok: true }` + clear session/CSRF cookies | `403 CSRF_REJECTED` |
 | GET | `/auth/me` | сессия | `{ user, organization }` | `401 UNAUTHENTICATED` |
 | GET | `/ai/provider` | нет | `{ providerId: "synthetic", externalTransferEnabled: false }` | — |
-| POST | `/ai/generate` | сессия + CSRF + rate limit | `{ providerId, modelId, synthetic, text }` (`dataClass` server=`synthetic`) | `401`; `422`; `403 AI_DATA_POLICY_BLOCKED`; `429 RATE_LIMITED` |
+| POST | `/ai/generate` | сессия + CSRF + rate limit | `{ providerId, modelId, synthetic, text }` (сервер ставит `D3`; клиентский `dataClass` не используется) | `401`; `422`; `403 AI_DATA_POLICY_BLOCKED` / `AI_TRANSFER_BLOCKED`; `429 RATE_LIMITED` |
 | GET | `/clients` | сессия | `{ items: Client[] }` | `401 UNAUTHENTICATED` |
 | POST | `/clients` | сессия + CSRF | Client (`201`) | `401`; `403 CSRF_REJECTED`; `422` |
 | GET | `/clients/:clientId` | сессия | Client | `401`; `404 NOT_FOUND` |
@@ -230,9 +232,9 @@ Extract caps scaffold (**D-030**): 300 pages / 2M chars / 120s / maxAttempts 3. 
 
 Тело `POST /ai/generate` (требует сессию):
 
-- Обязательные строки: `operationId`, `dataClass`, `content` (`dataClass` клиента игнорируется — сервер всегда `synthetic`).
+- Обязательные строки: `operationId`, `dataClass`, `content`. Значение `dataClass` клиента игнорируется; сервер классифицирует текст как `D3` и исполняет его только in-process.
 - Лимиты парсера: `operationId` ≤ 128, `content` 1…2000 символов.
-- Несинтетический `dataClass` блокируется gateway.
+- Неизвестный класс блокируется (`AI_DATA_POLICY_BLOCKED`). Запрос внешнего провайдера через env блокируется (`AI_TRANSFER_BLOCKED`) до сети и без текста в ошибке.
 
 Формат ошибки:
 
@@ -285,7 +287,7 @@ Extract caps scaffold (**D-030**): 300 pages / 2M chars / 120s / maxAttempts 3. 
 | Место | Что проверяет |
 |---|---|
 | `packages/access` | Client/Matter/Workspace/Document + ConversationAccess PRIVATE/WORKSPACE unit tests |
-| `packages/ai-gateway` | Synthetic OK; блок несинтетики; статусы AIJob; нет `fetch` |
+| `packages/ai-gateway` | Synthetic in-process; D3 не уходит наружу; неизвестный класс блокируется; статусы AIJob; нет `fetch` |
 | `apps/api` e2e | health, provider; 401 без cookie; CSRF Origin/header reject; Client/Matter/Workspace CRU+list; TEAM create; members + matter links; Document upload/list/download; чужой workspace/document → 404; bad type → 422; чужой clientId/matterId → 422; generate/block/validation |
 | `apps/api` unit | file magic/limits (PDF/DOCX/TXT); bootstrap; queue name |
 | `apps/api` bootstrap unit | guards + idempotent Org/Owner create; refuse foreign owner on same org |
