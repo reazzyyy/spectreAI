@@ -3,6 +3,7 @@ import { AiGateway } from "@spectre/ai-gateway";
 import { createPrismaClient, withActorContext } from "@spectre/db";
 import { createHash, randomUUID } from "node:crypto";
 import { CHAT_GENERATE_JOB_TYPE } from "./chat.constants.js";
+import { loadConversationPrefix } from "./conversation-context.js";
 
 const CONTEXT_MODE = "conversation_only";
 const PROMPT_VERSION = "chat-conversation-only-v1";
@@ -13,6 +14,7 @@ function sha256(text: string): string {
 
 /**
  * Processes chat.generate AIJobs via Synthetic AiGateway only (D-012 / O-002).
+ * History is the prefix ending at AiGeneration.userMessageId, not the oldest 50.
  * Re-checks conversation ACL before calling the model and before persisting.
  * Safe to call from the BullMQ worker or e2e drain without Redis consumer.
  */
@@ -83,6 +85,19 @@ export class ChatJobProcessor {
         return;
       }
 
+      const prefix = await withActorContext(runtime, actor, (tx) =>
+        loadConversationPrefix(tx, {
+          conversationId: conversation.id,
+          organizationId: actor.organizationId,
+          targetMessageId: generation.userMessageId,
+        }),
+      );
+      if (!prefix) {
+        await this.fail(migrator, jobId, generation.id, "TARGET_NOT_VISIBLE");
+        return;
+      }
+      const history = prefix.messages;
+
       await migrator.aiJob.update({
         where: { id: jobId },
         data: {
@@ -95,25 +110,6 @@ export class ChatJobProcessor {
         where: { id: generation.id },
         data: { status: "running", startedAt: new Date() },
       });
-
-      const history = await withActorContext(
-        runtime,
-        actor,
-        async (
-          tx,
-        ): Promise<
-          Array<{ id: string; role: string; content: string; createdAt: Date }>
-        > =>
-          tx.message.findMany({
-            where: {
-              conversationId: conversation.id,
-              organizationId: actor.organizationId,
-            },
-            orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-            take: 50,
-            select: { id: true, role: true, content: true, createdAt: true },
-          }),
-      );
 
       const result = await this.gateway.generateText({
         operationId: generation.id,
@@ -150,8 +146,14 @@ export class ChatJobProcessor {
       const manifest = {
         contextMode: CONTEXT_MODE,
         promptVersion: PROMPT_VERSION,
-        messageIds: history.map((m) => m.id),
-        roles: history.map((m) => m.role),
+        selectionPolicyVersion: prefix.selectionPolicyVersion,
+        targetUserMessageId: prefix.targetUserMessageId,
+        cutoff: prefix.cutoff,
+        inputTokenBudget: prefix.inputTokenBudget,
+        outputTokenBudget: prefix.outputTokenBudget,
+        messageIds: history.map((message) => message.id),
+        contentHashes: prefix.contentHashes,
+        roles: history.map((message) => message.role),
       };
       const contextHash = sha256(JSON.stringify(manifest));
 
@@ -189,7 +191,7 @@ export class ChatJobProcessor {
               itemType: "conversation_message",
               sourceEntityType: "message",
               sourceEntityId: msg.id,
-              contentHash: sha256(msg.content),
+              contentHash: prefix.contentHashes[i],
               sourceLocator: { role: msg.role, createdAt: msg.createdAt.toISOString() },
               includedTokenEstimate: msg.content.length,
               citationKey,

@@ -82,7 +82,7 @@ spectreAI/
 | Workspaces | `src/workspaces/*` | list/create PERSONAL\|TEAM/get/patch, members, matter links под `ActorGuard` + `WorkspaceAccess` |
 | Documents | `src/documents/*` | list/upload/get/download; two-phase upload; extract enqueue; `LocalObjectStorage`; disk multipart |
 | Worker | `src/worker/ai-jobs-worker.ts` | One BullMQ consumer for `document.extract` and `chat.generate`. Extract retries use BullMQ backoff; parser errors are not `timed_out` |
-| Chat | `src/chat/*` | Conversations/messages/generations HTTP; Outbox publisher; ChatJobProcessor |
+| Chat | `src/chat/*` | Conversations/messages/generations HTTP; Outbox publisher; ChatJobProcessor. History is the last 50 unambiguous messages at or before `userMessageId`, then trimmed to an 8000-character input budget |
 | Audit | `src/audit/*` | Thin `audit_events` append |
 | Org members | `src/organizations/*` | `GET …/members` (SEC-01); `PATCH …/members/:userId` owner→admin\|member (SEC-03 thin); runtime RLS |
 | Invitations | `src/invitations/*` | Org Owner invite CRUD-lite + accept; migrator store; TTL config |
