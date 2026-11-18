@@ -536,6 +536,7 @@ model Message {
   content            String        @db.Text
   createdByUserId    String?       @map("created_by_user_id") @db.Uuid
   createdBy          User?         @relation("MessageCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  /// Partial unique index messages_one_assistant_per_generation: one assistant row per generation.
   generationId       String?       @map("generation_id") @db.Uuid
   generation         AiGeneration? @relation("MessageFromGeneration", fields: [generationId], references: [id], onDelete: SetNull)
   clientMessageId    String?       @map("client_message_id")
