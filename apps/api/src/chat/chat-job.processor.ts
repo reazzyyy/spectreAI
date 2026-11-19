@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { AiGateway } from "@spectre/ai-gateway";
+import { AiGateway, classifyUntrustedText } from "@spectre/ai-gateway";
 import { createPrismaClient, withActorContext, type PrismaTxClient } from "@spectre/db";
 import { createHash, randomUUID } from "node:crypto";
 import { CHAT_GENERATE_JOB_TYPE, CHAT_RUNNING_LEASE_MS } from "./chat.constants.js";
@@ -127,7 +127,7 @@ export class ChatJobProcessor {
       try {
         result = await this.gateway.generateText({
           operationId: generation.id,
-          dataClass: "synthetic",
+          dataClass: classifyUntrustedText(),
           messages: history.map((message) => ({
             role: message.role === "assistant" ? ("assistant" as const) : ("user" as const),
             content: message.content,

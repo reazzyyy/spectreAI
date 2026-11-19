@@ -58,7 +58,7 @@ On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` 
 | `src/auth/` | Login/logout/me, SessionService, REQUEST-scoped `ACTOR_CONTEXT`, `ActorGuard` |
 | `src/clients/` | Client list/create/get/patch via Prisma + `ClientAccess` |
 | `src/matters/` | Matter list/create/get/patch via Prisma + `MatterAccess` |
-| `src/ai/` | Provider status + synthetic generate (**session required**) |
+| `src/ai/` | Provider status + in-process generate (**session required**). Posted text is server-classed `D3`; client `dataClass` is ignored. External transfer stays blocked |
 | `src/http/` | Errors, CSRF, cursor helpers, Redis rate limit |
 | `src/queue/` | BullMQ `ai-jobs` queue factory (wired when `REDIS_URL` set) |
 | `src/scripts/` | Dev bootstrap + `sweep:uploading` orphan sweeper |
