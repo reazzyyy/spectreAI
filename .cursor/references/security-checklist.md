@@ -8,6 +8,7 @@ Quick reference for web application security. Use alongside the `security-and-ha
 - [Pre-Commit Checks](#pre-commit-checks)
 - [Authentication](#authentication)
 - [Authorization](#authorization)
+- [Multi-tenant / Row-Level Security (PostgreSQL)](#multi-tenant--row-level-security-postgresql)
 - [Input Validation](#input-validation)
 - [Security Headers](#security-headers)
 - [CORS Configuration](#cors-configuration)
@@ -50,6 +51,20 @@ Before reaching for controls, spend five minutes thinking like an attacker:
 - [ ] Admin endpoints require admin role verification
 - [ ] API keys scoped to minimum necessary permissions
 - [ ] JWT tokens validated (signature, expiration, issuer)
+
+## Multi-tenant / Row-Level Security (PostgreSQL)
+
+For systems where one database holds multiple tenants (organizations):
+
+- [ ] `FORCE ROW LEVEL SECURITY` on every tenant table
+- [ ] Deny-by-default: no policy and no tenant context → zero rows (GUC `current_setting(..., true)` + `NULLIF(...)::uuid`)
+- [ ] `users`, `sessions`, and any table with credentials/tokens are covered by RLS (never exposed to the app runtime role)
+- [ ] Runtime role is not superuser, not `BYPASSRLS`, not the database/table owner; a startup guard rejects a privileged runtime role
+- [ ] The web/worker process never holds migrator/owner credentials on the request path (narrow role or `SECURITY DEFINER` with fixed `search_path`)
+- [ ] Tenant-scoped FK/`WITH CHECK` use composite `(organization_id, id)`, not a bare `id`, to prevent cross-tenant row binding
+- [ ] `audit_events` are append-only for the runtime role (`REVOKE UPDATE, DELETE`); tenant events have a non-null `organization_id`
+- [ ] Negative tests: another organization cannot read/search/modify/export/delete; RLS tests run in CI and fail instead of skipping
+- [ ] ACL re-checked at final commit of async work (worker/job), including active membership, not just at enqueue time
 
 ## Input Validation
 
@@ -198,6 +213,8 @@ For any feature that calls an LLM (chatbots, summarizers, agents, RAG):
 - [ ] Secrets, cross-tenant data, and full system prompts kept out of the context window
 - [ ] Tool/agent permissions scoped; destructive or irreversible actions require confirmation
 - [ ] Token, rate, and recursion/loop limits set (bound consumption)
+- [ ] Transfer-policy gate on the server before any external provider call; user-supplied `dataClass` is ignored; D3/D4 blocked from leaving the process until transfer is approved (O-002)
+- [ ] Execution mode (synthetic adapter) is separate from data classification (D0–D4); changing env/adapter cannot open a network path
 
 ## Error Handling
 

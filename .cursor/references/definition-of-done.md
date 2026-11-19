@@ -34,6 +34,18 @@ Apply this to every change before declaring it done.
 
 The depth behind these items lives in `code-review-and-quality` (the five-axis review) and `code-simplification` (reducing complexity without changing behavior).
 
+### Quality gates (project-specific)
+
+Machine-checked — report the actual command output, not a claim:
+
+- [ ] `pnpm -r build` green (web `next build` + api `tsc --noEmit`)
+- [ ] `pnpm --filter @spectre/web lint:all` green (eslint + steiger + stylelint)
+- [ ] `pnpm --filter @spectre/db validate` green
+- [ ] `pnpm test` green **on a clean database** (fresh migrations); RLS tests executed and not skipped
+- [ ] `pnpm audit --prod` triaged (no unmitigated reachable critical/high)
+
+These same gates must run in CI (`.github/workflows/ci.yml`); a gate that is not in CI is not enforced. If a gate is red in the working tree, the change is not done even if local tests pass.
+
 ### Integration
 - [ ] Change works with the rest of the system, not just in isolation
 - [ ] Database migrations, config changes, and feature flags are accounted for
