@@ -118,4 +118,28 @@ describe("ChatWorkspace", () => {
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Ваш вопрос")).toBeInTheDocument();
   });
+
+  it("returns to the ask list when ProjectBar bumps listEpoch", async () => {
+    const user = userEvent.setup();
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const view = render(
+      <QueryClientProvider client={client}>
+        <ChatWorkspace workspaceId="w1" listEpoch={1} />
+      </QueryClientProvider>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: /черновик иска/i }));
+    expect(await screen.findByText("Диалог по материалам")).toBeInTheDocument();
+
+    view.rerender(
+      <QueryClientProvider client={client}>
+        <ChatWorkspace workspaceId="w1" listEpoch={2} />
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByLabelText("Новый вопрос")).toBeInTheDocument();
+    expect(screen.queryByText("Диалог по материалам")).not.toBeInTheDocument();
+  });
 });

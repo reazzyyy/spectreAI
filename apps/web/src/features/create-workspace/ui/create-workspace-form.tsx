@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { clientsListQueryOptions } from "@/entities/client";
 import { mattersListQueryOptions } from "@/entities/matter";
 import {
@@ -59,7 +59,7 @@ export function CreateWorkspaceForm({
     handleSubmit,
     reset,
     setValue,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<CreateWorkspaceFormValues>({
     resolver: zodResolver(createWorkspaceSchema),
@@ -72,9 +72,21 @@ export function CreateWorkspaceForm({
     },
   });
 
-  const visibility = watch("visibility");
-  const clientId = watch("clientId") ?? "";
-  const matterId = watch("matterId") ?? "";
+  const visibility = useWatch({ control, name: "visibility" });
+  const clientId = useWatch({ control, name: "clientId" }) ?? "";
+  const matterId = useWatch({ control, name: "matterId" }) ?? "";
+  /**
+   * Dialog open/prefill changes clear the previous submit error in render.
+   * `reset()` stays in an effect: it writes into react-hook-form, not React state.
+   */
+  const prefillKey = `${open}:${defaultVisibility}:${defaultName}`;
+  const [seenPrefillKey, setSeenPrefillKey] = useState(prefillKey);
+  if (prefillKey !== seenPrefillKey) {
+    setSeenPrefillKey(prefillKey);
+    if (open) {
+      setFormError(null);
+    }
+  }
 
   const clientOptions = useMemo(
     () =>
@@ -101,7 +113,6 @@ export function CreateWorkspaceForm({
       clientId: "",
       matterId: "",
     });
-    setFormError(null);
   }, [open, defaultVisibility, defaultName, reset]);
 
   const mutation = useMutation({
