@@ -6,7 +6,7 @@
 **Область:** MVP AI-платформы для юридических команд  
 **Рынок запуска:** Россия  
 **Связанные документы:**
-- `docs/01-product-requirements.md`
+- `docs/00-project-overview.md`
 - `docs/02-architecture.md`
 - `docs/06-data-model.md`
 - `docs/07-access-control-matrix.md`
