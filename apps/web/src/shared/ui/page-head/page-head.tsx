@@ -3,7 +3,8 @@ import { classNames } from "@/shared/lib";
 import { Eyebrow } from "../eyebrow";
 import styles from "./page-head.module.scss";
 
-export interface PageHeadProps extends HTMLAttributes<HTMLDivElement> {
+/** `title` is heading content, so the native HTML `title` attribute is omitted. */
+export interface PageHeadProps extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
   title: ReactNode;
   eyebrow?: ReactNode;
   description?: ReactNode;
