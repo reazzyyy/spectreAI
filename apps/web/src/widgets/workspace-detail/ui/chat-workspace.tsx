@@ -42,6 +42,13 @@ const PROMPT_IDEAS = [
   "Как уточнить базу расчёта неустойки?",
 ] as const;
 
+const TERMINAL_GENERATION = new Set([
+  "succeeded",
+  "failed",
+  "cancelled",
+  "timed_out",
+]);
+
 function conversationLabel(conversation: Conversation): string {
   if (conversation.title?.trim()) {
     return conversation.title.trim();
@@ -94,16 +101,19 @@ export function ChatWorkspace({
   );
   const [startError, setStartError] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
-
-  useEffect(() => {
-    if (listEpoch === 0) {
-      return;
-    }
+  /**
+   * ProjectBar «Чаты» bumps `listEpoch` while this screen stays mounted.
+   * Reset in render (not an effect): sync setState in useEffect is a cascading
+   * render. `0` is the initial epoch and must not wipe an open thread on mount.
+   */
+  const [seenListEpoch, setSeenListEpoch] = useState(listEpoch);
+  if (listEpoch !== 0 && listEpoch !== seenListEpoch) {
+    setSeenListEpoch(listEpoch);
     setSelectedId(null);
     setComposerSeed("");
     setPendingGenerationId(null);
     setShareOpen(false);
-  }, [listEpoch]);
+  }
 
   const listQuery = useQuery(conversationListQueryOptions(workspaceId));
   const conversations = listQuery.data?.items ?? [];
@@ -123,33 +133,35 @@ export function ChatWorkspace({
   const generationQuery = useQuery(
     aiGenerationQueryOptions(pendingGenerationId),
   );
+  /**
+   * Id of a generation whose terminal status already dropped `pendingGenerationId`.
+   * The effect only refreshes messages/list — it must not call setState.
+   */
+  const [publishedGenerationId, setPublishedGenerationId] = useState<
+    string | null
+  >(null);
+  const generationStatus = generationQuery.data?.status;
+  if (
+    pendingGenerationId &&
+    generationStatus &&
+    TERMINAL_GENERATION.has(generationStatus) &&
+    publishedGenerationId !== pendingGenerationId
+  ) {
+    setPublishedGenerationId(pendingGenerationId);
+    setPendingGenerationId(null);
+  }
 
   useEffect(() => {
-    const status = generationQuery.data?.status;
-    if (!pendingGenerationId || !status) {
+    if (!publishedGenerationId) {
       return;
     }
-    if (
-      status === "succeeded" ||
-      status === "failed" ||
-      status === "cancelled" ||
-      status === "timed_out"
-    ) {
-      void queryClient.invalidateQueries({
-        queryKey: messageHistoryQueryOptions(selectedId ?? "").queryKey,
-      });
-      void queryClient.invalidateQueries({
-        queryKey: conversationListQueryOptions(workspaceId).queryKey,
-      });
-      setPendingGenerationId(null);
-    }
-  }, [
-    generationQuery.data?.status,
-    pendingGenerationId,
-    queryClient,
-    selectedId,
-    workspaceId,
-  ]);
+    void queryClient.invalidateQueries({
+      queryKey: messageHistoryQueryOptions(selectedId ?? "").queryKey,
+    });
+    void queryClient.invalidateQueries({
+      queryKey: conversationListQueryOptions(workspaceId).queryKey,
+    });
+  }, [publishedGenerationId, queryClient, selectedId, workspaceId]);
 
   const pairs = useMemo(
     () => pairTurns(messagesQuery.data?.items ?? []),
@@ -159,9 +171,7 @@ export function ChatWorkspace({
   const generating =
     pendingGenerationId !== null &&
     (!generationQuery.data ||
-      !["succeeded", "failed", "cancelled", "timed_out"].includes(
-        generationQuery.data.status,
-      ));
+      !TERMINAL_GENERATION.has(generationQuery.data.status));
 
   const startMutation = useMutation({
     mutationFn: async (prompt: string) => {
