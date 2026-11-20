@@ -25,7 +25,7 @@
 | Invitations (W-012 / D-028) | Prisma + HTTP create/list/resend/revoke/accept; TTL `INVITE_TTL_HOURS` default 72h; email stub/devToken |
 | MFA / SSO (O-008) | **Не реализовано** |
 | Workspace как сущность | Prisma + `WorkspaceAccess` + HTTP; content-visible list — single SQL; cursor pagination (**D-026**) |
-| PostgreSQL RLS (W-020) | Org GUC на tenant tables; **documents** + **conversations/messages/ai_generations** — workspace + PRIVATE/WORKSPACE ACL (**W-020+ partial**); grant policies нет |
+| PostgreSQL RLS (W-020) | Org GUC на tenant tables; **documents** + **conversations/messages/ai_generations** — workspace + PRIVATE/WORKSPACE ACL; **users/sessions/organizations** — FORCE RLS для `spectre_app` (self/org, без DML и без `password_hash`/`token_hash`); auth по-прежнему на migrator (**S5**); grant policies нет (**W-020 не полный**) |
 | Chat (5A–5B) | Models+RLS+ACL; HTTP chat; Outbox + Synthetic worker; ContextSnapshot/Item + MessageSource (conversation_only); **thin chat UI** on project Чаты tab; **нет** DocumentVersion docs in context |
 | Загрузка документов | Two-phase `uploading`→blob→`uploaded`; disk temp multipart; DOCX CD walk + PDF `/Encrypt` reject; enqueue extract |
 | AIJob + ai-jobs worker | Prisma `AIJob` / `DocumentExtraction`; BullMQ `ai-jobs`; one dispatcher (`worker:ai`); extract outbox + BullMQ retry (max 3); scan/`NO_TEXT_LAYER` → failed without retry (**D-031**) |
@@ -158,8 +158,8 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 - Модели: … **Conversation**, **Message**, **AiGeneration**, **OutboxEvent**, **ContextSnapshot**, **ContextSnapshotItem**, **MessageSource**.
 - `Matter.workspaceId` legacy nullable без FK; связи Matter↔Workspace — `WorkspaceMatter`.
 - Миграции: … **`20261112200000_phase5a2_outbox`**; **`20261112230000_phase5b_context_snapshots`**; **`20261119000000_chat_one_assistant_per_generation`** (partial unique, no row deletes).
-- RLS: org GUC; **documents** + **chat** workspace/PRIVATE ACL; snapshots/items/sources inherit conversation/message ACL; **outbox_events** org-scoped.
-- Auth bootstrap / e2e seed — migrator; tenant API — runtime + GUC; workers extract/chat — migrator + ACL re-check (chat). Runtime URL больше не подменяется `DATABASE_URL`. Перевод воркеров с migrator — отдельный срез.
+- RLS: org GUC; **documents** + **chat** workspace/PRIVATE ACL; snapshots/items/sources inherit conversation/message ACL; **outbox_events** org-scoped. **`20261120120000_auth_table_rls`** и **`20261120123000_auth_table_column_privileges`:** FORCE RLS на `users` / `sessions` / `organizations` для runtime (self или членство своей org; своя сессия в этой org; своя org). У `spectre_app` сняты INSERT/UPDATE/DELETE. SELECT на `users`/`sessions` — только явный список колонок, без `password_hash` и `token_hash` (колоночный REVOKE поверх табличного GRANT в PostgreSQL не сужает право).
+- Auth bootstrap / login / invites / e2e seed — migrator (локальный superuser обходит FORCE RLS; снятие — **S5**). Tenant API — runtime + GUC; workers extract/chat — migrator + ACL re-check (chat). Runtime URL больше не подменяется `DATABASE_URL`. Перевод воркеров с migrator — отдельный срез.
 - Chat UI / DocumentVersion-in-context / grant — **нет**. JOB-012 / CTX-* journal rows remain OPEN.
 - `created_by` на Client/Matter — ещё нет; Document имеет `uploadedByUserId` (**D-029** готов для будущего delete).
 
