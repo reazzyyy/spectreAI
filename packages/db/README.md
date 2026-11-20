@@ -41,6 +41,10 @@ Runtime role `spectre_app` (no BYPASSRLS). It has no INSERT/UPDATE/DELETE on `us
 
 Login, session resolve, invites, and bootstrap still use the migrator URL. The local migrator is superuser and bypasses FORCE RLS. Replacing that path is S5 (narrow auth role or `SECURITY DEFINER` with a fixed `search_path`).
 
+## Migrations under FORCE RLS
+
+Backfills against a table that already has `FORCE ROW LEVEL SECURITY` must run as the migration role with `SET LOCAL row_security = off` in the same transaction. A non-superuser owner otherwise reads zero rows and skips the copy. Do not edit an applied migration to add that setting; add a new idempotent repair. `20261120230000_repair_document_version_backfill` repeats the Phase 6A version-1 copy this way. Check it on a database that already contains documents, not only on an empty one. `search_eligible` stays false (**D-033** / **D-034**).
+
 ## Commands
 
 ```bash
