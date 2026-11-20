@@ -1,6 +1,6 @@
 # `@spectre/api`
 
-NestJS HTTP API scaffold. Global prefix: `/api/v1`. Default port: `3000`.
+NestJS HTTP API scaffold. Global prefix: `/api/v1`. Default port: `3000`. A path id that is not a UUID is `404 NOT_FOUND` before the database query, the same code as a missing resource.
 
 ## Prerequisites
 

@@ -405,6 +405,31 @@ describe("API scaffold", () => {
       await app.close();
     });
 
+    it("returns 404 for a non-uuid path id", async () => {
+      const paths = [
+        "/api/v1/documents/abc",
+        "/api/v1/documents/abc/download",
+        "/api/v1/clients/abc",
+        "/api/v1/matters/abc",
+        "/api/v1/workspaces/abc",
+        "/api/v1/workspaces/abc/documents",
+        "/api/v1/workspaces/abc/conversations",
+        "/api/v1/conversations/abc",
+        "/api/v1/conversations/abc/messages",
+        "/api/v1/ai-generations/abc",
+        "/api/v1/organizations/abc/members",
+        "/api/v1/organizations/abc/invitations",
+      ];
+      for (const path of paths) {
+        const response = await agent.get(path);
+        expect(response.status, path).toBe(404);
+        expect(response.body.error.code, path).toBe("NOT_FOUND");
+        expect(JSON.stringify(response.body), path).not.toMatch(
+          /prisma|postgres|syntax|stack/i,
+        );
+      }
+    });
+
     it("rejects mutating requests with a foreign Origin", async () => {
       const response = await agent
         .post("/api/v1/clients")
