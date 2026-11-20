@@ -29,6 +29,11 @@ export {
 } from "./document.js";
 
 export {
+  isActiveOrganizationMembership,
+  mayMutateWorkspaceContent,
+} from "./org-membership.js";
+
+export {
   WorkspaceAccess,
   type WorkspaceActor,
   type WorkspaceRecord,

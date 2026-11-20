@@ -60,6 +60,12 @@ describe("chat history cutoff", () => {
         status: "ACTIVE",
       },
     });
+    await prisma.organizationMembership.createMany({
+      data: [
+        { organizationId: orgId, userId: ownerId, role: "owner", status: "active" },
+        { organizationId: orgId, userId: memberId, role: "member", status: "active" },
+      ],
+    });
     await prisma.workspaceMember.create({
       data: {
         id: randomUUID(),
@@ -90,6 +96,7 @@ describe("chat history cutoff", () => {
     await prisma.aiJob.deleteMany({ where: { organizationId: orgId } });
     await prisma.conversation.deleteMany({ where: { organizationId: orgId } });
     await prisma.workspaceMember.deleteMany({ where: { organizationId: orgId } });
+    await prisma.organizationMembership.deleteMany({ where: { organizationId: orgId } });
     await prisma.workspace.deleteMany({ where: { organizationId: orgId } });
     await prisma.user.deleteMany({ where: { id: { in: [ownerId, memberId] } } });
     await prisma.organization.deleteMany({ where: { id: orgId } });

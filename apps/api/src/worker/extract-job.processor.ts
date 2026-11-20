@@ -1,3 +1,7 @@
+import {
+  isActiveOrganizationMembership,
+  mayMutateWorkspaceContent,
+} from "@spectre/access";
 import { createPrismaClient, type PrismaClient } from "@spectre/db";
 import { randomUUID } from "node:crypto";
 import {
@@ -99,6 +103,16 @@ export class ExtractJobProcessor {
       }
       if (!document.currentVersionId) {
         await this.failPermanent(prisma, jobId, attempt, "VERSION_MISSING", documentId);
+        return;
+      }
+      if (
+        !(await this.uploaderMayExtract(prisma, {
+          userId: running.createdByUserId,
+          organizationId: running.organizationId,
+          workspaceId: document.workspaceId,
+        }))
+      ) {
+        await this.failPermanent(prisma, jobId, attempt, "ACL_REVOKED", documentId);
         return;
       }
 
@@ -349,8 +363,52 @@ export class ExtractJobProcessor {
   }
 
   /**
+   * Uploader still has an active organization membership and a content-write
+   * role on the document workspace. Checked again at commit so a revoke during
+   * parse does not persist text.
+   */
+  private async uploaderMayExtract(
+    prisma: PrismaClient,
+    input: { userId: string; organizationId: string; workspaceId: string },
+  ): Promise<boolean> {
+    const membership = await prisma.organizationMembership.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId: input.organizationId,
+          userId: input.userId,
+        },
+      },
+    });
+    if (!isActiveOrganizationMembership(membership?.status)) {
+      return false;
+    }
+
+    const workspace = await prisma.workspace.findFirst({
+      where: { id: input.workspaceId, organizationId: input.organizationId },
+    });
+    if (!workspace) {
+      return false;
+    }
+    if (workspace.ownerUserId === input.userId) {
+      return mayMutateWorkspaceContent("OWNER");
+    }
+    if (workspace.visibility !== "TEAM") {
+      return false;
+    }
+    const member = await prisma.workspaceMember.findFirst({
+      where: { workspaceId: workspace.id, userId: input.userId, status: "ACTIVE" },
+    });
+    const role =
+      member?.role === "OWNER" || member?.role === "EDITOR" || member?.role === "VIEWER"
+        ? member.role
+        : null;
+    return mayMutateWorkspaceContent(role);
+  }
+
+  /**
    * Commits extraction only while this attempt still owns the row.
    * A timeout or a second worker that already finished makes this a no-op.
+   * A revoked uploader does not persist text.
    */
   private async commitSuccess(
     prisma: PrismaClient,
@@ -365,6 +423,21 @@ export class ExtractJobProcessor {
       extractor: string;
     },
   ): Promise<void> {
+    const document = await prisma.document.findUnique({ where: { id: input.documentId } });
+    const job = await prisma.aiJob.findUnique({ where: { id: input.jobId } });
+    if (
+      !document ||
+      !job ||
+      !(await this.uploaderMayExtract(prisma, {
+        userId: job.createdByUserId,
+        organizationId: input.organizationId,
+        workspaceId: document.workspaceId,
+      }))
+    ) {
+      await this.failPermanent(prisma, input.jobId, input.attempt, "ACL_REVOKED", input.documentId);
+      return;
+    }
+
     await prisma.$transaction(async (tx: PrismaClient) => {
       const won = await tx.aiJob.updateMany({
         where: { id: input.jobId, status: "running", attemptCount: input.attempt },

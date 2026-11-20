@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { isActiveOrganizationMembership } from "@spectre/access";
 import { AiGateway, classifyUntrustedText } from "@spectre/ai-gateway";
 import { createPrismaClient, withActorContext, type PrismaTxClient } from "@spectre/db";
 import { createHash, randomUUID } from "node:crypto";
@@ -381,6 +382,10 @@ export class ChatJobProcessor {
     });
   }
 
+  /**
+   * Active organization membership and a content-write workspace role.
+   * A revoked membership fails even when the workspace role is still active.
+   */
   private async actorMayMutate(
     tx: PrismaTxClient,
     actor: { userId: string; organizationId: string },
@@ -392,6 +397,18 @@ export class ChatJobProcessor {
       visibility: string;
     },
   ): Promise<boolean> {
+    const membership = await tx.organizationMembership.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId: actor.organizationId,
+          userId: actor.userId,
+        },
+      },
+    });
+    if (!isActiveOrganizationMembership(membership?.status)) {
+      return false;
+    }
+
     const workspace = await tx.workspace.findUnique({
       where: { id: conversation.workspaceId },
     });
