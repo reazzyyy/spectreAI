@@ -82,6 +82,9 @@ describe("document.extract retry and outbox", () => {
         status: "active",
       },
     });
+    await prisma.organizationMembership.create({
+      data: { organizationId: orgId, userId, role: "owner", status: "active" },
+    });
     await prisma.workspace.create({
       data: {
         id: workspaceId,
@@ -106,6 +109,7 @@ describe("document.extract retry and outbox", () => {
       await prisma.aiJob.deleteMany({ where: { organizationId: orgId } });
       await prisma.document.deleteMany({ where: { organizationId: orgId } });
       await prisma.workspace.deleteMany({ where: { organizationId: orgId } });
+      await prisma.organizationMembership.deleteMany({ where: { organizationId: orgId } });
       await prisma.user.deleteMany({ where: { id: userId } });
       await prisma.organization.deleteMany({ where: { id: orgId } });
       await prisma.$disconnect();
@@ -412,6 +416,55 @@ describe("document.extract retry and outbox", () => {
       expect(published.publishedAt).toBeTruthy();
     } finally {
       await closeWorker(worker, queue);
+    }
+  }, 20_000);
+
+  it("does not write an extraction after organization membership is revoked", async () => {
+    const documentId = await createDocument(Buffer.from("revoked", "utf8"), "text/plain");
+    await prisma.document.update({
+      where: { id: documentId },
+      data: { status: "processing" },
+    });
+    const jobId = randomUUID();
+    await prisma.aiJob.create({
+      data: {
+        id: jobId,
+        organizationId: orgId,
+        workspaceId,
+        documentId,
+        createdByUserId: userId,
+        type: EXTRACT_JOB_TYPE,
+        status: "queued",
+        idempotencyKey: `extract-revoked:${jobId}`,
+        maxAttempts: 3,
+      },
+    });
+    await prisma.organizationMembership.updateMany({
+      where: { organizationId: orgId, userId },
+      data: { status: "revoked" },
+    });
+    let called = false;
+    const processor = new ExtractJobProcessor({
+      storage,
+      extractText: async () => {
+        called = true;
+        return { ok: true, text: "should-not-persist", pageCount: null, extractor: "test" };
+      },
+    });
+    try {
+      await processor.process(jobId);
+      expect(called).toBe(false);
+      expect(await prisma.documentExtraction.count({ where: { documentId } })).toBe(0);
+      const row = await prisma.aiJob.findUniqueOrThrow({ where: { id: jobId } });
+      expect(row.status).toBe("failed");
+      expect(row.lastErrorCode).toBe("ACL_REVOKED");
+      const document = await prisma.document.findUniqueOrThrow({ where: { id: documentId } });
+      expect(document.status).toBe("processing_failed");
+    } finally {
+      await prisma.organizationMembership.updateMany({
+        where: { organizationId: orgId, userId },
+        data: { status: "active" },
+      });
     }
   }, 20_000);
 

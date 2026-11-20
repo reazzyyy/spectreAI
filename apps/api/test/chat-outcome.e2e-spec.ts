@@ -92,6 +92,12 @@ describe("chat single outcome", () => {
         status: "ACTIVE",
       },
     });
+    await prisma.organizationMembership.createMany({
+      data: [
+        { organizationId: orgId, userId: ownerId, role: "owner", status: "active" },
+        { organizationId: orgId, userId: memberId, role: "member", status: "active" },
+      ],
+    });
     await prisma.workspaceMember.create({
       data: {
         id: randomUUID(),
@@ -138,6 +144,7 @@ describe("chat single outcome", () => {
     await prisma.aiJob.deleteMany({ where: { organizationId: orgId } });
     await prisma.conversation.deleteMany({ where: { organizationId: orgId } });
     await prisma.workspaceMember.deleteMany({ where: { organizationId: orgId } });
+    await prisma.organizationMembership.deleteMany({ where: { organizationId: orgId } });
     await prisma.workspace.deleteMany({ where: { organizationId: orgId } });
     await prisma.user.deleteMany({ where: { id: { in: [ownerId, memberId] } } });
     await prisma.organization.deleteMany({ where: { id: orgId } });
@@ -282,6 +289,33 @@ describe("chat single outcome", () => {
     await prisma.workspaceMember.updateMany({
       where: { workspaceId, userId: memberId },
       data: { status: "ACTIVE" },
+    });
+  });
+
+  it("does not publish after organization membership is revoked", async () => {
+    const conversationId = await createConversation();
+    const { jobId, generationId } = await createTurn({
+      conversationId,
+      createdByUserId: memberId,
+      content: "member-question",
+    });
+    const processor = new ChatJobProcessor();
+    processor.beforeCommit = async () => {
+      await prisma.organizationMembership.updateMany({
+        where: { organizationId: orgId, userId: memberId },
+        data: { status: "revoked" },
+      });
+    };
+
+    await processor.process(jobId);
+
+    expect(await prisma.message.count({ where: { generationId, role: "assistant" } })).toBe(0);
+    const job = await prisma.aiJob.findUnique({ where: { id: jobId } });
+    expect(job?.status).toBe("failed");
+    expect(job?.lastErrorCode).toBe("ACL_REVOKED");
+    await prisma.organizationMembership.updateMany({
+      where: { organizationId: orgId, userId: memberId },
+      data: { status: "active" },
     });
   });
 

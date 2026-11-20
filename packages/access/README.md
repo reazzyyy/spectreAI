@@ -11,6 +11,7 @@ Foreign or missing records → `null` (HTTP maps to identical `NOT_FOUND`).
 - `WorkspaceRecord` / `WorkspaceStore` / `WorkspaceAccess` — content vs member-management
 - `DocumentRecord` / `DocumentStore` / `DocumentAccess` — org-scoped create/list/read; callers apply Workspace content ACL first
 - `ConversationRecord` / `ConversationStore` / `ConversationAccess` — PRIVATE/WORKSPACE chat ACL on top of Workspace content role; Org Admin ≠ content
+- `isActiveOrganizationMembership` / `mayMutateWorkspaceContent` — worker re-check before a delayed chat or extract commit. Revoked organization membership is not active. Content write is owner or editor.
 
 ## Workspace rules (S2)
 
