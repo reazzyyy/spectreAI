@@ -415,6 +415,87 @@ describe("document.extract retry and outbox", () => {
     }
   }, 20_000);
 
+  it("reclaims a stale running extract and does not leave the document processing", async () => {
+    const documentId = await createDocument(Buffer.from("stale-ok", "utf8"), "text/plain");
+    await prisma.document.update({
+      where: { id: documentId },
+      data: { status: "processing" },
+    });
+    const jobId = randomUUID();
+    await prisma.aiJob.create({
+      data: {
+        id: jobId,
+        organizationId: orgId,
+        workspaceId,
+        documentId,
+        createdByUserId: userId,
+        type: EXTRACT_JOB_TYPE,
+        status: "running",
+        startedAt: new Date(Date.now() - 60_000),
+        attemptCount: 1,
+        idempotencyKey: `extract-stale:${jobId}`,
+        maxAttempts: 3,
+      },
+    });
+    const processor = new ExtractJobProcessor({
+      storage,
+      leaseMs: 1_000,
+      extractText: async () => ({
+        ok: true,
+        text: "recovered",
+        pageCount: null,
+        extractor: "test",
+      }),
+    });
+    await processor.process(jobId);
+    const row = await prisma.aiJob.findUniqueOrThrow({ where: { id: jobId } });
+    expect(row.status).toBe("succeeded");
+    expect(row.attemptCount).toBe(2);
+    const document = await prisma.document.findUniqueOrThrow({ where: { id: documentId } });
+    expect(document.status).toBe("ready");
+    expect(document.status).not.toBe("processing");
+  }, 20_000);
+
+  it("times out a stale running extract once attempts are spent", async () => {
+    const documentId = await createDocument(Buffer.from("stale-dead", "utf8"), "text/plain");
+    await prisma.document.update({
+      where: { id: documentId },
+      data: { status: "processing" },
+    });
+    const jobId = randomUUID();
+    await prisma.aiJob.create({
+      data: {
+        id: jobId,
+        organizationId: orgId,
+        workspaceId,
+        documentId,
+        createdByUserId: userId,
+        type: EXTRACT_JOB_TYPE,
+        status: "running",
+        startedAt: new Date(Date.now() - 60_000),
+        attemptCount: 3,
+        idempotencyKey: `extract-stale-out:${jobId}`,
+        maxAttempts: 3,
+      },
+    });
+    let called = false;
+    const processor = new ExtractJobProcessor({
+      storage,
+      leaseMs: 1_000,
+      extractText: async () => {
+        called = true;
+        return { ok: true, text: "nope", pageCount: null, extractor: "test" };
+      },
+    });
+    await processor.process(jobId);
+    expect(called).toBe(false);
+    const row = await prisma.aiJob.findUniqueOrThrow({ where: { id: jobId } });
+    expect(row.status).toBe("timed_out");
+    expect(row.lastErrorCode).toBe("timed_out");
+    const document = await prisma.document.findUniqueOrThrow({ where: { id: documentId } });
+    expect(document.status).toBe("processing_failed");
+  }, 20_000);
+
   it("lets only one of two overlapping claims write the extraction", async () => {
     const documentId = await createDocument(Buffer.from("single", "utf8"), "text/plain");
     const jobId = randomUUID();

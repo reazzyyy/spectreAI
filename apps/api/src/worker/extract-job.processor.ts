@@ -2,6 +2,7 @@ import { createPrismaClient, type PrismaClient } from "@spectre/db";
 import { randomUUID } from "node:crypto";
 import {
   EXTRACT_JOB_TYPE,
+  EXTRACT_RUNNING_LEASE_MS,
   EXTRACT_TIMEOUT_MS,
 } from "../documents/extract-limits.js";
 import {
@@ -33,14 +34,19 @@ export interface ExtractJobProcessorOptions {
   extractText?: (bytes: Buffer, mimeType: string) => Promise<ExtractResult>;
   /** Defaults to D-030 (120s). The timer does not kill in-flight parser work. */
   timeoutMs?: number;
+  /** Defaults to the same 120s. Tests pass a short lease for a stale running row. */
+  leaseMs?: number;
 }
 
 /**
  * document.extract handler. The file id comes from AIJob, not the queue payload.
  *
  * Retry owner is BullMQ backoff plus these PostgreSQL transitions (D-011 statuses
- * only). A transient error sets the row back to queued and throws so BullMQ
- * actually delivers again. A parser throw is PARSER_ERROR, never timed_out.
+ * only). A crash after claim leaves the row `running`; the next delivery reclaims
+ * it while attempts remain, or marks `timed_out` when the lease and maxAttempts
+ * are both spent, so the document does not stay `processing`. A transient error
+ * sets the row back to queued and throws so BullMQ actually delivers again.
+ * A parser throw is PARSER_ERROR, never timed_out.
  * The timeout is soft: late parser output cannot commit after timed_out wins
  * the compare-and-swap, but the parser call itself is not aborted.
  * Does not log extracted text.
@@ -49,11 +55,13 @@ export class ExtractJobProcessor {
   private readonly storage: LocalObjectStorage;
   private readonly extractText: (bytes: Buffer, mimeType: string) => Promise<ExtractResult>;
   private readonly timeoutMs: number;
+  private readonly leaseMs: number;
 
   constructor(options: ExtractJobProcessorOptions = {}) {
     this.storage = options.storage ?? createLocalObjectStorageFromEnv();
     this.extractText = options.extractText ?? extractDocumentText;
     this.timeoutMs = options.timeoutMs ?? EXTRACT_TIMEOUT_MS;
+    this.leaseMs = options.leaseMs ?? EXTRACT_RUNNING_LEASE_MS;
   }
 
   async process(jobId: string): Promise<void> {
@@ -71,15 +79,8 @@ export class ExtractJobProcessor {
         return;
       }
 
-      const claimed = await prisma.aiJob.updateMany({
-        where: { id: jobId, status: "queued", type: EXTRACT_JOB_TYPE },
-        data: {
-          status: "running",
-          startedAt: new Date(),
-          attemptCount: { increment: 1 },
-        },
-      });
-      if (claimed.count !== 1) {
+      const claimed = await this.claimRunning(prisma, aiJob);
+      if (claimed !== "owned") {
         return;
       }
       const running = await prisma.aiJob.findUniqueOrThrow({ where: { id: jobId } });
@@ -164,6 +165,69 @@ export class ExtractJobProcessor {
     } finally {
       await prisma.$disconnect();
     }
+  }
+
+  /**
+   * queued → running, or reclaim a running attempt whose lease expired.
+   * When maxAttempts is already spent, the stale row becomes timed_out (D-011)
+   * and a document left in processing moves to processing_failed.
+   * A second worker inside the lease gets "busy" and must not parse.
+   */
+  private async claimRunning(
+    prisma: PrismaClient,
+    aiJob: { id: string; maxAttempts: number; documentId: string | null },
+  ): Promise<"owned" | "busy"> {
+    const now = new Date();
+    const staleBefore = new Date(now.getTime() - this.leaseMs);
+    const staleStartedAt = [{ startedAt: null }, { startedAt: { lt: staleBefore } }];
+
+    const queued = await prisma.aiJob.updateMany({
+      where: { id: aiJob.id, status: "queued", type: EXTRACT_JOB_TYPE },
+      data: {
+        status: "running",
+        startedAt: now,
+        attemptCount: { increment: 1 },
+      },
+    });
+    if (queued.count === 1) {
+      return "owned";
+    }
+
+    const reclaimed = await prisma.aiJob.updateMany({
+      where: {
+        id: aiJob.id,
+        type: EXTRACT_JOB_TYPE,
+        status: "running",
+        attemptCount: { lt: aiJob.maxAttempts },
+        OR: staleStartedAt,
+      },
+      data: { startedAt: now, attemptCount: { increment: 1 } },
+    });
+    if (reclaimed.count === 1) {
+      return "owned";
+    }
+
+    const expired = await prisma.aiJob.updateMany({
+      where: {
+        id: aiJob.id,
+        type: EXTRACT_JOB_TYPE,
+        status: "running",
+        attemptCount: { gte: aiJob.maxAttempts },
+        OR: staleStartedAt,
+      },
+      data: {
+        status: "timed_out",
+        completedAt: now,
+        lastErrorCode: "timed_out",
+      },
+    });
+    if (expired.count === 1 && aiJob.documentId) {
+      await prisma.document.updateMany({
+        where: { id: aiJob.documentId, status: "processing" },
+        data: { status: "processing_failed" },
+      });
+    }
+    return "busy";
   }
 
   private async readText(
