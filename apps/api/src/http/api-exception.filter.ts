@@ -12,6 +12,41 @@ interface ErrorBody {
   message: string;
 }
 
+const STABLE_CODE = /^[A-Z][A-Z0-9_]{0,63}$/;
+
+/**
+ * Statuses whose body used to collapse to HTTP_ERROR.
+ * A server-supplied code is kept; otherwise the status has one stable code.
+ * Messages stay fixed so a multer or Nest string cannot leak into the client.
+ */
+const MAPPED_STATUS: Record<number, ErrorBody> = {
+  [HttpStatus.BAD_REQUEST]: {
+    code: "BAD_REQUEST",
+    message: "Request is invalid",
+  },
+  [HttpStatus.CONFLICT]: {
+    code: "CONFLICT",
+    message: "Request conflicts with the current state",
+  },
+  [HttpStatus.PAYLOAD_TOO_LARGE]: {
+    code: "PAYLOAD_TOO_LARGE",
+    message: "Payload is too large",
+  },
+  [HttpStatus.TOO_MANY_REQUESTS]: {
+    code: "RATE_LIMITED",
+    message: "Too many requests",
+  },
+};
+
+function serverCode(exception: HttpException): string | null {
+  const payload = exception.getResponse();
+  if (typeof payload !== "object" || payload === null || !("code" in payload)) {
+    return null;
+  }
+  const code = payload.code;
+  return typeof code === "string" && STABLE_CODE.test(code) ? code : null;
+}
+
 interface JsonResponse {
   status(code: number): JsonResponse;
   json(body: unknown): void;
@@ -67,6 +102,12 @@ export class ApiExceptionFilter implements ExceptionFilter {
     }
     if (status >= 500) {
       return { code: "INTERNAL_ERROR", message: "Unexpected error" };
+    }
+    const mapped = MAPPED_STATUS[status];
+    if (mapped) {
+      const code =
+        exception instanceof HttpException ? serverCode(exception) : null;
+      return { code: code ?? mapped.code, message: mapped.message };
     }
     return { code: "HTTP_ERROR", message: "Request failed" };
   }
