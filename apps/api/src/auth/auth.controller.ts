@@ -90,11 +90,15 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
+    const profile = await this.sessions.resolveProfile(req);
     await this.sessions.logout(req);
     res.clearCookie(SESSION_COOKIE_NAME, clearSessionCookieOptions());
     res.clearCookie(CSRF_COOKIE_NAME, clearCsrfCookieOptions());
     await this.audit.write({
+      organizationId: profile?.organizationId ?? null,
+      actorUserId: profile?.userId ?? null,
       action: "auth.logout",
+      objectType: "session",
     });
     return { ok: true };
   }

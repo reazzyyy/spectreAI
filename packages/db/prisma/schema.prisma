@@ -482,10 +482,14 @@ model DocumentExtraction {
 }
 
 /// Thin audit without document/prompt content (D-021 direction; Gate H later).
+/// `systemEvent` rows (anonymous, before a session) are written by the migrator
+/// and are not visible under any tenant GUC. Tenant rows must set `organizationId`.
 model AuditEvent {
   id             String        @id @default(uuid()) @db.Uuid
   organizationId String?       @map("organization_id") @db.Uuid
   organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  /// True only for anonymous/system rows. Hidden from every tenant policy.
+  systemEvent    Boolean       @default(false) @map("system_event")
   actorUserId    String?       @map("actor_user_id") @db.Uuid
   action         String
   objectType     String?       @map("object_type")
