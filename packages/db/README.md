@@ -34,10 +34,10 @@ Tenant-boundary policies (`organization_id` = GUC) + `FORCE ROW LEVEL SECURITY` 
 `messages` / `ai_generations` (via parent conversation EXISTS under same RLS),  
 `context_snapshots` / `context_snapshot_items` / `message_sources` (via conversation/message ACL),  
 `outbox_events` (org GUC),  
-`ai_jobs`, `document_extractions`, `audit_events`, `organization_invitations`,  
+`ai_jobs`, `document_extractions`, `audit_events` (SELECT/INSERT for the current org only; `system_event` rows are hidden from every tenant; no UPDATE/DELETE), `organization_invitations`,  
 `users` (self or membership in the current org), `sessions` (own user in the current org), `organizations` (own org id).
 
-Runtime role `spectre_app` (no BYPASSRLS). It has no INSERT/UPDATE/DELETE on `users`, `sessions`, or `organizations`, and cannot SELECT `password_hash` or `token_hash`. **Incomplete W-020:** grant policies and full `docs/07` matrix still later — AS-IS must not claim full RLS. NestJS authz is not replaced by RLS.
+Runtime role `spectre_app` (no BYPASSRLS). It has no INSERT/UPDATE/DELETE on `users`, `sessions`, or `organizations`, and cannot SELECT `password_hash` or `token_hash`. It cannot UPDATE or DELETE `audit_events`. New tables no longer receive UPDATE/DELETE from default privileges; a migration must grant those explicitly. **Incomplete W-020:** grant policies and full `docs/07` matrix still later — AS-IS must not claim full RLS. NestJS authz is not replaced by RLS.
 
 Login, session resolve, invites, and bootstrap still use the migrator URL. The local migrator is superuser and bypasses FORCE RLS. Replacing that path is S5 (narrow auth role or `SECURITY DEFINER` with a fixed `search_path`).
 

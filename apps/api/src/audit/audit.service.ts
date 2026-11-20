@@ -12,19 +12,23 @@ export interface AuditWriteInput {
 }
 
 /**
- * Thin append-only audit (no document/prompt content). Uses migrator client so
- * login/unauthenticated edges can record events without RLS actor GUC.
+ * Thin append-only audit (no document/prompt content).
+ * Uses the migrator client so login and anonymous edges can write without a
+ * tenant GUC. A missing organizationId is a system event: runtime RLS does not
+ * return those rows to any organization. Tenant actions must pass organizationId.
  */
 @Injectable()
 export class AuditService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async write(input: AuditWriteInput): Promise<void> {
+    const organizationId = input.organizationId ?? null;
     try {
       await this.prisma.migrator.auditEvent.create({
         data: {
           id: randomUUID(),
-          organizationId: input.organizationId ?? null,
+          organizationId,
+          systemEvent: organizationId === null,
           actorUserId: input.actorUserId ?? null,
           action: input.action,
           objectType: input.objectType ?? null,
