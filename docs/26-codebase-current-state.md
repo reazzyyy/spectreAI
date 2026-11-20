@@ -165,12 +165,12 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 
 ## 5. HTTP-контракт scaffold (фактический)
 
-Префикс: `/api/v1`.
+Префикс: `/api/v1`. Для `400` / `409` / `413` / `429` фильтр сохраняет серверный `code` (токен `A-Z` / цифры / `_`) либо ставит `BAD_REQUEST`, `CONFLICT`, `PAYLOAD_TOO_LARGE`, `RATE_LIMITED`. Остальные неразобранные 4xx по-прежнему `HTTP_ERROR`.
 
 | Метод | Путь | Auth | Успех | Ошибки |
 |---|---|---|---|---|
 | GET | `/health` | нет | `{ status: "ok" }` | — |
-| POST | `/auth/login` | нет (CSRF token не требуется) | `{ user, organization }` + `spectre_sid` + `spectre_csrf` | `401`; `422`; `403 CSRF_REJECTED` (чужой Origin) |
+| POST | `/auth/login` | нет (CSRF token не требуется) | `{ user, organization }` + `spectre_sid` + `spectre_csrf` | `401`; `422`; `403 CSRF_REJECTED` (чужой Origin); `429 RATE_LIMITED` |
 | POST | `/auth/logout` | cookie + CSRF | `{ ok: true }` + clear session/CSRF cookies | `403 CSRF_REJECTED` |
 | GET | `/auth/me` | сессия | `{ user, organization }` | `401 UNAUTHENTICATED` |
 | GET | `/ai/provider` | нет | `{ providerId: "synthetic", externalTransferEnabled: false }` | — |
@@ -202,14 +202,14 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 | DELETE | `/organizations/:organizationId/invitations/:id` | сессия Owner + CSRF | Invitation revoked | `401`; `404` |
 | POST | `/invitations/accept` | CSRF if session; new user: password | `{ organizationId, userId, role }` | `404`; `403`; `422` |
 | GET | `/workspaces/:workspaceId/documents` | сессия + content read | `{ items, nextCursor }` | `401`; `404` |
-| POST | `/workspaces/:workspaceId/documents` | сессия + CSRF + content mutate; multipart `files` (disk temp) | `{ items }` (`201`); status → processing after enqueue | `401`; `403 CSRF`; `404`; `422`; `429` |
+| POST | `/workspaces/:workspaceId/documents` | сессия + CSRF + content mutate; multipart `files` (disk temp) | `{ items }` (`201`); status → processing after enqueue | `401`; `403 CSRF`; `404`; `422`; `413 PAYLOAD_TOO_LARGE`; `429 RATE_LIMITED` |
 | GET | `/documents/:documentId` | сессия + content read | Document (без `storageKey`) | `401`; `404` |
 | GET | `/documents/:documentId/download` | сессия + content read | binary + disposition | `401`; `404` |
 | POST | `/workspaces/:workspaceId/conversations` | сессия + CSRF + content mutate | Conversation (`201`) | `401`; `404`; `422` |
 | GET | `/workspaces/:workspaceId/conversations` | сессия + content read | `{ items, nextCursor }` (ACL-filtered) | `401`; `404` |
 | GET | `/conversations/:conversationId` | сессия + conversation ACL | Conversation | `401`; `404` |
 | GET | `/conversations/:conversationId/messages` | сессия + conversation ACL | `{ items, nextCursor }` | `401`; `404` |
-| POST | `/conversations/:conversationId/messages` | сессия + CSRF + mutate; `Idempotency-Key` and/or `clientMessageId` | `{ message, generationId, jobId, reused, synthetic }` (`201`) | `401`; `404`; `409`; `422` |
+| POST | `/conversations/:conversationId/messages` | сессия + CSRF + mutate; `Idempotency-Key` and/or `clientMessageId` | `{ message, generationId, jobId, reused, synthetic }` (`201`) | `401`; `404`; `409 CONFLICT`; `422` |
 | GET | `/ai-generations/:generationId` | сессия + conversation ACL | generation + `synthetic` + `contextSnapshotId`/`contextMode`/`sources[]` | `401`; `404` |
 | POST | `/ai-generations/:generationId/cancel` | сессия + CSRF + mutate | `{ id, status, completedAt }` | `401`; `404` |
 

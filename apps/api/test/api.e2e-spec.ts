@@ -2,6 +2,8 @@ import "reflect-metadata";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
+import { Redis } from "ioredis";
 import { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import { createPrismaClient } from "@spectre/db";
@@ -10,7 +12,16 @@ import request from "supertest";
 import { AppModule } from "../src/app.module.js";
 import { hashPassword } from "../src/auth/password.js";
 import { ChatJobProcessor } from "../src/chat/chat-job.processor.js";
+import { MAX_DOCUMENT_BYTES } from "../src/documents/file-limits.js";
 import { applyHttpMiddleware } from "../src/http/apply-http-middleware.js";
+import { resetRateLimitClientForTests } from "../src/http/rate-limit.js";
+
+// This suite does not load .env. Without a URL the limiter caches "off"
+// and a 429 can never be observed. Point it at the local Redis from compose.
+if (!process.env.REDIS_URL?.trim()) {
+  process.env.REDIS_URL = "redis://localhost:6379";
+}
+resetRateLimitClientForTests();
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from "../src/http/csrf.js";
 import {
   CLIENT_B,
@@ -35,6 +46,23 @@ import {
 process.env.DOCUMENT_STORAGE_ROOT = mkdtempSync(
   path.join(tmpdir(), "spectre-docs-e2e-"),
 );
+
+async function isolateRateLimit(key: string, run: () => Promise<void>): Promise<void> {
+  const url = process.env.REDIS_URL?.trim() || "redis://localhost:6379";
+  const redis = new Redis(url, {
+    maxRetriesPerRequest: 1,
+    connectTimeout: 1000,
+    lazyConnect: true,
+  });
+  try {
+    await redis.connect();
+    await redis.del(key);
+    await run();
+  } finally {
+    await redis.del(key).catch(() => undefined);
+    await redis.quit().catch(() => undefined);
+  }
+}
 
 function extractCookieValue(
   setCookie: string | string[] | undefined,
@@ -317,6 +345,29 @@ describe("API scaffold", () => {
       expect(response.body.error.code).toBe("UNAUTHENTICATED");
       expect(response.headers["set-cookie"]).toBeUndefined();
     });
+
+    it("returns 429 RATE_LIMITED when the login window is exhausted", async () => {
+      const email = `rate-${randomUUID()}@localhost`;
+      await isolateRateLimit(`rl:auth_login:${email}`, async () => {
+        let limited: { status: number; body: { error?: { code?: string } } } | undefined;
+        for (let attempt = 0; attempt < 21; attempt += 1) {
+          const response = await request(app.getHttpServer())
+            .post("/api/v1/auth/login")
+            .send({
+              email,
+              password: "wrong-password",
+              organizationId: ORG_A,
+            });
+          if (response.status === 429) {
+            limited = response;
+            break;
+          }
+          expect(response.status).toBe(401);
+        }
+        expect(limited?.status).toBe(429);
+        expect(limited?.body.error?.code).toBe("RATE_LIMITED");
+      });
+    }, 30_000);
   });
 
   describe("session in organization A", () => {
@@ -952,6 +1003,39 @@ describe("API scaffold", () => {
       );
       expect(denied.status).toBe(404);
     });
+
+    it("returns 413 PAYLOAD_TOO_LARGE when a file exceeds the upload cap", async () => {
+      const response = await agent
+        .post(`/api/v1/workspaces/${TEAM_WORKSPACE_A}/documents`)
+        .attach("files", Buffer.alloc(MAX_DOCUMENT_BYTES + 1), {
+          filename: "too-big.txt",
+          contentType: "text/plain",
+        });
+
+      expect(response.status).toBe(413);
+      expect(response.body.error.code).toBe("PAYLOAD_TOO_LARGE");
+    }, 30_000);
+
+    it("returns 429 RATE_LIMITED when the upload window is exhausted", async () => {
+      await isolateRateLimit(`rl:document_upload:${ORG_A}:${USER_A}`, async () => {
+        let limited: { status: number; body: { error?: { code?: string } } } | undefined;
+        for (let attempt = 0; attempt < 31; attempt += 1) {
+          const response = await agent
+            .post(`/api/v1/workspaces/${TEAM_WORKSPACE_A}/documents`)
+            .attach("files", Buffer.from("limit\n", "utf8"), {
+              filename: "limit.txt",
+              contentType: "text/plain",
+            });
+          if (response.status === 429) {
+            limited = response;
+            break;
+          }
+          expect(response.status).toBe(201);
+        }
+        expect(limited?.status).toBe(429);
+        expect(limited?.body.error?.code).toBe("RATE_LIMITED");
+      });
+    }, 60_000);
   });
 
   describe("synthetic generation", () => {
@@ -1119,6 +1203,7 @@ describe("API scaffold", () => {
         .set("Idempotency-Key", "chat-key-1")
         .send({ content: "different-payload", clientMessageId: "client-msg-1" });
       expect(conflict.status).toBe(409);
+      expect(conflict.body.error.code).toBe("CONFLICT");
 
       const processor = new ChatJobProcessor();
       await processor.process(send.body.jobId);
