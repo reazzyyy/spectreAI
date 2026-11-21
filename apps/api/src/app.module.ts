@@ -38,6 +38,7 @@ import {
 } from "./documents/local-object-storage.js";
 import { HealthController } from "./health/health.controller.js";
 import { ApiExceptionFilter } from "./http/api-exception.filter.js";
+import { UuidParamGuard } from "./http/uuid-param.guard.js";
 import { CsrfGuard } from "./http/csrf.guard.js";
 import { MattersController } from "./matters/matters.controller.js";
 import { MattersService } from "./matters/matters.service.js";
@@ -80,6 +81,7 @@ import { WorkspacesService } from "./workspaces/workspaces.service.js";
         sessions.resolveActor(req),
     },
     ActorGuard,
+    { provide: APP_GUARD, useClass: UuidParamGuard },
     { provide: APP_GUARD, useClass: CsrfGuard },
     {
       provide: ClientAccess,
