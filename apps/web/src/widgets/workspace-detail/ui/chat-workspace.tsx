@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { aiGenerationQueryOptions } from "@/entities/ai-generation";
 import {
   conversationListQueryOptions,
@@ -15,7 +15,7 @@ import {
   type Message,
 } from "@/entities/message";
 import { SendMessageForm } from "@/features/send-chat-message";
-import { isApiError } from "@/shared/api";
+import { flattenListPages, isApiError } from "@/shared/api";
 import {
   Avatar,
   Badge,
@@ -64,7 +64,9 @@ function pairTurns(messages: Message[]): Array<{
   user: Message;
   assistant: Message | null;
 }> {
-  const chronological = [...messages].reverse();
+  const chronological = [...messages].sort(
+    (a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id),
+  );
   const pairs: Array<{ user: Message; assistant: Message | null }> = [];
   for (let i = 0; i < chronological.length; i += 1) {
     const msg = chronological[i]!;
@@ -115,8 +117,8 @@ export function ChatWorkspace({
     setShareOpen(false);
   }
 
-  const listQuery = useQuery(conversationListQueryOptions(workspaceId));
-  const conversations = listQuery.data?.items ?? [];
+  const listQuery = useInfiniteQuery(conversationListQueryOptions(workspaceId));
+  const conversations = flattenListPages(listQuery.data);
 
   const selected =
     selectedId && conversations.some((c) => c.id === selectedId)
@@ -125,7 +127,7 @@ export function ChatWorkspace({
         ? ({ id: selectedId } as Conversation)
         : null;
 
-  const messagesQuery = useQuery({
+  const messagesQuery = useInfiniteQuery({
     ...messageHistoryQueryOptions(selectedId ?? ""),
     enabled: Boolean(selectedId),
   });
@@ -163,10 +165,8 @@ export function ChatWorkspace({
     });
   }, [publishedGenerationId, queryClient, selectedId, workspaceId]);
 
-  const pairs = useMemo(
-    () => pairTurns(messagesQuery.data?.items ?? []),
-    [messagesQuery.data?.items],
-  );
+  const messages = flattenListPages(messagesQuery.data);
+  const pairs = useMemo(() => pairTurns(messages), [messages]);
 
   const generating =
     pendingGenerationId !== null &&
@@ -336,6 +336,19 @@ export function ChatWorkspace({
                   </button>
                 ))}
               </div>
+            </div>
+          ) : null}
+
+          {messagesQuery.hasNextPage ? (
+            <div className={styles.more}>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={messagesQuery.isFetchingNextPage}
+                onClick={() => void messagesQuery.fetchNextPage()}
+              >
+                {messagesQuery.isFetchingNextPage ? "Загрузка…" : "Показать ещё"}
+              </Button>
             </div>
           ) : null}
 
@@ -516,6 +529,18 @@ export function ChatWorkspace({
               </button>
             ))}
           </div>
+          {listQuery.hasNextPage ? (
+            <div className={styles.more}>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={listQuery.isFetchingNextPage}
+                onClick={() => void listQuery.fetchNextPage()}
+              >
+                {listQuery.isFetchingNextPage ? "Загрузка…" : "Показать ещё"}
+              </Button>
+            </div>
+          ) : null}
         </>
       ) : null}
     </div>

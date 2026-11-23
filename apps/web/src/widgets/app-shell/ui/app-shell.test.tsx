@@ -37,7 +37,9 @@ vi.mock("@/entities/workspace", async () => {
     ...actual,
     workspacesListQueryOptions: {
       queryKey: ["workspaces", "list"],
+      initialPageParam: null,
       queryFn: async () => ({ items: [], nextCursor: null }),
+      getNextPageParam: () => undefined,
     },
   };
 });

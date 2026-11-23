@@ -3,14 +3,14 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { clientsListQueryOptions } from "@/entities/client";
 import {
   workspacesListQueryOptions,
   type WorkspaceVisibility,
 } from "@/entities/workspace";
 import { CreateWorkspaceForm } from "@/features/create-workspace";
-import { isApiError } from "@/shared/api";
+import { flattenListPages, isApiError } from "@/shared/api";
 import { classNames } from "@/shared/lib";
 import {
   Badge,
@@ -55,9 +55,18 @@ export function WorkspaceList() {
     setQuery(urlQuery);
   }
 
-  const { data, error, isPending, isError, isFetching, refetch } = useQuery(
-    workspacesListQueryOptions,
-  );
+  const {
+    data,
+    error,
+    isPending,
+    isError,
+    isFetching,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+    refetch,
+  } = useInfiniteQuery(workspacesListQueryOptions);
+  const loaded = flattenListPages(data);
   const clients = useQuery(clientsListQueryOptions);
   const clientsById = useMemo(() => {
     const map = new Map<string, string>();
@@ -66,7 +75,7 @@ export function WorkspaceList() {
   }, [clients.data?.items]);
 
   const filtered = useMemo(() => {
-    const items = [...(data?.items ?? [])];
+    const items = [...loaded];
     const q = query.trim().toLowerCase();
     const next = items.filter((ws) => {
       if (visibility !== "all" && ws.visibility !== visibility) return false;
@@ -80,7 +89,7 @@ export function WorkspaceList() {
       return a.name.localeCompare(b.name, "ru");
     });
     return next;
-  }, [data?.items, query, visibility, sort, clientsById]);
+  }, [loaded, query, visibility, sort, clientsById]);
 
   function setVisibilityTab(next: VisibilityTab) {
     const params = new URLSearchParams(searchParams.toString());
@@ -106,8 +115,20 @@ export function WorkspaceList() {
     router.replace(qs ? `/projects?${qs}` : "/projects");
   }
 
-  const hasFilters = visibility !== "all" || query.trim() !== "";
-  const totalKnown = data?.items.length ?? 0;
+  const totalKnown = loaded.length;
+  const hasMore = Boolean(hasNextPage);
+  const moreButton = hasMore ? (
+    <div className={styles.more}>
+      <Button
+        type="button"
+        variant="secondary"
+        disabled={isFetchingNextPage}
+        onClick={() => void fetchNextPage()}
+      >
+        {isFetchingNextPage ? "Загрузка…" : "Показать ещё"}
+      </Button>
+    </div>
+  ) : null;
 
   return (
     <Page>
@@ -117,11 +138,7 @@ export function WorkspaceList() {
           <span aria-live="polite">
             {isPending
               ? "Загрузка…"
-              : `${filtered.length} ${pluralProjects(filtered.length)}${
-                  hasFilters && totalKnown !== filtered.length
-                    ? ` из ${totalKnown}`
-                    : ""
-                }`}
+              : projectSummary(filtered.length, totalKnown, hasMore)}
             {isFetching && !isPending ? " · обновление…" : ""}
           </span>
         }
@@ -249,6 +266,7 @@ export function WorkspaceList() {
                 Создать проект «{query.trim().slice(0, 30)}»
               </Button>
             ) : null}
+            {moreButton}
           </StateCard>
         )
       ) : null}
@@ -285,8 +303,23 @@ export function WorkspaceList() {
           })}
         </div>
       ) : null}
+      {filtered.length > 0 ? moreButton : null}
     </Page>
   );
+}
+
+function projectSummary(shown: number, loaded: number, hasMore: boolean): string {
+  const noun = pluralProjects(shown);
+  if (hasMore && shown !== loaded) {
+    return `${shown} ${noun} из загруженных ${loaded} · есть ещё`;
+  }
+  if (hasMore) {
+    return `${shown} ${noun} · есть ещё`;
+  }
+  if (shown !== loaded) {
+    return `${shown} ${noun} из ${loaded}`;
+  }
+  return `${shown} ${noun}`;
 }
 
 function pluralProjects(n: number): string {

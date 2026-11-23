@@ -3,14 +3,14 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { sessionMeQueryOptions } from "@/entities/session";
 import { workspacesListQueryOptions } from "@/entities/workspace";
 import {
   CommandPalette,
   PaletteControllerProvider,
 } from "@/features/search-workspaces";
-import { isApiError } from "@/shared/api";
+import { flattenListPages, isApiError, loadedCountLabel } from "@/shared/api";
 import { Icon, IconButton, SyntheticModeBanner } from "@/shared/ui";
 import { classNames } from "@/shared/lib";
 import styles from "./app-shell.module.scss";
@@ -36,7 +36,7 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { data, error, isPending, isError } = useQuery(sessionMeQueryOptions);
-  const workspaces = useQuery(workspacesListQueryOptions);
+  const workspaces = useInfiniteQuery(workspacesListQueryOptions);
   const [collapsed, setCollapsed] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteKey, setPaletteKey] = useState(0);
@@ -116,9 +116,15 @@ export function AppShell({ children }: AppShellProps) {
   const organizationActive =
     pathname === "/organization" || pathname.startsWith("/organization/");
   const systemActive = pathname === "/system" || pathname.startsWith("/system/");
-  const wsItems = workspaces.data?.items ?? [];
-  const personalCount = wsItems.filter((w) => w.visibility === "PERSONAL").length;
-  const teamCount = wsItems.filter((w) => w.visibility === "TEAM").length;
+  const wsItems = flattenListPages(workspaces.data);
+  const personalCount = loadedCountLabel(
+    wsItems.filter((w) => w.visibility === "PERSONAL").length,
+    workspaces.hasNextPage,
+  );
+  const teamCount = loadedCountLabel(
+    wsItems.filter((w) => w.visibility === "TEAM").length,
+    workspaces.hasNextPage,
+  );
   const recentNav = wsItems.slice(0, 5);
 
   return (

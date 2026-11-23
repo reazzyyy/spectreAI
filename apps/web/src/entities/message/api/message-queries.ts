@@ -1,11 +1,11 @@
-import { queryOptions } from "@tanstack/react-query";
+import { listInfiniteOptions } from "@/shared/api";
 import { listMessages } from "./message-api";
 
 /** Query key + options for GET /conversations/:id/messages. */
 export function messageHistoryQueryOptions(conversationId: string) {
-  return queryOptions({
-    queryKey: ["messages", "history", conversationId] as const,
-    queryFn: () => listMessages(conversationId),
-    enabled: conversationId.length > 0,
-  });
+  return listInfiniteOptions(
+    ["messages", "history", conversationId] as const,
+    (cursor) => listMessages(conversationId, { cursor }),
+    conversationId.length > 0,
+  );
 }

@@ -1,4 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
+import { listInfiniteOptions } from "@/shared/api";
 import {
   fetchWorkspace,
   listWorkspaceMatters,
@@ -6,11 +7,11 @@ import {
   listWorkspaces,
 } from "./workspace-api";
 
-/** Query key + options for GET /workspaces. */
-export const workspacesListQueryOptions = queryOptions({
-  queryKey: ["workspaces", "list"] as const,
-  queryFn: listWorkspaces,
-});
+/** Query key + options for GET /workspaces. Pages follow `nextCursor`. */
+export const workspacesListQueryOptions = listInfiniteOptions(
+  ["workspaces", "list"] as const,
+  (cursor) => listWorkspaces({ cursor }),
+);
 
 /** Query key + options for GET /workspaces/:id. */
 export function workspaceDetailQueryOptions(workspaceId: string) {

@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { queryOptions } from "@tanstack/react-query";
+import { infiniteQueryOptions } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ChatWorkspace } from "./chat-workspace";
 
@@ -12,8 +12,10 @@ vi.mock("@/entities/conversation", async () => {
   return {
     ...actual,
     conversationListQueryOptions: (workspaceId: string) =>
-      queryOptions({
+      infiniteQueryOptions({
         queryKey: ["conversations", "list", workspaceId] as const,
+        initialPageParam: null as string | null,
+        getNextPageParam: () => undefined,
         queryFn: async () => ({
           items: [
             {
@@ -44,8 +46,10 @@ vi.mock("@/entities/message", async () => {
   return {
     ...actual,
     messageHistoryQueryOptions: (conversationId: string) =>
-      queryOptions({
+      infiniteQueryOptions({
         queryKey: ["messages", "history", conversationId] as const,
+        initialPageParam: null as string | null,
+        getNextPageParam: () => undefined,
         queryFn: async () => ({
           items: [
             {

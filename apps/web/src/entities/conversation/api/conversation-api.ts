@@ -1,4 +1,4 @@
-import { apiRequest } from "@/shared/api";
+import { apiRequest, withListPage } from "@/shared/api";
 import type {
   Conversation,
   ConversationListResponse,
@@ -8,9 +8,13 @@ import type {
 /** GET /workspaces/:id/conversations — ACL-filtered list. */
 export function listConversations(
   workspaceId: string,
+  input?: { cursor?: string | null },
 ): Promise<ConversationListResponse> {
   return apiRequest<ConversationListResponse>(
-    `/workspaces/${encodeURIComponent(workspaceId)}/conversations`,
+    withListPage(
+      `/workspaces/${encodeURIComponent(workspaceId)}/conversations`,
+      input,
+    ),
     { method: "GET" },
   );
 }

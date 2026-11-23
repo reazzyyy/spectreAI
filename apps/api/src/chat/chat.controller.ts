@@ -106,10 +106,19 @@ export class ChatController {
   @Get("workspaces/:workspaceId/conversations")
   async list(
     @Param("workspaceId") workspaceId: string,
+    @Query("cursor") cursorRaw?: string,
     @Query("limit") limitRaw?: string,
   ) {
+    const decoded = decodeCursor(cursorRaw);
     const page = await this.chat.listConversations(this.requireActor(), workspaceId, {
       limit: parseLimit(limitRaw),
+      cursor: decoded
+        ? {
+            // Encoder stores a missing lastMessageAt as the Unix epoch.
+            lastMessageAt: decoded.createdAt.getTime() === 0 ? null : decoded.createdAt,
+            id: decoded.id,
+          }
+        : undefined,
     });
     return {
       items: page.items.map(toConversationBody),

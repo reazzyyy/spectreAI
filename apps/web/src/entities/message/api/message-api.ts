@@ -1,4 +1,4 @@
-import { apiRequest } from "@/shared/api";
+import { apiRequest, withListPage } from "@/shared/api";
 import type {
   MessageListResponse,
   SendMessageInput,
@@ -6,9 +6,15 @@ import type {
 } from "../model/types";
 
 /** GET /conversations/:id/messages — newest first from API. */
-export function listMessages(conversationId: string): Promise<MessageListResponse> {
+export function listMessages(
+  conversationId: string,
+  input?: { cursor?: string | null },
+): Promise<MessageListResponse> {
   return apiRequest<MessageListResponse>(
-    `/conversations/${encodeURIComponent(conversationId)}/messages`,
+    withListPage(
+      `/conversations/${encodeURIComponent(conversationId)}/messages`,
+      input,
+    ),
     { method: "GET" },
   );
 }

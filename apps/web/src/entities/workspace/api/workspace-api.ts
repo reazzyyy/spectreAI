@@ -1,4 +1,4 @@
-import { apiRequest } from "@/shared/api";
+import { apiRequest, withListPage } from "@/shared/api";
 import type {
   CreateWorkspaceInput,
   UpdateWorkspaceInput,
@@ -12,8 +12,12 @@ import type {
 } from "../model/types";
 
 /** GET /workspaces — content-visible list for the session actor. */
-export function listWorkspaces(): Promise<WorkspaceListResponse> {
-  return apiRequest<WorkspaceListResponse>("/workspaces", { method: "GET" });
+export function listWorkspaces(input?: {
+  cursor?: string | null;
+}): Promise<WorkspaceListResponse> {
+  return apiRequest<WorkspaceListResponse>(withListPage("/workspaces", input), {
+    method: "GET",
+  });
 }
 
 /** GET /workspaces/:id — content ACL; foreign/missing → API 404. */

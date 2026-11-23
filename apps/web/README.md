@@ -6,7 +6,7 @@ Next.js App Router. Port: `3001`.
 Import direction: `app → widgets → features → entities → shared`.
 
 **Quality bar (CONFIRMED D-024 / ADR-0004):** SCSS Modules + CSS tokens, own `shared/ui`, RHF+Zod, TanStack Query, Vitest+RTL + Storybook+Chromatic + Playwright.  
-**AS-IS (F5k + Phase 3 documents thin + CI e2e):** Workspace PERSONAL|TEAM + members picker, Matter + Client CRUD, links, `/documents` library upload, org members + owner role change + invitations + `/invite/accept`, AppShell/Home, Vitest+RTL, Storybook/Chromatic, Playwright auth smoke (CI `web-e2e`). `system-map` on SCSS Modules (D-024).
+**AS-IS (F5k + Phase 3 documents thin + CI e2e):** Workspace PERSONAL|TEAM + members picker, Matter + Client CRUD, links, `/documents` library upload, org members + owner role change + invitations + `/invite/accept`, AppShell/Home, Vitest+RTL, Storybook/Chromatic, Playwright auth smoke (CI `web-e2e`). `system-map` on SCSS Modules (D-024). Project, chat, and message lists request `limit`/`cursor` and load the next page with «Показать ещё»; a count with `+` means another page exists.
 
 **Design reference:** корневая папка `designSpectreAI/` — визуальный/IA референс (Figma Make). Не runtime-зависимость и не источник копипаста. В продукте «Проект» = **Workspace** (`entities/workspace`, `/workspaces`). Стили и экраны переписываются в FSD + SCSS Modules под канон D-023/D-024. Chat UI thin slice: вкладка «Чаты» на `/projects/[id]` (Synthetic + conversation_only).
 
