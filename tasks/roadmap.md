@@ -1,9 +1,9 @@
 # Глобальный план реализации
 
 **Статус:** живой рабочий план. Его можно менять и дополнять. Это не подтверждённое продуктовое решение и не описание уже написанного кода.  
-**Дата редакции:** 2026-11-12  
-**Опора:** `docs/decisions-log.md` (D-001–D-031, W-001–W-020, O-001–O-012, H-001–H-005), `docs/05-mvp-acceptance.md`, AS-IS `docs/26-codebase-current-state.md`.  
-**Детальный срез:** `tasks/plan.md` / `tasks/todo.md` — следующий: **chat UI** или **6A**. 5A–5B chat+context **в коде**. Спеки Phase 5–6: `docs/32`–`34` (**PROPOSED**); пробелы: `tasks/phase5-6-gaps.md`.
+**Дата редакции:** 2026-11-25  
+**Опора:** `docs/decisions-log.md` (D-001–D-034, W-001–W-020, O-001–O-012, H-001–H-005), `docs/05-mvp-acceptance.md`, AS-IS `docs/26-codebase-current-state.md`.  
+**Детальный срез:** `tasks/plan.md` / `tasks/todo.md`. 5A–5B, тонкий chat UI и DocumentVersion v1 уже в `main`. Следующий продукт после качества — поиск (FTS), он не начат: FILE-009, Gate B и O-002 открыты. Аудит надёжности 2026-11-17 — `docs/2026-11-17-spectreai-integrated-algorithm-and-contract-audit.md` (**AUDIT**); инструкция к нему — `docs/2026-11-17-cursor-p0-reliability-implementation-instructions.md` (**PROPOSED**). Оба описывают архив, не сегодняшний код.
 
 Если журнал решений и этот план расходятся, приоритет у журнала. Новое CONFIRMED сначала попадает в `docs/decisions-log.md`, затем сюда сдвигается соответствующее ворота.
 
@@ -17,7 +17,7 @@
 
 ## Что уже есть
 
-Снимок на 2026-11-10, подробно в `docs/26-codebase-current-state.md`:
+Снимок на 2026-11-25, подробно в `docs/26-codebase-current-state.md`:
 
 - монорепо Next.js + NestJS + PostgreSQL/Prisma + Redis/BullMQ (**D-008**);
 - Organization, Client, Matter, User, Membership, Session, Workspace (+ members/matter links), invitations;
@@ -26,7 +26,7 @@
 - документы: two-phase upload, download, extract enqueue; AIJob + DocumentExtraction; BullMQ extract worker (**Фаза 3–4**);
 - `SyntheticAIProvider` и тонкий `POST /ai/generate` (не chat orchestration);
 - web FSD (**D-023**) + quality bar (**D-024**): login, shell/home, CRM surfaces, documents UI; CI Playwright smoke;
-- chat API + Outbox + Synthetic worker + conversation_only ContextSnapshot — **5A–5B есть**; chat UI / RAG / grant / OCR success — ещё нет (спеки `docs/32`–`34`).
+- chat API + Outbox + Synthetic worker + conversation_only ContextSnapshot + тонкий chat UI — **5A–5B и UI в `main`** (#44–#48); RAG, grant и успешный OCR — ещё нет;
 
 Это база. Дальше план её наращивает, а не заменяет стек.
 
@@ -90,7 +90,7 @@
 
 Организация, Client, Matter, сессия, Synthetic gateway, имя очереди. Приёмка среза закрыта в `tasks/todo.md`.
 
-**Дальше не считается сделанным:** Workspace, документы, воркер, чат, поиск, черновики, grant, удаление, аудит, деплой.
+**Дальше в эту фазу не входило:** пространство, документы, воркер, чат, поиск. Они появились в следующих фазах и описаны там, а не здесь.
 
 ### Фаза 1. Вход в интерфейс — в коде (срез)
 
@@ -120,7 +120,7 @@
 
 **Цель.** Загрузка в пространство: PDF, DOCX, TXT; 25 МБ; не больше 10 файлов за операцию; архивы, исполняемые, макросы и парольные файлы отклоняются, в том числе при подмене расширения (**D-010**, **D-017**). Оригинал лежит в приватном хранилище, не в публичном URL.
 
-**Факт.** D3a–D3c + docs sync в `main` (2026-11-09). Hardening atomicity/validation/rate limit — текущий `tasks/plan.md`.
+**Факт.** Приём файлов и последующий hardening в `main`. Hardening не является текущим срезом.
 
 **Ворота.** Object storage production — **O-003**. **Ворота E / D-031:** скан без текста → failed до O-004.
 
@@ -132,13 +132,13 @@
 
 **Выход.** Упавший воркер оставляет job в `failed` или `timed_out`, история файла на месте. В логах нет текста документа.
 
-### Фаза 5. Чат в пространстве — следующий срез
+### Фаза 5. Чат в пространстве — тонкий срез в `main`
 
 **Цель.** Диалог создаётся в пространстве, история продолжается, чтение чужого диалога по id невозможно. Ответ идёт через Synthetic. Ошибка провайдера не стирает историю и не раскрывает секреты. UI показывает synthetic/test.
 
-**Спецификация (PROPOSED):** `docs/32-phase5-chat-implementation-specification.md`. Порядок срезов: `docs/CURSOR-INSTRUCTIONS-PHASE5-6.md` (5A foundation → orchestration → затем 5B context). Audit gaps: `docs/34`, трекер `tasks/phase5-6-gaps.md`.
+**Факт.** 5A foundation (#44), 5A orchestration (#45), 5B context refs (#46), тонкий chat UI (#47, #48). Контекст ответа — последние сообщения диалога, не документы проекта. Поиск по корпусу — фаза 6. Внешний AI до **O-002** не подключается. Regenerate/edit ждут DEC-05.
 
-**Зависимость.** Фазы 2 и 4. Контекст ответа — явно выбранные пользователем документы, к которым доступ проверен повторно перед вызовом. Поиск по корпусу — фаза 6. Не вызывать внешний AI до **O-002**. Regenerate/edit — ждать DEC-05.
+**Зависимость.** Фазы 2 и 4. Спека `docs/32` остаётся **PROPOSED**. Текущий контекст — история диалога, не выбранные документы. Поиск по корпусу — фаза 6.
 
 **Выход.** Критерии Chat из `docs/05` + acceptance из `docs/32`. Несинтетический `dataClass` по-прежнему блокируется gateway.
 
@@ -146,7 +146,7 @@
 
 **Цель.** Полнотекстовый поиск PostgreSQL возвращает только фрагменты, которые актёр может читать в момент запроса. Отзыв членства виден в следующем поиске.
 
-**Спецификация (PROPOSED):** `docs/33-phase6-rag-implementation-specification.md`. Сначала 6A: DocumentVersion + FTS/structure (до Gate B); 6B vector — только после Gate B.
+**Спецификация (PROPOSED):** `docs/33-phase6-rag-implementation-specification.md`. Срез DocumentVersion v1 в `main` (#51): версия создаётся при загрузке, `searchEligible` остаётся false (**D-033** / **D-034**). FTS, чанки и вектор не начаты. Gate B и FILE-009 открыты.
 
 **Ворота B.** Векторный слой `pgvector` включается после выбора модели embeddings. Если модель внешняя — только вместе с закрытием **O-002**. **FILE-009** chunking остаётся OPEN до benchmark + явного выбора. До этого в AS-IS честно: FTS может появиться в 6A, вектор ещё нет, хотя **D-018** требует оба к полному MVP.
 

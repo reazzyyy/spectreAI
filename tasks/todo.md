@@ -43,11 +43,33 @@
 - [x] ContextSnapshot / Item / MessageSource + RLS; conversation_only synthetic wiring
 - [x] Generation API returns sources; e2e + RLS coverage; AS-IS/trackers
 
+## Closed — Phase 5 chat UI (2026-11)
+
+- [x] Thin project chat UI (#47, #48)
+
+## Closed — Phase 6A DocumentVersion (2026-11-17)
+
+- [x] DocumentVersion v1 on upload (#51). FTS, chunks and vector are not in this slice
+
+## Closed — P0 reliability (2026-11)
+
+- [x] P0-01 one ai-jobs consumer (#52)
+- [x] P0-02 extract retry and outbox recovery (#53)
+- [x] P0-03 history cutoff at the target message (#54)
+- [x] P0-04 one chat outcome (#55)
+- [x] P0-05 runtime role check on startup (#56). Auth still uses the migrator until S5
+- [x] P0-06 in-process synthetic transfer gate (#57). Wording of D-035 is still open
+
+## Closed — quality remediation S1–S16
+
+- [x] S1–S2 web build and hook lint (#59, #58)
+- [x] S3–S4, S6 RLS auth tables, append-only audit, document-version backfill (#61–#63)
+- [x] S9, S11–S16 extract lease, worker membership re-check, HTTP codes, UUID 404, list cursors, narrow shell, test isolation (#64–#67, #70–#72)
+
 ## Next
 
-- [ ] Chat UI (FSD widgets) — optional parallel
-- [ ] Phase 6A: DocumentVersion → structure/chunk experiment → FTS (FILE-009 OPEN until confirm)
-- [ ] Gate B → Phase 6B vector / HNSW / RRF
-- [ ] Remaining Phase 2 debt (`tasks/phase2-debt.md`) — O-012, email provider, idle session…
-- [ ] Optional: CI Chromatic publish gate (token exists; wire secret in CI)
+- [ ] S0: CI lint, typecheck and build jobs. Do not start while stylelint and the Next security nudge make `main` red
+- [ ] S5, S7, S8, S10 — only after an owner decision
+- [ ] Phase 6 FTS on DocumentVersion. FILE-009 and Gate B stay open; vector waits for Gate B
+- [ ] Remaining Phase 2 debt (`tasks/phase2-debt.md`) — O-012, email provider, idle session
 - [ ] FILE-010 antivirus product integration

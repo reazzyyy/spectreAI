@@ -1,34 +1,22 @@
-# Implementation Plan: Phase 5A Chat (foundation)
+# Текущий срез: качество после закрытых фаз 5 и 6A-версии
 
-> **Статус:** 5A + **5B context refs закрыты** (2026-11-12). Следующий — chat UI или **6A**.  
-> **Канон:** `docs/32`, D-011/D-012, W-007/W-020, AS-IS `docs/26`.  
-> **Пробелы:** `tasks/phase5-6-gaps.md`. JOB-012 / CTX-* / FILE-009 / Gate B / O-002 remain OPEN.  
-> **Не цель:** внешний LLM, DocumentVersion-in-context, regenerate/edit (DEC-05), OCR, workspace delete.
+> **Статус:** 5A (#44, #45), 5B (#46), тонкий chat UI (#47, #48), DocumentVersion v1 (#51) и P0-01…P0-06 (#52–#57) в `main`. Качество S1–S16 влито (#58–#67, #70–#72).  
+> **Не этот срез:** FTS, чанки, вектор, grant, журнал удалений, внешний AI. FILE-009, Gate B, O-002, DEC-05, O-012 остаются открытыми.  
+> **Канон:** `docs/decisions-log.md`, AS-IS `docs/26`. Аудит 2026-11-17 — исторический, не список открытых дефектов.
 
----
+## Уже в main
 
-## Overview
+- Чат: модели, RLS, HTTP, Outbox, Synthetic worker, context snapshot `conversation_only`, тонкий UI на вкладке проекта.
+- Документы: загрузка, extract, версия 1. `ready` не включает поиск (**D-033** / **D-034**).
+- Надёжность P0-01…P0-06: один consumer очереди, retry extract, окно истории, один исход генерации, проверка runtime-роли, synthetic без внешней передачи D3.
+- Качество: RLS на auth-таблицах и append-only audit, честные курсоры списков, узкое окно не прячет страницу, тесты outbox и RLS не врут на грязной базе.
 
-1. 5A-1/5A-2 — done.
-2. 5B conversation_only ContextSnapshot + MessageSource — **done** (no chat UI in this slice).
-3. Later — chat UI; 6A DocumentVersion/FTS; Gate B → 6B vector.
+## Дальше, и только после решения владельца
 
-## Task slices
+- **S0.** Отдельные CI-гейты lint / typecheck / build. Сейчас CI гоняет migrate и `pnpm test` (Postgres и Redis уже есть). Stylelint и первый `next build` в чистом процессе ещё красные; апгрейд Next без явного решения не делать.
+- **S5.** Убрать migrator-креды с пути входа. Вариант не выбран.
+- **S7.** Может ли Org Admin добавить себя редактором проекта. Не решено, в коде не менять.
+- **S8.** Hard delete документов и confirmer (**O-012**). Не решено.
+- **S10.** Fail-open rate limit в production. Не решено.
 
-```text
-5A…   chat foundation + orchestration  (done)
-5B    context/source refs conversation_only  (done)
-UI    chat FSD widgets  (next optional)
-6A…   DocumentVersion / FTS
-```
-
-### Acceptance
-
-- [x] ContextSnapshot/Item/MessageSource + RLS
-- [x] Worker persists snapshot/sources with synthetic reply
-- [x] GET generation returns contextMode + sources
-- [x] AS-IS + READMEs + e2e
-
-### Out of scope
-
-OpenAI, embeddings, DocumentVersion, chunks, FTS/pgvector, regenerate/edit, OCR, workspace hard delete, chat UI.
+Пока владелец не выбрал S5, S7, S8 или S10, эти срезы не начинать. Следующий продуктовый шаг после них — полнотекст по `DocumentVersion`, не повтор чата и не вектор до Gate B.
