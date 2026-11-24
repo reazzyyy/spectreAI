@@ -6,6 +6,7 @@ import { workspaceDocumentsQueryOptions } from "@/entities/document";
 import { workspacesListQueryOptions } from "@/entities/workspace";
 import { UploadDocumentForm } from "@/features/upload-document";
 import { flattenListPages, isApiError } from "@/shared/api";
+import { statusLabel } from "@/shared/lib";
 import { Button, Page, PageHead, Select } from "@/shared/ui";
 import styles from "./document-list.module.scss";
 
@@ -117,7 +118,7 @@ export function DocumentList() {
                   <p className={styles.itemName}>{doc.title}</p>
                   <div className={styles.meta}>
                     <span>{doc.originalFileName}</span>
-                    <span>{doc.status}</span>
+                    <span>{statusLabel(doc.status)}</span>
                     <span>{Math.max(1, Math.round(doc.byteSize / 1024))} КБ</span>
                   </div>
                 </li>

@@ -1,10 +1,7 @@
 .shell {
   display: flex;
+  min-width: 0;
   min-height: 100vh;
-}
-
-.desktopRequired {
-  display: none;
 }
 
 .sidebar {
@@ -389,34 +386,4 @@
   color: var(--color-text-2);
 }
 
-@media (width <= 1279px) {
-  .shell > .sidebar,
-  .shell > .main {
-    display: none;
-  }
-
-  .desktopRequired {
-    position: fixed;
-    z-index: 100;
-    inset: 0;
-    display: flex;
-    padding: 32px;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-    text-align: center;
-    background: var(--color-canvas);
-  }
-
-  .desktopRequired h1 {
-    max-width: 480px;
-    font-family: var(--font-serif);
-    font-size: 26px;
-  }
-
-  .desktopRequired p {
-    max-width: 480px;
-    color: var(--color-text-2);
-  }
-}
+/* ≤1279px: sidebar collapses in JS (NARROW_SHELL_QUERY). Main stays visible. */

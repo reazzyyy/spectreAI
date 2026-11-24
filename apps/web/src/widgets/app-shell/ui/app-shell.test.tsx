@@ -92,6 +92,9 @@ describe("AppShell", () => {
       screen.getByRole("link", { name: /Организация/i }),
     ).toBeInTheDocument();
     expect(screen.getByText("Контент")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: /большого экрана/i }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("Lawyer")).toBeInTheDocument();
     expect(screen.getByText("Legal Team")).toBeInTheDocument();
   });

@@ -65,7 +65,8 @@ function roleBadgeTone(
 
 /**
  * Make Members page: back link, head, membership table + sticky role guide.
- * TEAM: upsert/revoke via members API. PERSONAL: read-only owner row (W-002/W-006).
+ * TEAM: upsert/revoke via members API for the project owner. PERSONAL: read-only owner row (W-002/W-006).
+ * Org Admin member-management on the API (W-008) is not offered on this screen.
  */
 export function WorkspaceMembersPanel({
   workspaceId,
@@ -251,11 +252,11 @@ export function WorkspaceMembersPanel({
     }
   }
 
-  const visibilityLabel = visibility === "PERSONAL" ? "PERSONAL" : "TEAM";
+  const visibilityLabel = visibility === "PERSONAL" ? "Личное" : "Команда";
   const addDisabledReason = !isTeam
-    ? "PERSONAL имеет одного владельца. Добавление участников не входит в MVP."
+    ? "Личный проект имеет одного владельца. Добавление участников не входит в этот срез."
     : !isOwner
-      ? "Управление доступно OWNER или уполномоченному администратору"
+      ? "На этом экране состав меняет владелец проекта."
       : undefined;
 
   return (
@@ -412,13 +413,13 @@ export function WorkspaceMembersPanel({
 
           <p className={styles.footnote}>
             <Icon name="lock" size={14} />
-            Управлять участниками может OWNER проекта или уполномоченный Org
-            Admin. EDITOR и VIEWER не меняют членство.
+            На этом экране состав меняет владелец проекта. Администратор
+            организации не видит материалы проекта только из-за своей роли.
           </p>
           {!isTeam ? (
             <p className={styles.notice}>
-              PERSONAL имеет одного владельца. Добавление участников и смена
-              типа существующего проекта не входят в MVP.
+              Личный проект имеет одного владельца. Добавление участников и смена
+              типа существующего проекта не входят в этот срез.
             </p>
           ) : null}
         </section>

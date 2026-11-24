@@ -4,7 +4,8 @@ import styles from "./system-map.module.scss";
 
 /**
  * Onboarding map of Spectre AS-IS for frontend-minded readers.
- * Static: reflects scaffold after Phase 2 S0–S4c; not a live status API.
+ * Static snapshot of what the product can do. Not a live status API.
+ * Cards below match the scaffold (projects, invites, chat, documents), not Phase 2 only.
  */
 export function SystemMap() {
   return (
@@ -16,7 +17,7 @@ export function SystemMap() {
       <PageHead
         eyebrow="Карта системы · scaffold"
         title="Что мы строим и что уже есть"
-        description="Это не «готовый продукт», а каркас. Ниже — system design схема: блоки, стрелки, сценарии с анимацией потока. Потом — те же идеи текстом, без бэкендерского жаргона."
+        description="Снимок возможностей, не живой опрос сервера. Ниже — схема и текст про то, что уже есть в коде, и что ещё не сделано."
       />
 
       <ul className={styles.nav} aria-label="Разделы">
@@ -147,7 +148,7 @@ export function SystemMap() {
             </div>
           </li>
           <li className={styles.stackArrow} aria-hidden>
-            ↓ очередь имени есть, обработчика нет
+            ↓ очередь ai-jobs и воркер Synthetic
           </li>
           <li className={styles.stackItem}>
             <span className={styles.stackRank} aria-hidden>
@@ -159,9 +160,8 @@ export function SystemMap() {
                 <span className={`${styles.chip} ${styles.chipPartial}`}>Частично</span>
               </h3>
               <p>
-                Redis поднят локально. Очередь называется <code>ai-jobs</code>, но воркера,
-                который бы брал задачи и гонял документы через ИИ, ещё нет. Это заготовка
-                «розетка в стене без прибора».
+                Redis поднят локально. Очередь <code>ai-jobs</code> забирает воркер:
+                извлечение текста и синтетический ответ в чате. Внешней модели нет.
               </p>
             </div>
           </li>
@@ -229,10 +229,10 @@ export function SystemMap() {
               <span className={`${styles.chip} ${styles.chipPartial}`}>Частично</span>
             </h3>
             <p>
-              Место, где потом будут чаты и документы. Сейчас: создать личное (PERSONAL),
-              смотреть свои, участников, привязку дел. Командное (TEAM) создать через API
-              пока нельзя — ждём отдельного решения «кто имеет право». UI списка пространств
-              на фронте ещё нет (есть только API).
+              Проект: личный или командный. Список, создание, участники, дела, чат
+              и загрузка файлов уже в интерфейсе. Администратор организации не
+              читает чужой контент без отдельного доступа — такой доступ ещё не
+              сделан. Поиск по тексту документов и удаление по журналу — дальше.
             </p>
           </article>
 
@@ -242,20 +242,22 @@ export function SystemMap() {
               <span className={`${styles.chip} ${styles.chipPartial}`}>Частично</span>
             </h3>
             <p>
-              Owner организации может создать invite по API. В БД хранится хеш токена, не
-              сам секрет. Письма наружу пока stub: в dev можно получить токен в ответе.
-              Экрана «принять приглашение» на фронте нет.
+              Владелец создаёт приглашение. В базе хранится хеш токена, не сам
+              секрет. Письмо наружу не уходит: в dev токен есть в ответе, принять
+              можно на странице приглашения. Срок задаёт сервер, по умолчанию 72
+              часа.
             </p>
           </article>
 
           <article className={styles.domainCard}>
             <h3>
-              Документы / чат / grant{" "}
-              <span className={`${styles.chip} ${styles.chipLater}`}>Потом</span>
+              Документы и чат{" "}
+              <span className={`${styles.chip} ${styles.chipPartial}`}>Частично</span>
             </h3>
             <p>
-              Загрузка файлов, OCR, чат в пространстве, временный доступ админа к контенту —
-              следующие фазы roadmap. В схеме Prisma их ещё нет.
+              Чат проекта и загрузка PDF, DOCX и TXT есть. Ответы идут через
+              синтетический режим, без внешней модели. Временный доступ
+              администратора к чужому контенту и удаление по журналу — ещё нет.
             </p>
           </article>
         </div>
@@ -315,9 +317,8 @@ export function SystemMap() {
         </ol>
 
         <p className={styles.callout}>
-          Про ИИ: эндпоинт <code>POST /ai/generate</code> есть, но это Synthetic — эхо без
-          сети и без OpenAI. Реальные документы туда слать нельзя, пока не закроют правовой
-          блок (O-002). Для UI достаточно помнить: сейчас «режим синтетики», не прод-модель.
+          Про ИИ: ответы идут через синтетический режим, без внешней сети и без OpenAI.
+          Реальные документы наружу слать нельзя, пока не закрыт правовой блок (O-002).
         </p>
       </section>
 
@@ -326,31 +327,33 @@ export function SystemMap() {
           Сводка для фронтендера
         </h2>
         <p className={styles.sectionLead}>
-          Что можно опираться в UI уже сейчас, а где рано рисовать экраны.
+          Что уже можно открыть в интерфейсе, а что ещё только в плане. Это снимок,
+          не проверка живого сервера.
         </p>
 
         <ul className={styles.statusList}>
           <li className={styles.statusRow}>
             <span className={`${styles.chip} ${styles.chipNow}`}>Есть</span>
             <p>
-              Login / me / logout UI. Cookie-сессия. API клиентов, дел, персональных
-              пространств, участников, связей дело↔пространство, приглашений (API). CSRF на
-              mutating fetch уже учтён в shared client.
+              Вход, выход, клиенты, дела, личные и командные проекты, участники,
+              приглашения и страница принятия, загрузка файлов, чат проекта.
+              Ответы модели — синтетические, без внешней сети.
             </p>
           </li>
           <li className={styles.statusRow}>
             <span className={`${styles.chip} ${styles.chipPartial}`}>Частично</span>
             <p>
-              Workspace без TEAM-create и без экранов. RLS «по организации», не полный ACL
-              контента. Invite без email-провайдера и без accept-UI. AI без воркера и без
-              auth на <code>/ai/*</code> (долг).
+              Письмо с приглашением не отправляется. Доступ администратора к чужому
+              контенту не сделан. Поиска по тексту документов в интерфейсе нет.
+              Проверка доступа на сервере не заменяется одной настройкой базы.
             </p>
           </li>
           <li className={styles.statusRow}>
             <span className={`${styles.chip} ${styles.chipLater}`}>Потом</span>
             <p>
-              Загрузка файлов, OCR, очередь с воркером, чат, поиск, черновики, admin grant,
-              удаление по D-019, MFA/SSO, production в РФ, настоящий OpenAI.
+              Полноценный OCR как продукт, MFA и SSO, удаление с журналом, внешняя
+              модель и промышленный контур. Синтетический чат и приём файлов уже
+              есть и сюда не относятся.
             </p>
           </li>
         </ul>
@@ -361,8 +364,8 @@ export function SystemMap() {
           Куда едем (упрощённо)
         </h2>
         <p className={styles.sectionLead}>
-          Фазы из <code>tasks/roadmap.md</code>. Сейчас закрываем контур «пространство и
-          членство»; дальше — файлы и обработка.
+          Фазы из дорожной карты, коротко. Ниже — что из них уже видно в коде, а не
+          исходный план.
         </p>
 
         <ul className={styles.phases}>
@@ -373,17 +376,17 @@ export function SystemMap() {
           <li className={`${styles.phase} ${styles.phasePartial}`}>
             <strong>2 · Пространство и членство</strong>
             <span>
-              S0–S4c в main: схема, доступ, HTTP Workspace, CSRF, bootstrap, invitations API.
-              Ещё: дотянуть RLS-тесты, решить TEAM create, UI пространств.
+              Проекты, участники и приглашения уже в интерфейсе. Дальше — полный
+              доступ к контенту и удаление с подтверждением.
             </span>
           </li>
           <li className={`${styles.phase} ${styles.phaseLater}`}>
             <strong>3–4 · Файлы и воркер</strong>
-            <span>Приём PDF/DOCX/TXT, приватное хранение, извлечение текста, AIJob.</span>
+            <span>Приём PDF, DOCX и TXT уже есть. Дальше — качество распознавания и хранение в целевом контуре.</span>
           </li>
           <li className={`${styles.phase} ${styles.phaseLater}`}>
             <strong>5–8 · Чат, поиск, черновики</strong>
-            <span>Сначала Synthetic-чат в пространстве; поиск и research — следом.</span>
+            <span>Синтетический чат в проекте уже есть. Поиск по документам — ещё нет.</span>
           </li>
           <li className={`${styles.phase} ${styles.phaseLater}`}>
             <strong>9–12 · Grant, удаление, аудит, прод</strong>

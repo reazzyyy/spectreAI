@@ -11,7 +11,7 @@ import {
 } from "@/entities/workspace";
 import { CreateWorkspaceForm } from "@/features/create-workspace";
 import { flattenListPages, isApiError } from "@/shared/api";
-import { classNames } from "@/shared/lib";
+import { classNames, statusLabel } from "@/shared/lib";
 import {
   Badge,
   Button,
@@ -297,7 +297,7 @@ export function WorkspaceList() {
                 <span className={styles.kind}>
                   {VISIBILITY_LABEL[ws.visibility] ?? ws.visibility}
                 </span>
-                <span className={styles.when}>{ws.status}</span>
+                <span className={styles.when}>{statusLabel(ws.status)}</span>
               </div>
             );
           })}

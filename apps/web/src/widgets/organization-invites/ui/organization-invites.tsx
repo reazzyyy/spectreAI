@@ -15,7 +15,7 @@ import { orgMembersListQueryOptions } from "@/entities/org-member";
 import { sessionMeQueryOptions } from "@/entities/session";
 import { ChangeOrgMemberRole } from "@/features/change-org-member-role";
 import { isApiError } from "@/shared/api";
-import { displayNameFromEmail, orgRoleLabel } from "@/shared/lib";
+import { displayNameFromEmail, inviteDeadlineLabel, orgRoleLabel } from "@/shared/lib";
 import {
   Avatar,
   Badge,
@@ -118,7 +118,7 @@ export function OrganizationInvites() {
       setFormError(null);
       setDevToken(invitation.devToken ?? null);
       setNotice(
-        "Приглашение создано на 7 дней. Реальное письмо не отправлено.",
+        `Приглашение создано и действует до ${inviteDeadlineLabel(invitation.expiresAt)}. Письмо не отправлено.`,
       );
       setEmail("");
       setRole("member");
@@ -133,7 +133,7 @@ export function OrganizationInvites() {
     onSuccess: async (updated) => {
       setDevToken(updated.devToken ?? null);
       setNotice(
-        "Создана новая ссылка на 7 дней. Предыдущая ссылка отозвана.",
+        `Новая ссылка действует до ${inviteDeadlineLabel(updated.expiresAt)}. Предыдущая ссылка отозвана.`,
       );
       await invalidateInvites();
     },
@@ -329,7 +329,7 @@ export function OrganizationInvites() {
                 {invitesQuery.data?.items.length ?? 0}
               </span>
             </h2>
-            <small className={styles.sectionHint}>Срок — 7 дней</small>
+            <small className={styles.sectionHint}>Срок задаёт сервер</small>
           </div>
 
           {invitesQuery.isPending ? (
@@ -462,9 +462,9 @@ export function OrganizationInvites() {
           <option value="admin">Администратор</option>
         </Select>
         <p className={styles.dialogNotice}>
-          Приглашение действует 7 дней. После принятия сотрудник станет членом
-          организации, но не получит доступ ко всем проектам. Роль в TEAM
-          назначается отдельно.
+          Срок задаёт сервер, по умолчанию 72 часа. Точная дата будет в
+          приглашении. После принятия сотрудник станет членом организации, но
+          не получит доступ ко всем проектам. Роль в TEAM назначается отдельно.
         </p>
         <p className={styles.dialogHelp}>
           В scaffold письмо не отправляется. После создания доступна страница

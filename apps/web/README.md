@@ -57,6 +57,6 @@ src/
 - `/documents` — Workspace-scoped list + multipart upload (PDF/DOCX/TXT); no OCR/preview.
 - `/organization` — Make Organization (boundary, staff list, Owner invite dialog/table); role change + `devToken` accept link.
 - Nav: Home, поиск (Command palette / Ctrl+K), проекты (Все/Личные/Команда), создать проект, дела, клиенты, документы, Организация, `/system`.
-- Desktop gate below 1280px. Synthetic banner (D-012).
+- Below 1280px the sidebar collapses and the page stays on screen. Synthetic banner (D-012).
 
 Plan: `tasks/plan.md`. Phase 5A chat foundation: same file. UI port slices: shell → projects list → project-bar → chat after API.

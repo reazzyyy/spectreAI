@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { clientDetailQueryOptions } from "@/entities/client";
 import { EditClientForm } from "@/features/edit-client";
 import { isApiError } from "@/shared/api";
+import { statusLabel } from "@/shared/lib";
 import { Page, PageHead } from "@/shared/ui";
 import styles from "./client-detail.module.scss";
 
@@ -55,7 +56,7 @@ export function ClientDetail({ clientId }: ClientDetailProps) {
 
       <PageHead
         compact
-        eyebrow={data.status}
+        eyebrow={statusLabel(data.status)}
         title={data.name}
       />
 
