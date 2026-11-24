@@ -27,8 +27,12 @@ function projectsHref(visibility: VisibilityFilter): string {
   return `/projects?visibility=${visibility}`;
 }
 
+/** Same cutoff as the shell stylesheet: collapse, do not hide the page. */
+const NARROW_SHELL_QUERY = "(max-width: 1279px)";
+
 /**
- * Product chrome: sidebar + topbar + desktop gate (IA from design reference).
+ * Product chrome: sidebar + topbar (IA from design reference).
+ * Below 1280px the sidebar collapses; main stays on screen (WCAG 1.4.10).
  * Session via TanStack Query; 401 → /login. No demo/localStorage state.
  */
 export function AppShell({ children }: AppShellProps) {
@@ -47,7 +51,7 @@ export function AppShell({ children }: AppShellProps) {
   }, []);
 
   useEffect(() => {
-    const mq = window.matchMedia("(max-width: 1000px)");
+    const mq = window.matchMedia(NARROW_SHELL_QUERY);
     /** Narrow viewports force collapse; wide screens keep the user's toggle. */
     const sync = () => {
       if (mq.matches) setCollapsed(true);
@@ -130,17 +134,6 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <PaletteControllerProvider openPalette={openPalette}>
     <div className={styles.shell}>
-      <div className={styles.desktopRequired}>
-        <span className={styles.brandMark} aria-hidden>
-          С
-        </span>
-        <h1>Рабочее пространство для большого экрана</h1>
-        <p>
-          Макет рассчитан на ширину от 1280 px. Увеличьте окно или откройте его на
-          компьютере. Полный мобильный редактор не входит в текущий MVP.
-        </p>
-      </div>
-
       <aside
         className={classNames(styles.sidebar, collapsed && styles.collapsed)}
         aria-label="Основная навигация"

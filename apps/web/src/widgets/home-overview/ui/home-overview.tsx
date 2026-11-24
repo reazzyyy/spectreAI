@@ -81,7 +81,7 @@ export function HomeOverview() {
                   role="menuitem"
                   className={styles.menuItem}
                   disabled
-                  title="Проверка документа — после документов проекта"
+                  title="Отдельной проверки нет. Файл загружается в библиотеке документов."
                 >
                   <Icon name="folder" size={16} />
                   Проверить документ
@@ -90,8 +90,11 @@ export function HomeOverview() {
                   type="button"
                   role="menuitem"
                   className={styles.menuItem}
-                  disabled
-                  title="Чаты — после Phase 5A"
+                  title="Вопрос задаётся в чате выбранного проекта"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    router.push("/projects");
+                  }}
                 >
                   <Icon name="search" size={16} />
                   Задать вопрос
@@ -156,7 +159,9 @@ export function HomeOverview() {
 
         <section>
           <h2 className={styles.sectionTitle}>Требует внимания</h2>
-          <p className={styles.attention}>Нет задач, требующих внимания.</p>
+          <p className={styles.attention}>
+            Список внимания к данным ещё не подключён.
+          </p>
         </section>
       </div>
     </Page>

@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { matterDetailQueryOptions } from "@/entities/matter";
 import { EditMatterForm } from "@/features/edit-matter";
 import { isApiError } from "@/shared/api";
+import { statusLabel } from "@/shared/lib";
 import { Page, PageHead } from "@/shared/ui";
 import styles from "./matter-detail.module.scss";
 
@@ -53,7 +54,7 @@ export function MatterDetail({ matterId }: MatterDetailProps) {
         ← Все дела
       </Link>
 
-      <PageHead compact eyebrow={data.status} title={data.title} />
+      <PageHead compact eyebrow={statusLabel(data.status)} title={data.title} />
 
       <section className={styles.panel} aria-labelledby="matter-edit-title">
         <h2 id="matter-edit-title" className={styles.sectionTitle}>

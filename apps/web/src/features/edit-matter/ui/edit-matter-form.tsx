@@ -12,6 +12,7 @@ import {
   type Matter,
 } from "@/entities/matter";
 import { isApiError } from "@/shared/api";
+import { statusLabel } from "@/shared/lib";
 import { Button, Input, Select } from "@/shared/ui";
 import {
   editMatterSchema,
@@ -114,8 +115,8 @@ export function EditMatterForm({ matter }: EditMatterFormProps) {
         disabled={isSubmitting}
         {...register("status")}
       >
-        <option value="active">active</option>
-        <option value="archived">archived</option>
+        <option value="active">{statusLabel("active")}</option>
+        <option value="archived">{statusLabel("archived")}</option>
       </Select>
       <div className={styles.field}>
         <Select

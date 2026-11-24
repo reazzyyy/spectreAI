@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { clientsListQueryOptions } from "@/entities/client";
 import { CreateClientForm } from "@/features/create-client";
 import { isApiError } from "@/shared/api";
+import { statusLabel } from "@/shared/lib";
 import { Page, PageHead } from "@/shared/ui";
 import styles from "./client-list.module.scss";
 
@@ -60,7 +61,7 @@ export function ClientList() {
                     <Link href={`/clients/${client.id}`}>{client.name}</Link>
                   </p>
                   <div className={styles.meta}>
-                    <span>{client.status}</span>
+                    <span>{statusLabel(client.status)}</span>
                   </div>
                 </li>
               ))}

@@ -11,6 +11,7 @@ import {
   type Client,
 } from "@/entities/client";
 import { isApiError } from "@/shared/api";
+import { statusLabel } from "@/shared/lib";
 import { Button, Input, Select } from "@/shared/ui";
 import {
   editClientSchema,
@@ -104,8 +105,8 @@ export function EditClientForm({ client }: EditClientFormProps) {
         disabled={isSubmitting}
         {...register("status")}
       >
-        <option value="active">active</option>
-        <option value="archived">archived</option>
+        <option value="active">{statusLabel("active")}</option>
+        <option value="archived">{statusLabel("archived")}</option>
       </Select>
       {formError ? (
         <p role="alert" className="form-error">

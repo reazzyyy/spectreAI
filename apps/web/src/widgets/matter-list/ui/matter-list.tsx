@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { mattersListQueryOptions } from "@/entities/matter";
 import { CreateMatterForm } from "@/features/create-matter";
 import { isApiError } from "@/shared/api";
+import { statusLabel } from "@/shared/lib";
 import { Page, PageHead } from "@/shared/ui";
 import styles from "./matter-list.module.scss";
 
@@ -60,7 +61,7 @@ export function MatterList() {
                     <Link href={`/matters/${matter.id}`}>{matter.title}</Link>
                   </p>
                   <div className={styles.meta}>
-                    <span>{matter.status}</span>
+                    <span>{statusLabel(matter.status)}</span>
                   </div>
                 </li>
               ))}
