@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createPrismaClient, withActorContext } from "./index.js";
+import { requireRlsFixture } from "./rls-guard.js";
 
 /**
  * Chat RLS harness (Phase 5A-1). Requires migrate:deploy including phase5a_chat_foundation.
- * Skips when DATABASE_URL_RUNTIME is unreachable.
+ * Skips when DATABASE_URL_RUNTIME is unreachable locally. CI fails instead of skipping.
  */
 describe("chat RLS (runtime role)", () => {
   const migrator = createPrismaClient({ purpose: "migrator" });
@@ -242,7 +243,7 @@ describe("chat RLS (runtime role)", () => {
   it("PRIVATE conversation visible only to owner with workspace access", async ({
     skip,
   }) => {
-    if (!ready) skip();
+    requireRlsFixture(ready, skip);
 
     const asOwner = await withActorContext(
       runtime,
@@ -268,7 +269,7 @@ describe("chat RLS (runtime role)", () => {
   it("WORKSPACE conversation visible to owner and active member, not outsider/other org", async ({
     skip,
   }) => {
-    if (!ready) skip();
+    requireRlsFixture(ready, skip);
 
     const asOwner = await withActorContext(
       runtime,
@@ -298,7 +299,7 @@ describe("chat RLS (runtime role)", () => {
   });
 
   it("messages and generations follow parent conversation ACL", async ({ skip }) => {
-    if (!ready) skip();
+    requireRlsFixture(ready, skip);
 
     const editorPrivateMessages = await withActorContext(
       runtime,
@@ -330,7 +331,7 @@ describe("chat RLS (runtime role)", () => {
   it("cross-org INSERT into conversations is blocked under runtime GUC", async ({
     skip,
   }) => {
-    if (!ready) skip();
+    requireRlsFixture(ready, skip);
     const foreignId = randomUUID();
 
     await expect(
@@ -354,7 +355,7 @@ describe("chat RLS (runtime role)", () => {
   it("context snapshots and items follow parent conversation ACL", async ({
     skip,
   }) => {
-    if (!ready) skip();
+    requireRlsFixture(ready, skip);
 
     const editorPrivate = await withActorContext(
       runtime,

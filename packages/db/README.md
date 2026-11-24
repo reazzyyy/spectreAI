@@ -52,7 +52,7 @@ pnpm --filter @spectre/db validate
 pnpm --filter @spectre/db generate
 # Postgres up (docker compose):
 pnpm --filter @spectre/db migrate:deploy
-pnpm --filter @spectre/db test   # validate + RLS harness (skips if DB down)
+pnpm --filter @spectre/db test   # validate + RLS harness (local skip if DB is down; CI fails instead)
 ```
 
 Config: `prisma.config.ts` (migrate URL from `DATABASE_URL`).  

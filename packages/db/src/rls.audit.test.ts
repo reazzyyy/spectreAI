@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createPrismaClient, withActorContext } from "./index.js";
+import { requireRlsFixture } from "./rls-guard.js";
 
 /**
  * Runtime audit is append-only and org-scoped.
  * System rows (no organization) are not readable by any tenant.
- * Skips only when Postgres is down.
+ * Skips only when Postgres is down locally. CI fails instead of skipping.
  */
 describe("audit_events RLS (runtime role)", () => {
   const migrator = createPrismaClient({ purpose: "migrator" });
@@ -67,7 +68,7 @@ describe("audit_events RLS (runtime role)", () => {
   });
 
   it("org A sees only its own tenant events", async ({ skip }) => {
-    if (!ready) skip();
+    requireRlsFixture(ready, skip);
     const rows = await withActorContext(
       runtime,
       { userId: userA, organizationId: orgA },
@@ -81,7 +82,7 @@ describe("audit_events RLS (runtime role)", () => {
   });
 
   it("without GUC, runtime sees no audit rows", async ({ skip }) => {
-    if (!ready) skip();
+    requireRlsFixture(ready, skip);
     const rows = await runtime.auditEvent.findMany({
       where: { id: { in: [eventA, eventB, eventSystem] } },
       select: { id: true },
@@ -90,7 +91,7 @@ describe("audit_events RLS (runtime role)", () => {
   });
 
   it("runtime cannot update or delete audit events, or insert another org", async ({ skip }) => {
-    if (!ready) skip();
+    requireRlsFixture(ready, skip);
     const privileges = await runtime.$queryRaw<
       Array<{ audit_update: boolean; audit_delete: boolean; default_write: boolean }>
     >`

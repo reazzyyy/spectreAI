@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createPrismaClient, withActorContext } from "./index.js";
+import { requireRlsFixture } from "./rls-guard.js";
 
 /**
  * Runtime role must not read other organizations' users, sessions, or orgs.
- * Auth writes stay on the migrator until S5. Skips only when Postgres is down.
+ * Auth writes stay on the migrator until S5. Skips only when Postgres is down locally. CI fails instead of skipping.
  */
 describe("auth-table RLS (runtime role)", () => {
   const migrator = createPrismaClient({ purpose: "migrator" });
@@ -81,7 +82,7 @@ describe("auth-table RLS (runtime role)", () => {
   });
 
   it("without GUC, runtime sees no auth rows", async ({ skip }) => {
-    if (!ready) skip();
+    requireRlsFixture(ready, skip);
     const users = await runtime.user.findMany({
       where: { id: { in: [userA, userPeer, userB] } },
       select: { id: true },
@@ -100,7 +101,7 @@ describe("auth-table RLS (runtime role)", () => {
   });
 
   it("org A sees itself, its members, and only its own session", async ({ skip }) => {
-    if (!ready) skip();
+    requireRlsFixture(ready, skip);
     const seen = await withActorContext(
       runtime,
       { userId: userA, organizationId: orgA },
@@ -126,7 +127,7 @@ describe("auth-table RLS (runtime role)", () => {
   });
 
   it("runtime cannot write auth tables or read secret columns", async ({ skip }) => {
-    if (!ready) skip();
+    requireRlsFixture(ready, skip);
     const privileges = await runtime.$queryRaw<
       Array<{
         users_update: boolean;

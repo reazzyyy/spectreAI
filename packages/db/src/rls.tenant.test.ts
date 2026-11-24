@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createPrismaClient, withActorContext } from "./index.js";
+import { requireRlsFixture } from "./rls-guard.js";
 
 /**
  * RLS harness under runtime role (spectre_app). Requires migrate:deploy applied.
- * Skips when DATABASE_URL_RUNTIME is unreachable (local without Docker).
+ * Skips when DATABASE_URL_RUNTIME is unreachable locally. CI fails instead of skipping.
  */
 describe("tenant RLS (runtime role)", () => {
   const migrator = createPrismaClient({ purpose: "migrator" });
@@ -72,7 +73,7 @@ describe("tenant RLS (runtime role)", () => {
   });
 
   it("without GUC, runtime SELECT on clients returns no rows", async ({ skip }) => {
-    if (!ready) skip();
+    requireRlsFixture(ready, skip);
     const rows = await runtime.client.findMany({
       where: { id: { in: [clientA, clientB] } },
     });
@@ -80,7 +81,7 @@ describe("tenant RLS (runtime role)", () => {
   });
 
   it("with org A GUC, runtime sees only org A client", async ({ skip }) => {
-    if (!ready) skip();
+    requireRlsFixture(ready, skip);
     const rows = await withActorContext(
       runtime,
       { userId: userA, organizationId: orgA },
@@ -93,7 +94,7 @@ describe("tenant RLS (runtime role)", () => {
   });
 
   it("with org A GUC, INSERT for org B is blocked", async ({ skip }) => {
-    if (!ready) skip();
+    requireRlsFixture(ready, skip);
     const foreignId = randomUUID();
     await expect(
       withActorContext(runtime, { userId: userA, organizationId: orgA }, (tx) =>
@@ -109,7 +110,7 @@ describe("tenant RLS (runtime role)", () => {
   });
 
   it("sequential tx A then B on pooled runtime does not leak context", async ({ skip }) => {
-    if (!ready) skip();
+    requireRlsFixture(ready, skip);
     const a = await withActorContext(
       runtime,
       { userId: userA, organizationId: orgA },

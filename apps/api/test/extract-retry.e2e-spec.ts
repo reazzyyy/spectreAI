@@ -329,6 +329,9 @@ describe("document.extract retry and outbox", () => {
   }, 20_000);
 
   it("keeps the AIJob and outbox when Redis refuses the first publish", async () => {
+    await prisma.outboxEvent.deleteMany({
+      where: { organizationId: orgId, eventType: EXTRACT_JOB_TYPE, publishedAt: null },
+    });
     const documentId = await createDocument(Buffer.from("from-outbox", "utf8"), "text/plain");
     const dead = createAiJobsQueue("redis://127.0.0.1:6399");
     const queueName = `extract-recover-${randomUUID()}`;
@@ -354,7 +357,11 @@ describe("document.extract retry and outbox", () => {
         data: { nextAttemptAt: null },
       });
       const publisher = new OutboxPublisherService(prismaService(prisma), queue);
-      expect(await publisher.publishPending(10, [EXTRACT_JOB_TYPE])).toBe(1);
+      expect(await publisher.publishPending(10, [EXTRACT_JOB_TYPE], orgId)).toBe(1);
+      const own = await prisma.outboxEvent.findFirstOrThrow({
+        where: { aggregateId: jobId, organizationId: orgId },
+      });
+      expect(own.publishedAt).not.toBeNull();
       await worker.resume();
       await waitFor(async () => {
         const current = await prisma.aiJob.findUniqueOrThrow({ where: { id: jobId } });
@@ -368,6 +375,9 @@ describe("document.extract retry and outbox", () => {
   }, 20_000);
 
   it("publishes an already queued Redis job once after a crash before publishedAt", async () => {
+    await prisma.outboxEvent.deleteMany({
+      where: { organizationId: orgId, eventType: EXTRACT_JOB_TYPE, publishedAt: null },
+    });
     const documentId = await createDocument(Buffer.from("once", "utf8"), "text/plain");
     const jobId = randomUUID();
     await prisma.aiJob.create({
@@ -403,16 +413,20 @@ describe("document.extract retry and outbox", () => {
         { jobId, removeOnComplete: 100, removeOnFail: 100 },
       );
       const publisher = new OutboxPublisherService(prismaService(prisma), queue);
-      expect(await publisher.publishPending(10, [EXTRACT_JOB_TYPE])).toBe(1);
-      const counts = await queue.getJobCounts("waiting", "delayed", "active");
-      expect((counts.waiting ?? 0) + (counts.delayed ?? 0) + (counts.active ?? 0)).toBe(1);
+      expect(await publisher.publishPending(10, [EXTRACT_JOB_TYPE], orgId)).toBe(1);
+      const jobs = await queue.getJobs(["waiting", "delayed", "active"]);
+      expect(
+        jobs.filter((job) => (job.data as { jobId?: string }).jobId === jobId),
+      ).toHaveLength(1);
       await worker.resume();
       await waitFor(async () => {
         const row = await prisma.aiJob.findUniqueOrThrow({ where: { id: jobId } });
         return row.status === "succeeded";
       });
       expect(await prisma.documentExtraction.count({ where: { documentId } })).toBe(1);
-      const published = await prisma.outboxEvent.findFirstOrThrow({ where: { aggregateId: jobId } });
+      const published = await prisma.outboxEvent.findFirstOrThrow({
+        where: { aggregateId: jobId, organizationId: orgId },
+      });
       expect(published.publishedAt).toBeTruthy();
     } finally {
       await closeWorker(worker, queue);
