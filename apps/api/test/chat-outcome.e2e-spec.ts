@@ -342,6 +342,13 @@ describe("chat single outcome", () => {
   });
 
   it("publishes one outbox row from two publishers and generates once", async () => {
+    await prisma.outboxEvent.deleteMany({
+      where: {
+        organizationId: orgId,
+        eventType: CHAT_GENERATE_OUTBOX_EVENT,
+        publishedAt: null,
+      },
+    });
     const conversationId = await createConversation();
     const { jobId } = await createTurn({ conversationId, createdByUserId: ownerId });
     const outboxId = randomUUID();
@@ -362,12 +369,17 @@ describe("chat single outcome", () => {
     );
     try {
       const [first, second] = await Promise.all([
-        publisher.publishPending(10, [CHAT_GENERATE_OUTBOX_EVENT]),
-        publisher.publishPending(10, [CHAT_GENERATE_OUTBOX_EVENT]),
+        publisher.publishPending(10, [CHAT_GENERATE_OUTBOX_EVENT], orgId),
+        publisher.publishPending(10, [CHAT_GENERATE_OUTBOX_EVENT], orgId),
       ]);
       expect(first + second).toBe(1);
-      const counts = await queue.getJobCounts("waiting", "delayed", "active");
-      expect((counts.waiting ?? 0) + (counts.delayed ?? 0) + (counts.active ?? 0)).toBe(1);
+      const own = await prisma.outboxEvent.findUniqueOrThrow({ where: { id: outboxId } });
+      expect(own.organizationId).toBe(orgId);
+      expect(own.publishedAt).not.toBeNull();
+      const jobs = await queue.getJobs(["waiting", "delayed", "active"]);
+      expect(
+        jobs.filter((job) => (job.data as { jobId?: string }).jobId === jobId),
+      ).toHaveLength(1);
       await new ChatJobProcessor().process(jobId);
       await new ChatJobProcessor().process(jobId);
       const generation = await prisma.aiGeneration.findFirst({ where: { aiJobId: jobId } });

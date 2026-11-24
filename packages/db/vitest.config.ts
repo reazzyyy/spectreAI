@@ -5,5 +5,6 @@ export default defineConfig({
     environment: "node",
     include: ["src/**/*.test.ts"],
     fileParallelism: false,
+    globalSetup: ["./src/rls-global-setup.ts"],
   },
 });

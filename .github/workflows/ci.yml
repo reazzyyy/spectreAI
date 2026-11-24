@@ -48,6 +48,7 @@ jobs:
       DATABASE_URL_RUNTIME: postgresql://spectre_app:spectre_app@localhost:5432/spectre
       REDIS_URL: redis://localhost:6379
       WEB_ORIGIN: http://localhost:3001
+      # @spectre/db refuses to skip RLS tests when this is set and fails if fewer than 16 ran.
       CI: true
 
     steps:

@@ -292,7 +292,7 @@ Extract caps scaffold (**D-030**): 300 pages / 2M chars / 120s / maxAttempts 3. 
 | `apps/api` unit | file magic/limits (PDF/DOCX/TXT); bootstrap; queue name |
 | `apps/api` bootstrap unit | guards + idempotent Org/Owner create; refuse foreign owner on same org |
 | `apps/api` queue unit | имя `ai-jobs`, разбор Redis URL |
-| `@spectre/db` | `prisma validate` + RLS harness (`src/rls.tenant.test.ts`) под runtime role |
+| `@spectre/db` | `prisma validate` + RLS harness под runtime role. Локально без БД тесты пропускаются. В CI (`CI=true`) пропуск запрещён, и прогон падает, если выполнилось меньше 16 RLS-тестов |
 
 E2e требуют поднятый Postgres (`docker compose`) и применённые миграции (`pnpm --filter @spectre/db migrate:deploy`).
 

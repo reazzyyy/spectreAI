@@ -82,10 +82,14 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
   /**
    * Drains unpublished rows. Callers that just wrote one chat event should pass
    * that event type so an older extract row is not published instead of it.
+   * Pass organizationId from a test so a leftover row of another organization
+   * is not delivered onto that test's queue. The poller omits it and still
+   * drains every tenant.
    */
   async publishPending(
     limit = BATCH,
     eventTypes: readonly string[] = [CHAT_GENERATE_OUTBOX_EVENT, EXTRACT_JOB_TYPE],
+    organizationId?: string,
   ): Promise<number> {
     if (!this.queue) {
       return 0;
@@ -95,6 +99,7 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
       where: {
         eventType: { in: [...eventTypes] },
         publishedAt: null,
+        ...(organizationId ? { organizationId } : {}),
         OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }],
       },
       orderBy: { createdAt: "asc" },

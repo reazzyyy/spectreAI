@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createPrismaClient } from "./index.js";
+import { requireRlsFixture } from "./rls-guard.js";
 
 const repairSql = readFileSync(
   join(
@@ -97,7 +98,7 @@ describe("document version backfill under FORCE RLS", () => {
   it("gives an existing document version 1 and does not add a second one", async ({
     skip,
   }) => {
-    if (!ready) skip();
+    requireRlsFixture(ready, skip);
 
     const hidden = await runtime.document.findMany({
       where: { id: documentId },
