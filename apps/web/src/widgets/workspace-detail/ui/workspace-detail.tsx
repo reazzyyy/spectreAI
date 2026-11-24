@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { conversationListQueryOptions } from "@/entities/conversation";
 import { workspaceDetailQueryOptions } from "@/entities/workspace";
 import { EditWorkspaceForm } from "@/features/edit-workspace";
 import { WorkspaceMembersPanel } from "@/features/manage-workspace-members";
 import { WorkspaceMattersPanel } from "@/features/manage-workspace-matters";
-import { isApiError } from "@/shared/api";
+import { flattenListPages, isApiError, loadedCountLabel } from "@/shared/api";
 import { Button, StateCard } from "@/shared/ui";
 import { ChatWorkspace } from "./chat-workspace";
 import {
@@ -34,8 +34,13 @@ export function WorkspaceDetail({ workspaceId }: WorkspaceDetailProps) {
   const { data, error, isPending, isError } = useQuery(
     workspaceDetailQueryOptions(workspaceId),
   );
-  const conversationsQuery = useQuery(conversationListQueryOptions(workspaceId));
-  const chatCount = conversationsQuery.data?.items.length ?? 0;
+  const conversationsQuery = useInfiniteQuery(
+    conversationListQueryOptions(workspaceId),
+  );
+  const chatCount = loadedCountLabel(
+    flattenListPages(conversationsQuery.data).length,
+    conversationsQuery.hasNextPage,
+  );
 
   if (isPending) {
     return (

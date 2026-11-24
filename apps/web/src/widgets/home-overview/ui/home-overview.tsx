@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { sessionMeQueryOptions } from "@/entities/session";
 import { workspacesListQueryOptions } from "@/entities/workspace";
+import { flattenListPages, loadedCountLabel } from "@/shared/api";
 import { displayNameFromEmail } from "@/shared/lib";
 import { Button, Icon, Page, PageHead, StateCard } from "@/shared/ui";
 import styles from "./home-overview.module.scss";
@@ -21,7 +22,7 @@ const VISIBILITY_LABEL = {
 export function HomeOverview() {
   const router = useRouter();
   const { data } = useQuery(sessionMeQueryOptions);
-  const workspaces = useQuery(workspacesListQueryOptions);
+  const workspaces = useInfiniteQuery(workspacesListQueryOptions);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -44,7 +45,7 @@ export function HomeOverview() {
   if (!data) return null;
 
   const firstName = displayNameFromEmail(data.user.email);
-  const items = workspaces.data?.items ?? [];
+  const items = flattenListPages(workspaces.data);
 
   return (
     <Page>
@@ -107,7 +108,7 @@ export function HomeOverview() {
             <h2 className={styles.sectionTitle}>Недавние проекты</h2>
             {items.length > 0 ? (
               <Link href="/projects" className={styles.allLink}>
-                Все проекты ({items.length})
+                Все проекты ({loadedCountLabel(items.length, workspaces.hasNextPage)})
               </Link>
             ) : null}
           </div>

@@ -1,4 +1,11 @@
 /** Public API of shared HTTP infrastructure (FSD shared). */
 export { apiRequest } from "./client";
+export {
+  LIST_PAGE_SIZE,
+  flattenListPages,
+  listInfiniteOptions,
+  loadedCountLabel,
+  withListPage,
+} from "./list-page";
 export { ApiError, isApiError, parseApiError } from "./errors";
 export { QueryProvider } from "./query-provider";

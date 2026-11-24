@@ -9,13 +9,14 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { clientsListQueryOptions } from "@/entities/client";
 import { mattersListQueryOptions } from "@/entities/matter";
 import {
   workspacesListQueryOptions,
   type WorkspaceVisibility,
 } from "@/entities/workspace";
+import { flattenListPages } from "@/shared/api";
 import { Badge, Button, Dialog, Icon } from "@/shared/ui";
 import { classNames } from "@/shared/lib";
 import {
@@ -87,7 +88,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const [filter, setFilter] = useState<SearchVisibilityFilter>("all");
   const [active, setActive] = useState(0);
 
-  const workspacesQuery = useQuery({
+  const workspacesQuery = useInfiniteQuery({
     ...workspacesListQueryOptions,
     enabled: open,
   });
@@ -104,7 +105,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const tokens = useMemo(() => tokenizeSearchQuery(q), [q]);
 
   const result = useMemo(() => {
-    const workspaces = workspacesQuery.data?.items ?? [];
+    const workspaces = flattenListPages(workspacesQuery.data);
     const clients = clientsQuery.data?.items ?? [];
     const matters = mattersQuery.data?.items ?? [];
     if (!q) {
@@ -124,7 +125,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   }, [
     q,
     filter,
-    workspacesQuery.data?.items,
+    workspacesQuery.data,
     clientsQuery.data?.items,
     mattersQuery.data?.items,
   ]);
@@ -239,7 +240,11 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       <div className={styles.body}>
         {!q ? <p className={styles.label}>Недавние</p> : null}
         {q && !loading && !failed ? (
-          <p className={styles.label}>Найдено: {result.total}</p>
+          <p className={styles.label}>
+            {workspacesQuery.hasNextPage
+              ? `Найдено в загруженных: ${result.total}`
+              : `Найдено: ${result.total}`}
+          </p>
         ) : null}
 
         <div
@@ -298,14 +303,28 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
         ) : null}
 
         <span className={styles.live} aria-live="polite">
-          {q && !loading && !failed ? `Найдено проектов: ${result.total}` : ""}
+          {q && !loading && !failed
+            ? workspacesQuery.hasNextPage
+              ? `Найдено в загруженных проектах: ${result.total}`
+              : `Найдено проектов: ${result.total}`
+            : ""}
         </span>
       </div>
 
       <div className={styles.footer}>
         <span className={styles.muted}>↑↓ выбор · Enter открыть</span>
         <span className={styles.spacer} />
-        {q && result.total > 0 ? (
+        {q && workspacesQuery.hasNextPage ? (
+          <button
+            type="button"
+            className={styles.ghost}
+            disabled={workspacesQuery.isFetchingNextPage}
+            onClick={() => void workspacesQuery.fetchNextPage()}
+          >
+            {workspacesQuery.isFetchingNextPage ? "Загрузка…" : "Показать ещё"}
+          </button>
+        ) : null}
+        {q && result.total > 0 && !workspacesQuery.hasNextPage ? (
           <button type="button" className={styles.ghost} onClick={openAllResults}>
             Все результаты ({result.total})
           </button>

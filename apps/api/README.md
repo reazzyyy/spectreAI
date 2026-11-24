@@ -51,7 +51,7 @@ On every GitHub pull request, the same suite runs in `.github/workflows/ci.yml` 
 | `src/db/` | Dual Prisma (`migrator` auth/seed, `runtime` + GUC); actor-scoped Client/Matter/Workspace stores |
 | `src/workspaces/` | Prisma WorkspaceStore + HTTP list/create/get/patch, members, matter links (S3) |
 | `src/documents/` | Upload (two-phase) / list cursor / download; extract enqueue; LocalObjectStorage |
-| `src/chat/` | Phase 5A–5B: conversations/messages/generations HTTP, Outbox claim, Synthetic worker. One running attempt and at most one assistant message per generation. Context is the last 50 unambiguous messages up to the target user message, inside an 8000-character budget |
+| `src/chat/` | Phase 5A–5B: conversations/messages/generations HTTP, Outbox claim, Synthetic worker. Conversation list accepts `cursor` and `limit`. One running attempt and at most one assistant message per generation. Context is the last 50 unambiguous messages up to the target user message, inside an 8000-character budget |
 | `src/worker/` | `worker:ai` dispatcher for `document.extract` and `chat.generate` on `ai-jobs`. `worker:extract` / `worker:chat` start that same dispatcher |
 | `src/audit/` | Thin audit_events (no content) |
 | `src/health/` | Liveness |

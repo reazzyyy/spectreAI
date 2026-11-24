@@ -102,7 +102,7 @@ export class ChatService {
   async listConversations(
     actor: ActorContext,
     workspaceId: string,
-    options?: { limit?: number },
+    options?: { limit?: number; cursor?: { lastMessageAt: Date | null; id: string } },
   ) {
     return this.conversations.listForWorkspace(this.wsActor(actor), workspaceId, options);
   }

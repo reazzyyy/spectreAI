@@ -1,13 +1,14 @@
 import { queryOptions } from "@tanstack/react-query";
+import { listInfiniteOptions } from "@/shared/api";
 import { fetchConversation, listConversations } from "./conversation-api";
 
 /** Query key + options for GET /workspaces/:id/conversations. */
 export function conversationListQueryOptions(workspaceId: string) {
-  return queryOptions({
-    queryKey: ["conversations", "list", workspaceId] as const,
-    queryFn: () => listConversations(workspaceId),
-    enabled: workspaceId.length > 0,
-  });
+  return listInfiniteOptions(
+    ["conversations", "list", workspaceId] as const,
+    (cursor) => listConversations(workspaceId, { cursor }),
+    workspaceId.length > 0,
+  );
 }
 
 /** Query key + options for GET /conversations/:id. */

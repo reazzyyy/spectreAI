@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { workspaceDocumentsQueryOptions } from "@/entities/document";
 import { workspacesListQueryOptions } from "@/entities/workspace";
 import { UploadDocumentForm } from "@/features/upload-document";
-import { isApiError } from "@/shared/api";
-import { Page, PageHead, Select } from "@/shared/ui";
+import { flattenListPages, isApiError } from "@/shared/api";
+import { Button, Page, PageHead, Select } from "@/shared/ui";
 import styles from "./document-list.module.scss";
 
 /**
@@ -14,8 +14,8 @@ import styles from "./document-list.module.scss";
  * No preview/OCR/worker status beyond `uploaded`.
  */
 export function DocumentList() {
-  const workspacesQuery = useQuery(workspacesListQueryOptions);
-  const workspaces = workspacesQuery.data?.items ?? [];
+  const workspacesQuery = useInfiniteQuery(workspacesListQueryOptions);
+  const workspaces = flattenListPages(workspacesQuery.data);
   const [workspaceId, setWorkspaceId] = useState<string>("");
 
   const effectiveWorkspaceId =
@@ -54,6 +54,16 @@ export function DocumentList() {
                 </option>
               ))}
             </Select>
+            {workspacesQuery.hasNextPage ? (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={workspacesQuery.isFetchingNextPage}
+                onClick={() => void workspacesQuery.fetchNextPage()}
+              >
+                {workspacesQuery.isFetchingNextPage ? "Загрузка…" : "Показать ещё"}
+              </Button>
+            ) : null}
           </div>
 
           <h2 id="document-list-title" className={styles.sectionTitle}>

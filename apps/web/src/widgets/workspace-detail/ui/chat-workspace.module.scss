@@ -382,6 +382,12 @@
   }
 }
 
+.more {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 20px;
+}
+
 .status {
   margin: 0;
   color: var(--color-muted);

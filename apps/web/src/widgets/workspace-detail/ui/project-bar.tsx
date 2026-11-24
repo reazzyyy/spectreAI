@@ -22,7 +22,7 @@ export interface ProjectBarProps {
   onOpenAccess: () => void;
   onAction: (action: ProjectBarAction) => void;
   /** Optional tab counts (Make tab-count); omitted tabs show no badge. */
-  tabCounts?: Partial<Record<ProjectTabId, number>>;
+  tabCounts?: Partial<Record<ProjectTabId, number | string>>;
 }
 
 const VISIBILITY_LABEL: Record<WorkspaceVisibility, string> = {

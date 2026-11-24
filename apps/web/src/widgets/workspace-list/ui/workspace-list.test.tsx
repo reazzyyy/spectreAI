@@ -1,12 +1,13 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { queryOptions } from "@tanstack/react-query";
+import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WorkspaceList } from "./workspace-list";
 
 const replace = vi.fn();
 let search = new URLSearchParams();
+let nextCursor: string | null = null;
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace, push: vi.fn() }),
@@ -41,9 +42,12 @@ vi.mock("@/entities/workspace", async () => {
   ];
   return {
     ...actual,
-    workspacesListQueryOptions: queryOptions({
+    workspacesListQueryOptions: infiniteQueryOptions({
       queryKey: ["workspaces", "list"] as const,
-      queryFn: async () => ({ items, nextCursor: null }),
+      initialPageParam: null as string | null,
+      queryFn: async () => ({ items, nextCursor }),
+      getNextPageParam: (last: { nextCursor: string | null }) =>
+        last.nextCursor ?? undefined,
     }),
   };
 });
@@ -76,6 +80,7 @@ describe("WorkspaceList", () => {
   beforeEach(() => {
     replace.mockClear();
     search = new URLSearchParams();
+    nextCursor = null;
   });
 
   afterEach(() => {
@@ -100,6 +105,15 @@ describe("WorkspaceList", () => {
     expect(
       await screen.findByRole("dialog", { name: "Создать проект" }),
     ).toBeInTheDocument();
+  });
+
+  it("says the loaded page is incomplete and offers the next page", async () => {
+    nextCursor = "next";
+    renderList();
+    expect(await screen.findByText("Север")).toBeInTheDocument();
+    expect(screen.getByText(/есть ещё/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Показать ещё" })).toBeInTheDocument();
+    expect(screen.queryByText(/^2 проекта$/)).not.toBeInTheDocument();
   });
 
   it("CTA requests create query param", async () => {
