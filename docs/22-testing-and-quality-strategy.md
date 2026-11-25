@@ -675,7 +675,7 @@ E2E-тесты должны использовать изолированные 
 - **TEST-002:** ~~библиотека frontend-тестирования~~ — **CONFIRMED (D-024)**: Vitest + RTL; Storybook + Chromatic для UI/visual.
 - **TEST-003:** ~~инструмент E2E~~ — **CONFIRMED (D-024)**: Playwright.
 - **TEST-004:** способ генерации типов и проверки OpenAPI-контракта.
-- **TEST-005:** среда запуска PostgreSQL и очередей в CI. *(частично AS-IS: в `.github/workflows/ci.yml` есть Postgres + migrate + `pnpm test` на PR; live Redis/очередь в CI ещё нет.)*
+- **TEST-005:** среда запуска PostgreSQL и очередей в CI. *(частично AS-IS: в `.github/workflows/ci.yml` есть Postgres, Redis и `pnpm test` на PR. Отдельных job lint/typecheck/build ещё нет.)*
 - **TEST-006:** критерии и инструмент оценки AI-ответов.
 - **TEST-007:** утверждённый набор синтетических юридических данных.
 - **TEST-008:** целевые показатели производительности.

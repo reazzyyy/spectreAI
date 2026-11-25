@@ -6,7 +6,7 @@
 
 ## Локальный scaffold
 
-Глобальный порядок работ — живой план `tasks/roadmap.md` (его можно менять; это не канон требований). Текущий срез плана — `tasks/plan.md` / `tasks/todo.md` (**Phase 5A Chat** после закрытых Фаз 3–4). Спеки Phase 5–6 (**PROPOSED**): `docs/32`–`34`, инструкция `docs/CURSOR-INSTRUCTIONS-PHASE5-6.md`; пробелы — `tasks/phase5-6-gaps.md`. **Что реально есть в коде сейчас** — только в `docs/26-codebase-current-state.md` (не путать с целевым MVP). Стек: Next.js, NestJS, PostgreSQL, Prisma, Redis, BullMQ (**D-008**). До закрытия **O-002** модель вызывается только через `SyntheticAIProvider`.
+Глобальный порядок работ — живой план `tasks/roadmap.md` (его можно менять; это не канон требований). Текущий срез — `tasks/plan.md`: качество после чата и DocumentVersion v1. Спеки Phase 5–6 (**PROPOSED**): `docs/32`–`34`. Аудит 2026-11-17 (**AUDIT** / **PROPOSED**): `docs/2026-11-17-spectreai-integrated-algorithm-and-contract-audit.md` и `docs/2026-11-17-cursor-p0-reliability-implementation-instructions.md`. **Что реально есть в коде сейчас** — только в `docs/26-codebase-current-state.md`. Стек: Next.js, NestJS, PostgreSQL, Prisma, Redis, BullMQ (**D-008**). До закрытия **O-002** модель вызывается только через `SyntheticAIProvider`.
 
 ```bash
 pnpm install
@@ -20,7 +20,7 @@ pnpm dev:web   # http://localhost:3001
 
 Краткие README модулей: `apps/api`, `apps/web`, `packages/access`, `packages/ai-gateway`, `packages/db`.
 
-**CI:** на каждый pull request и на push в `main` GitHub Actions запускает `.github/workflows/ci.yml`: Postgres `pgvector/pgvector:pg16`, `pnpm --filter @spectre/db migrate:deploy`, затем `pnpm test`. Live Redis в этом workflow нет. Lint, typecheck и build отдельными gates пока не стоят.
+**CI:** на каждый pull request и на push в `main` GitHub Actions запускает `.github/workflows/ci.yml`: Postgres `pgvector/pgvector:pg16`, Redis `redis:7`, `pnpm --filter @spectre/db migrate:deploy`, затем `pnpm test`. Lint, typecheck и build отдельными gates пока не стоят.
 
 ## С чего начинать
 

@@ -1,8 +1,8 @@
 # Текущее состояние кодовой базы (AS-IS)
 
 **Статус:** CONFIRMED как снимок scaffold на дату ниже; не заменяет продуктовые спецификации и не утверждает MVP.  
-**Дата снимка кода:** 2026-11-13 (Phase 5 chat UI thin slice; 5B snapshots + 5A API/worker; web F1–F5k + documents; Phase 4 extract)  
-**Сверка статусов решений:** 2026-11-10 (W-001–W-020, W-014a, **D-024**, **D-025–D-031**)  
+**Дата снимка кода:** 2026-11-25 (quality S1–S16; chat UI; DocumentVersion v1; P0-01…P0-06)  
+**Сверка статусов решений:** 2026-11-17 (W-001–W-020, W-014a, **D-024**, **D-025–D-034**)  
 **Источник истины по решениям:** `docs/decisions-log.md`  
 **План:** `tasks/roadmap.md` / `tasks/plan.md`. Долги Фазы 2: `tasks/phase2-debt.md` (O-012, email, Chromatic…).
 
@@ -12,7 +12,7 @@
 
 ## 1. Что это за репозиторий сейчас
 
-Исполняемый **scaffold монорепо** (не готовый MVP): pnpm workspace, NestJS API, Next.js web (login UI + rewrite к API), пакеты доступа и AI Gateway, Prisma-схема Organization/Client/Matter/User/OrganizationMembership/Session, серверные сессии (cookie), регистрация имени очереди BullMQ `ai-jobs`.
+Исполняемый **scaffold монорепо** (не готовый MVP): pnpm workspace, NestJS API, Next.js web, пакеты доступа и AI Gateway, Prisma, серверные сессии. API-процесс публикует Outbox в BullMQ `ai-jobs`; потребляет очередь отдельный процесс `worker:ai`.
 
 | Утверждение | Статус в коде |
 |---|---|
@@ -37,7 +37,7 @@
 
 ```
 spectreAI/
-├── .github/workflows/ci.yml  PR/main: migrate + pnpm test (Postgres service)
+├── .github/workflows/ci.yml  PR/main: migrate + pnpm test (Postgres + Redis services)
 ├── apps/
 │   ├── api/          @spectre/api    NestJS, префикс /api/v1, порт 3000
 │   └── web/          @spectre/web    Next.js shell, порт 3001
@@ -89,7 +89,7 @@ spectreAI/
 | AI | `src/ai/*` | `GET /api/v1/ai/provider`, `POST /api/v1/ai/generate` |
 | Ошибки | `src/http/api-exception.filter.ts` | Единый JSON `{ error: { code, message, requestId } }` |
 | Prisma | `src/db/prisma.service.ts` | `createPrismaClient` из `@spectre/db`; runtime role проверяется на старте; `$disconnect` на destroy |
-| Очередь | `src/queue/*` | Имя `ai-jobs`, фабрика `createAiJobsQueue`; **воркер не стартует**; в AppModule только имя очереди |
+| Очередь | `src/queue/*`, `AppModule` | Имя `ai-jobs` и фабрика очереди. В `AppModule` зарегистрированы `OutboxPublisherService` и `ChatJobProcessor`, не только имя. HTTP-процесс публикует outbox; очередь потребляет отдельный `worker:ai` (`start-ai-jobs-worker`) |
 
 **Хранилище Client/Matter/Workspace в API:** Prisma stores + actor-scoped GUC wrappers + `ClientAccess` / `MatterAccess` / `WorkspaceAccess` (не матрица `docs/07`). E2e: cross-org `404`, чужой `clientId`/`matterId` → `422`, bad visibility → `422`.
 
@@ -256,12 +256,12 @@ Extract caps scaffold (**D-030**): 300 pages / 2M chars / 120s / maxAttempts 3. 
 |---|---|---|---|
 | `docs/decisions-log.md` O-008 MFA/SSO | OPEN | Нет MFA/SSO | Соответствует OUT OF SCOPE |
 | `docs/12` §5.1 способ входа | **CONFIRMED W-011** | Scaffold: email+password+organizationId (без email verify) | Продуктовый способ совпадает; verify email — **OPEN**; MFA/SSO не в MVP (**W-013** / **O-008**) |
-| `docs/12` §5.2 алгоритм login | PROPOSED детали | Шаги 1–7 есть; §8 audit event — нет | Audit OUT OF SCOPE |
+| `docs/12` §5.2 алгоритм login | PROPOSED детали | Шаги 1–7 есть; успешный вход пишет `audit_events` (`auth.login`, без пароля и текста) | Соответствует scaffold |
 | `docs/12` §5.3 `GET /auth/me` | PROPOSED иллюстрация `organizations[]` + `emailVerified` | Фактически: одна `organization` `{ id, name, role }` (из Session) без `emailVerified` / User.name | **OPEN** форма DTO до утверждения полного `docs/12` |
 | `docs/12` §5.4 актёр из сессии | принцип | Cookie→Session→membership; клиентский org игнорируется | Соответствует |
 | `docs/12` §6.1 cookie | PROPOSED | HttpOnly, SameSite=Lax, Secure в production, Path=/ | Соответствует scaffold |
 | `docs/12` §6.2 TTL 7d + idle 24h | PROPOSED | Только абсолютные 7d; idle timeout нет | Idle — OPEN / не реализован |
-| `docs/12` §6.4 logout | PROPOSED | Revoke + clear cookie, идемпотентно | Соответствует (без audit event) |
+| `docs/12` §6.4 logout | PROPOSED | Revoke + clear cookie, идемпотентно; пишет `auth.logout` | Соответствует scaffold |
 | `docs/12` §6.5 logout-all | PROPOSED | Нет | OUT OF SCOPE |
 | `docs/12` §7 CSRF | **W-014** + **W-014a** | Origin allowlist + double-submit; SameSite=Lax доп. слой | Соответствует scaffold S4a |
 | `docs/21` same-origin API | PROPOSED detail | Next rewrite `/api/v1` → Nest | Соответствует локальному scaffold |
@@ -305,7 +305,7 @@ Workflow: `.github/workflows/ci.yml`.
 | `pull_request` (любой) | job `test`: install → migrate → `pnpm test`; job `web-e2e`: migrate → bootstrap (`BOOTSTRAP_OUT_FILE`) → API login preflight (Origin; tear down :3000) → Playwright Chromium smoke |
 | `push` в `main` | то же |
 
-Сервис: `pgvector/pgvector:pg16` (`spectre` migrator). Env также задаёт `DATABASE_URL_RUNTIME` для `spectre_app` (роль создаётся миграцией S1). Live Redis в CI **не** поднимается. Lint / typecheck / build / Chromatic publish как отдельные gates **ещё не** подключены.
+Сервис: `pgvector/pgvector:pg16` (`spectre` migrator) и `redis:7`. Env также задаёт `DATABASE_URL_RUNTIME` для `spectre_app` (роль создаётся миграцией) и `REDIS_URL`. При `CI=true` пакет базы не пропускает RLS-тесты и требует не меньше 16 выполненных. Lint / typecheck / build / Chromatic publish как отдельные gates **ещё не** подключены.
 
 ## 8. Явно не реализовано (ожидаемо по спецификациям, отсутствует в коде)
 
