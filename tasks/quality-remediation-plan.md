@@ -1,6 +1,6 @@
 # ТЗ: доработки качества SpectreAI (для Cursor)
 
-**Статус:** живой план доработок. S1–S17 влиты в `main` (#58–#67, #70–#73). Решения D-035–D-042 подтверждены 2026-11-26. D-042, S5, S7, S8 и S10 в коде. Код S0 ещё не начат. Приглашения, аудит и постановка job всё ещё на migrator.  
+**Статус:** живой план доработок. S1–S17 влиты в `main` (#58–#67, #70–#73). Решения D-035–D-042 подтверждены 2026-11-26. D-042, S5, S7, S8, S10 и безопасная часть S0 (typecheck, db validate) в коде. `build` и `lint` в CI ещё не включены. Приглашения, аудит и постановка job всё ещё на migrator.  
 **Источник:** аудит качества 2026-11-19 (прогон `build`/`lint`/`test` на чистой БД + ревью backend/data/frontend/process).  
 **Опора:** `docs/decisions-log.md` (D-008–D-034, W-001–W-020), AS-IS `docs/26-codebase-current-state.md`, `.cursor/rules/07-code-documentation.mdc`.  
 **Правило работы:** каждая секция ниже = отдельный короткий PR в `main` (`.cursor/rules/06-git-commits.mdc`). Не смешивать refactor и feat. Коммит — `<type>: <кратко>`.
@@ -253,7 +253,7 @@
 
 ## Открытые решения
 
-Закрыты 2026-11-26. D-035–D-040 и D-042 уже в коде. Полный confirmer-флоу — Phase 10. S0 ещё нет.
+Закрыты 2026-11-26. D-035–D-042 уже в коде. Полный confirmer-флоу — Phase 10. В CI есть typecheck и db validate; build и lint ждут отдельных PR.
 
 | ID | Решение | Срез |
 |---|---|---|
@@ -262,7 +262,7 @@
 | D-037 | Self-add и peer-admin content role запрещены | S7 в коде |
 | D-038 / D-039 | Hard delete только `uploading`; нет confirmer — отказ. O-012 закрыт | S8 в коде; полный флоу — Phase 10 |
 | D-040 | Production без Redis не стартует; сбой Redis не fail-open | S10 в коде |
-| D-041 | Гейты по этапам; Next и Stylelint — отдельные PR; branch protection включает владелец | S0 |
+| D-041 | Гейты по этапам; Next и Stylelint — отдельные PR; branch protection включает владелец | typecheck и db validate в CI |
 | D-042 | `APP_ENV=production`; dev-токен не отдаётся на production/staging/preview | в коде API |
 
 ---

@@ -13,6 +13,6 @@
 
 ## Дальше, отдельные PR
 
-D-042, вход D-036, запрет self-add D-037, fail-closed rate limit D-040 и жизненный цикл удаления D-038/D-039 в коде. Дальше: безопасная часть S0 (jobs `typecheck` и `db validate`). Приглашения, аудит и постановка job всё ещё на migrator. S0: сначала jobs `typecheck` и `db validate`; `build` после отдельного PR с детерминированным Next; `lint` после чистки Stylelint. Апгрейд Next — один изолированный PR.
+План правок D-035–D-042 в коде, включая jobs CI `typecheck` и `db validate`. `next build` и `lint:all` в CI не включены. Приглашения, аудит и постановка job всё ещё на migrator. Апгрейд Next — один изолированный PR.
 
 Следующий продуктовый шаг после этих срезов — полнотекст по `DocumentVersion`. Вектор не начинать до Gate B.
