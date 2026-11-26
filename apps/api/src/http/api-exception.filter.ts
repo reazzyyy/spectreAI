@@ -100,6 +100,16 @@ export class ApiExceptionFilter implements ExceptionFilter {
       }
       return { code: "FORBIDDEN", message: "Operation is not allowed" };
     }
+    if (
+      status === HttpStatus.SERVICE_UNAVAILABLE &&
+      exception instanceof HttpException &&
+      serverCode(exception) === "RATE_LIMIT_UNAVAILABLE"
+    ) {
+      return {
+        code: "RATE_LIMIT_UNAVAILABLE",
+        message: "Rate limit is unavailable",
+      };
+    }
     if (status >= 500) {
       return { code: "INTERNAL_ERROR", message: "Unexpected error" };
     }

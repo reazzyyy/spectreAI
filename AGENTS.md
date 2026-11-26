@@ -27,7 +27,8 @@
 - **D-032–D-034:** кандидаты поиска фильтруются в SQL до выдачи; `ready` не означает searchable; `searchEligible` не включается самим extract; индекс и цитата привязаны к `DocumentVersion`. FILE-009, Gate B и O-006 остаются открытыми.
 - **D-036:** вход и разбор сессии идут через `spectre_auth` и `SECURITY DEFINER` с фиксированным `search_path`. Migrator остаётся у bootstrap, outbox, воркера, приглашений, аудита и постановки job.
 - **D-037:** Org Admin не добавляет себя и другого org owner/admin в контент-роль. Цель должна быть активным членом той же организации, иначе 422.
-- **D-038–D-041:** hard delete документа только для `uploading`; нет второго confirmer — удаление не выполняется (**D-039**, O-012 закрыт); rate limit в production fail-closed; CI-гейты включаются по этапам. Код S8/S10/S0 ещё не в `main`.
+- **D-040:** `APP_ENV=production` не стартует без `REDIS_URL`. Ошибка Redis на защищённом бакете — `503 RATE_LIMIT_UNAVAILABLE`. Local и CI без Redis остаются fail-open.
+- **D-038, D-039, D-041:** hard delete документа только для `uploading`; нет второго confirmer — удаление не выполняется (O-012 закрыт); CI-гейты включаются по этапам. Код S8 и S0 ещё не в `main`.
 - **D-042:** production — это `APP_ENV=production`, не `NODE_ENV`. Dev-токен приглашения не отдаётся при `production` / `staging` / `preview`. Cookie `Secure` и обязательный `WEB_ORIGIN` включаются только при `APP_ENV=production`. Bootstrap и проверка runtime-роли пока всё ещё смотрят на `NODE_ENV`.
 - **D-019 / D-020:** после подтверждённого удаления — недоступность сразу; удаление из основной системы/текста/индексов/производных ≤ 24 ч; бэкапы 35 дней с повторным применением журнала удалений при restore.
 - **D-021 / D-022:** цель хранения аудита 1 год (проверка до production); RPO ≤ 24 ч, RTO ≤ 8 ч — цели, проверяемые restore-тестами.
