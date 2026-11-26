@@ -20,6 +20,12 @@ export {
 
 export {
   DocumentAccess,
+  DeletionConfirmationRequiredError,
+  independentConfirmer,
+  deletionPurgeAfter,
+  DELETION_PURGE_DELAY_MS,
+  type DeletionConfirmation,
+  type DeletionOutcome,
   type DocumentRecord,
   type DocumentStore,
   type DocumentCreateInput,

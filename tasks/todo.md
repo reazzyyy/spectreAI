@@ -68,12 +68,12 @@
 
 ## Next
 
-- [x] D-035–D-042 recorded. O-012 closed by D-039. S5 and S7 are in code. S8 and S0 are not
+- [x] D-035–D-042 recorded. O-012 closed by D-039. S5, S7, S8, and S10 are in code. S0 is not
 - [x] D-042 explicit `APP_ENV`; dev token hidden on production, staging, and preview
 - [x] S5 login and session resolve use spectre_auth (D-036). Invites, audit, and job enqueue still use the migrator
 - [x] S7 block Org Admin self-add and peer-admin content role (D-037)
 - [x] S10 production rate limit fail-closed (D-040)
-- [ ] S8 document deletion lifecycle and no-confirmer guard (D-038, D-039). Full confirmer flow stays Phase 10
+- [x] S8 document deletion lifecycle and no-confirmer guard (D-038, D-039). Full confirmer flow stays Phase 10
 - [ ] S0: `typecheck` and `db validate` jobs first. `build` after a separate Next upgrade. `lint` after Stylelint is clean (D-041)
 - [ ] Phase 6 FTS on DocumentVersion. FILE-009 and Gate B stay open; vector waits for Gate B
 - [ ] Remaining Phase 2 debt (`tasks/phase2-debt.md`) — confirmer flow, email provider, idle session

@@ -414,4 +414,12 @@ describe("WorkspaceAccess createPersonal", () => {
       }),
     ).resolves.toMatchObject({ name: "Renamed" });
   });
+
+  it("does not delete a workspace when there is no independent confirmer", () => {
+    const access = new WorkspaceAccess(memoryWorkspaceStore([teamA]));
+    const owner = actor(USER_OWNER, ORG_A, "owner");
+    expect(access.requestDeletion(owner, null)).toBe("confirmation_required");
+    expect(access.requestDeletion(owner, USER_OWNER)).toBe("confirmation_required");
+    expect(access.requestDeletion(owner, USER_EDITOR)).toBe("not_performed");
+  });
 });

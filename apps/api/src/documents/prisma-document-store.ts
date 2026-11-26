@@ -32,7 +32,8 @@ function mapRow(row: {
     mimeType: row.mimeType,
     byteSize: row.byteSize,
     checksumSha256: row.checksumSha256,
-    storageKey: row.storageKey,
+    storageKey:
+      row.status === "deletion_pending" || row.status === "deleted" ? "" : row.storageKey,
     uploadedByUserId: row.uploadedByUserId,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -56,7 +57,7 @@ export function createPrismaDocumentStore(tx: PrismaTxClient): DocumentStore {
         where: {
           organizationId,
           workspaceId,
-          status: { notIn: ["uploading", "deleted"] },
+          status: { notIn: ["uploading", "deletion_pending", "deleted"] },
           ...(cursor
             ? {
                 OR: [
@@ -125,16 +126,57 @@ export function createPrismaDocumentStore(tx: PrismaTxClient): DocumentStore {
     },
     async deleteById(id) {
       try {
+        const existing = await tx.document.findUnique({
+          where: { id },
+          select: { status: true },
+        });
+        if (!existing || existing.status !== "uploading") {
+          return false;
+        }
         await tx.document.update({
           where: { id },
           data: { currentVersionId: null },
         });
         await tx.documentVersion.deleteMany({ where: { documentId: id } });
+        await tx.documentExtraction.deleteMany({ where: { documentId: id } });
         await tx.document.delete({ where: { id } });
         return true;
       } catch {
         return false;
       }
+    },
+    async markDeletionPending(id, confirmation) {
+      const existing = await tx.document.findUnique({ where: { id } });
+      if (!existing || existing.status === "uploading") {
+        return null;
+      }
+      if (existing.status === "deletion_pending" || existing.status === "deleted") {
+        return mapRow(existing);
+      }
+      const row = await tx.document.update({
+        where: { id },
+        data: { status: "deletion_pending" },
+      });
+      await tx.deletionJournal.upsert({
+        where: {
+          organizationId_objectType_objectId: {
+            organizationId: existing.organizationId,
+            objectType: "document",
+            objectId: id,
+          },
+        },
+        create: {
+          organizationId: existing.organizationId,
+          objectType: "document",
+          objectId: id,
+          requestedByUserId: confirmation.actorUserId,
+          confirmerUserId: confirmation.confirmerUserId,
+          requestedAt: confirmation.requestedAt,
+          purgeAfter: confirmation.purgeAfter,
+        },
+        update: {},
+      });
+      return mapRow(row);
     },
   };
 }

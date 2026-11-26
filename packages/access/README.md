@@ -9,7 +9,7 @@ Foreign or missing records → `null` (HTTP maps to identical `NOT_FOUND`).
 - `ClientRecord` / `ClientStore` / `ClientAccess` — org-scoped CRU+list
 - `MatterRecord` / `MatterStore` / `MatterAccess` — org-scoped CRU+list
 - `WorkspaceRecord` / `WorkspaceStore` / `WorkspaceAccess` — content vs member-management
-- `DocumentRecord` / `DocumentStore` / `DocumentAccess` — org-scoped create/list/read; callers apply Workspace content ACL first
+- `DocumentRecord` / `DocumentStore` / `DocumentAccess` — org-scoped create/list/read; callers apply Workspace content ACL first. Hard delete is only `uploading`. A persisted document becomes unreadable only when a different user id is supplied (`DeletionConfirmationRequiredError` otherwise). That id is not a role check; the confirmer matrix is Phase 10 (**D-038** / **D-039**).
 - `ConversationRecord` / `ConversationStore` / `ConversationAccess` — PRIVATE/WORKSPACE chat ACL on top of Workspace content role; Org Admin ≠ content
 - `isActiveOrganizationMembership` / `mayMutateWorkspaceContent` — worker re-check before a delayed chat or extract commit. Revoked organization membership is not active. Content write is owner or editor.
 
