@@ -1,5 +1,6 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "./generated/client.js";
+import { resolveAuthDatabaseUrl } from "./auth-role.js";
 import { resolveRuntimeDatabaseUrl } from "./runtime-role.js";
 
 export { PrismaClient, Prisma } from "./generated/client.js";
@@ -50,10 +51,15 @@ export {
   resolveRuntimeDatabaseUrl,
   RuntimeDatabaseRoleError,
 } from "./runtime-role.js";
+export {
+  assertAuthDatabaseRole,
+  resolveAuthDatabaseUrl,
+  AuthDatabaseRoleError,
+} from "./auth-role.js";
 
 const DEFAULT_DATABASE_URL = "postgresql://spectre:spectre@localhost:5432/spectre";
 
-export type PrismaClientPurpose = "migrator" | "runtime";
+export type PrismaClientPurpose = "migrator" | "runtime" | "auth";
 
 export interface CreatePrismaClientOptions {
   /** migrator = DDL/seed/auth bootstrap URL; runtime = RLS-enforced app role */
@@ -78,6 +84,10 @@ function resolveDatabaseUrl(
     return resolveRuntimeDatabaseUrl();
   }
 
+  if (urlOrOptions?.purpose === "auth") {
+    return resolveAuthDatabaseUrl();
+  }
+
   return process.env.DATABASE_URL ?? DEFAULT_DATABASE_URL;
 }
 
@@ -87,6 +97,8 @@ function resolveDatabaseUrl(
  * - `purpose: "runtime"`: `DATABASE_URL_RUNTIME` — Nest tenant queries under RLS.
  *   Does not fall back to `DATABASE_URL`. Production startup must pass
  *   `assertRuntimeDatabaseRole` before listen.
+ * - `purpose: "auth"`: `DATABASE_URL_AUTH` — login and session resolve via
+ *   SECURITY DEFINER functions (D-036). Does not fall back to `DATABASE_URL`.
  * Callers must `$disconnect()` (Nest does this via `PrismaService.onModuleDestroy`).
  */
 export function createPrismaClient(

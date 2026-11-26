@@ -5,7 +5,7 @@ NestJS HTTP API scaffold. Global prefix: `/api/v1`. Default port: `3000`. A path
 ## Prerequisites
 
 - `docker compose up -d` (Postgres + Redis)
-- `.env` from `.env.example` (`DATABASE_URL` + `DATABASE_URL_RUNTIME`). Production refuses to start when the runtime URL is missing or points at a superuser / BYPASSRLS / owner role.
+- `.env` from `.env.example` (`DATABASE_URL`, `DATABASE_URL_RUNTIME`, `DATABASE_URL_AUTH`). Production refuses to start when the runtime or auth URL is missing or points at a superuser / BYPASSRLS / owner role. Login does not use the migrator URL (**D-036**).
 - `pnpm --filter @spectre/db migrate:deploy` (creates `spectre_app` + tenant RLS)
 
 ## Run

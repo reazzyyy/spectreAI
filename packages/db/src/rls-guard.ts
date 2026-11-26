@@ -6,7 +6,7 @@ import path from "node:path";
 export const RLS_EXECUTED_FILE = path.join(tmpdir(), "spectre-db-rls-executed.log");
 
 /** Floor for the current harness. CI fails closed if fewer cases ran. */
-export const MIN_RLS_TESTS = 16;
+export const MIN_RLS_TESTS = 20;
 
 export function resetRlsExecutedCount(): void {
   writeFileSync(RLS_EXECUTED_FILE, "");

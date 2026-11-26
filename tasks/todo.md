@@ -70,7 +70,7 @@
 
 - [x] D-035–D-042 recorded. O-012 closed by D-039. Code of S0/S5/S7/S8/S10 is not started
 - [x] D-042 explicit `APP_ENV`; dev token hidden on production, staging, and preview
-- [ ] S5 auth role without owner credentials on the request path (D-036)
+- [x] S5 login and session resolve use spectre_auth (D-036). Invites, audit, and job enqueue still use the migrator
 - [ ] S7 block Org Admin self-add and peer-admin content role (D-037)
 - [ ] S10 production rate limit fail-closed (D-040)
 - [ ] S8 document deletion lifecycle and no-confirmer guard (D-038, D-039). Full confirmer flow stays Phase 10

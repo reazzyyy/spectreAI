@@ -2,7 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { createHash, randomBytes } from "node:crypto";
 import type { Request } from "express";
 import { PrismaService } from "../db/prisma.service.js";
-import type { ActorContext } from "./actor-context.js";
+import type { ActorContext, ActorOrgRole } from "./actor-context.js";
 import { verifyPassword } from "./password.js";
 import { SESSION_COOKIE_NAME, SESSION_TTL_MS } from "./session-cookie.js";
 
@@ -28,9 +28,12 @@ export class SessionService {
   /** Explicit @Inject: tsx ESM does not emit constructor metadata for Nest DI. */
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  /** Auth bootstrap uses migrator URL until SECURITY DEFINER helpers land (S0 §6). */
+/**
+   * Login and session resolve use the auth role (D-036).
+   * The migrator client stays for bootstrap, outbox, and workers.
+   */
   private get authDb() {
-    return this.prisma.migrator;
+    return this.prisma.auth;
   }
 
   /**
@@ -42,58 +45,55 @@ export class SessionService {
     password: string,
     organizationId: string,
   ): Promise<{ rawToken: string; profile: SessionProfile } | null> {
-    const user = await this.authDb.user.findUnique({
-      where: { email },
-    });
-    if (!user || user.status !== "active") {
+    const rows = await this.authDb.$queryRaw<LoginLookupRow[]>`
+      SELECT
+        user_id,
+        password_hash,
+        user_status,
+        email,
+        membership_role,
+        membership_status,
+        organization_name
+      FROM auth_lookup_login(${email}, ${organizationId})
+    `;
+    const user = rows[0];
+    if (!user || user.user_status !== "active") {
       return null;
     }
 
-    const passwordOk = await verifyPassword(user.passwordHash, password);
+    const passwordOk = await verifyPassword(user.password_hash, password);
     if (!passwordOk) {
       return null;
     }
 
-    const membership = await this.authDb.organizationMembership.findUnique({
-      where: {
-        organizationId_userId: { organizationId, userId: user.id },
-      },
-    });
-    if (!membership || membership.status !== "active") {
+    const orgRole = asOrgRole(user.membership_role);
+    if (!orgRole || user.membership_status !== "active") {
       return null;
     }
 
     const rawToken = randomBytes(32).toString("base64url");
     const tokenHash = hashToken(rawToken);
     const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
-
-    await this.authDb.session.create({
-      data: {
-        userId: user.id,
-        organizationId,
-        tokenHash,
-        expiresAt,
-      },
-    });
-
-    await this.authDb.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() },
-    });
-
-    const organization = await this.authDb.organization.findUnique({
-      where: { id: organizationId },
-      select: { name: true },
-    });
+    const created = await this.authDb.$queryRaw<Array<{ created: boolean }>>`
+      SELECT auth_create_session(
+        ${user.user_id},
+        ${organizationId},
+        ${tokenHash},
+        ${expiresAt}
+      ) AS created
+    `;
+    if (created[0]?.created !== true) {
+      return null;
+    }
 
     return {
       rawToken,
       profile: {
-        userId: user.id,
+        userId: user.user_id,
         organizationId,
-        orgRole: membership.role,
+        orgRole,
         email: user.email,
-        organizationName: organization?.name ?? organizationId,
+        organizationName: user.organization_name ?? organizationId,
       },
     };
   }
@@ -105,13 +105,10 @@ export class SessionService {
       return;
     }
 
-    await this.authDb.session.updateMany({
-      where: {
-        tokenHash: hashToken(rawToken),
-        revokedAt: null,
-      },
-      data: { revokedAt: new Date() },
-    });
+    const tokenHash = hashToken(rawToken);
+    await this.authDb.$queryRaw`
+      SELECT auth_revoke_session(${tokenHash}) AS revoked
+    `;
   }
 
   /**
@@ -147,48 +144,70 @@ export class SessionService {
       return null;
     }
 
-    const session = await this.authDb.session.findUnique({
-      where: { tokenHash: hashToken(rawToken) },
-    });
-    if (!session || session.revokedAt !== null || session.expiresAt <= new Date()) {
-      return null;
-    }
-
-    const user = await this.authDb.user.findUnique({
-      where: { id: session.userId },
-    });
-    if (!user || user.status !== "active") {
-      return null;
-    }
-
-    const membership = await this.authDb.organizationMembership.findUnique({
-      where: {
-        organizationId_userId: {
-          organizationId: session.organizationId,
-          userId: session.userId,
-        },
-      },
-    });
-    if (!membership || membership.status !== "active") {
-      return null;
-    }
-
-    const organization = await this.authDb.organization.findUnique({
-      where: { id: session.organizationId },
-      select: { name: true },
-    });
-    if (!organization) {
+    const rows = await this.authDb.$queryRaw<SessionLookupRow[]>`
+      SELECT
+        user_id,
+        organization_id,
+        email,
+        user_status,
+        membership_role,
+        membership_status,
+        organization_name,
+        expires_at,
+        revoked_at
+      FROM auth_resolve_session(${hashToken(rawToken)})
+    `;
+    const session = rows[0];
+    const orgRole = session ? asOrgRole(session.membership_role) : null;
+    if (
+      !session ||
+      !orgRole ||
+      session.revoked_at !== null ||
+      session.expires_at <= new Date() ||
+      session.user_status !== "active" ||
+      session.membership_status !== "active" ||
+      session.organization_name === null
+    ) {
       return null;
     }
 
     return {
-      userId: user.id,
-      organizationId: session.organizationId,
-      orgRole: membership.role,
-      email: user.email,
-      organizationName: organization.name,
+      userId: session.user_id,
+      organizationId: session.organization_id,
+      orgRole,
+      email: session.email,
+      organizationName: session.organization_name,
     };
   }
+}
+
+interface LoginLookupRow {
+  user_id: string;
+  password_hash: string;
+  user_status: string;
+  email: string;
+  membership_role: string | null;
+  membership_status: string | null;
+  organization_name: string | null;
+}
+
+interface SessionLookupRow {
+  user_id: string;
+  organization_id: string;
+  email: string;
+  user_status: string;
+  membership_role: string | null;
+  membership_status: string | null;
+  organization_name: string | null;
+  expires_at: Date;
+  revoked_at: Date | null;
+}
+
+function asOrgRole(value: string | null): ActorOrgRole | null {
+  if (value === "owner" || value === "admin" || value === "member") {
+    return value;
+  }
+  return null;
 }
 
 function hashToken(rawToken: string): string {

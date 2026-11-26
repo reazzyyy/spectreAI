@@ -22,6 +22,7 @@ Prisma 7 schema, migrations, and runtime client factory (**D-009**, Workspace, d
 - `createPrismaClient({ purpose: "migrator" | "runtime" })` — Prisma 7 + `@prisma/adapter-pg`.
   - **migrator** (`DATABASE_URL`): migrate, seed, auth bootstrap.
   - **runtime** (`DATABASE_URL_RUNTIME`): Nest tenant queries under RLS. Does not fall back to `DATABASE_URL`. Production must set it; startup rejects a superuser, BYPASSRLS, or table-owner role.
+  - **auth** (`DATABASE_URL_AUTH`): login and session resolve through `SECURITY DEFINER` functions (D-036). Role `spectre_auth` cannot read `users` or `sessions`. Production must set the URL. Startup rejects the migrator URL, the runtime URL, and a privileged role.
 - `withActorContext(prisma, actor, fn)` — interactive tx + `set_config` for `app.current_*` GUC.
 - Re-exports: `PrismaClient`, `Prisma`, model types, Workspace / Document / Chat enums.
 
@@ -37,7 +38,7 @@ Tenant-boundary policies (`organization_id` = GUC) + `FORCE ROW LEVEL SECURITY` 
 `ai_jobs`, `document_extractions`, `audit_events` (SELECT/INSERT for the current org only; `system_event` rows are hidden from every tenant; no UPDATE/DELETE), `organization_invitations`,  
 `users` (self or membership in the current org), `sessions` (own user in the current org), `organizations` (own org id).
 
-Runtime role `spectre_app` (no BYPASSRLS). It has no INSERT/UPDATE/DELETE on `users`, `sessions`, or `organizations`, and cannot SELECT `password_hash` or `token_hash`. It cannot UPDATE or DELETE `audit_events`. New tables no longer receive UPDATE/DELETE from default privileges; a migration must grant those explicitly. **Incomplete W-020:** grant policies and full `docs/07` matrix still later — AS-IS must not claim full RLS. NestJS authz is not replaced by RLS.
+Runtime role `spectre_app` (no BYPASSRLS). It has no INSERT/UPDATE/DELETE on `users`, `sessions`, or `organizations`, and cannot SELECT `password_hash` or `token_hash`. It cannot execute `auth_lookup_login`. Auth role `spectre_auth` has no table privileges on those tables; login goes through the definer functions. Local CI still needs at least 20 executed RLS tests. It cannot UPDATE or DELETE `audit_events`. New tables no longer receive UPDATE/DELETE from default privileges; a migration must grant those explicitly. **Incomplete W-020:** grant policies and full `docs/07` matrix still later — AS-IS must not claim full RLS. NestJS authz is not replaced by RLS.
 
 Login, session resolve, invites, and bootstrap still use the migrator URL. The local migrator is superuser and bypasses FORCE RLS. Replacing that path is S5 (narrow auth role or `SECURITY DEFINER` with a fixed `search_path`).
 
