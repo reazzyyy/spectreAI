@@ -56,8 +56,8 @@
 }
 
 .collapsed .profileMenuAnchor {
-  flex: none;
   width: 40px;
+  flex: none;
 }
 
 .collapsed .profileTrigger {
@@ -227,9 +227,9 @@
   display: flex;
   width: 100%;
   padding-top: 10px;
+  border-top: 1px solid var(--color-border-strong);
   align-items: center;
   gap: 8px;
-  border-top: 1px solid var(--color-border-strong);
 }
 
 .profileMenuAnchor {
@@ -285,9 +285,9 @@
 
 .profileMenu {
   position: fixed;
-  left: 12px;
-  bottom: 70px;
   z-index: 45;
+  bottom: 70px;
+  left: 12px;
   width: 290px;
   padding: 8px;
   border: 1px solid var(--color-border);
@@ -300,9 +300,9 @@
   display: flex;
   margin-bottom: 6px;
   padding: 10px 10px 16px;
+  border-bottom: 1px solid var(--color-border);
   flex-direction: column;
   gap: 5px;
-  border-bottom: 1px solid var(--color-border);
 }
 
 .profileMenuHeading strong {
@@ -312,8 +312,8 @@
 
 .profileMenuHeading small {
   font-size: 12px;
-  color: var(--color-muted);
   overflow-wrap: anywhere;
+  color: var(--color-muted);
 }
 
 .profileMenuHeading > span {

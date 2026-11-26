@@ -1,24 +1,24 @@
 .button {
   display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  gap: 7px;
   min-height: 36px;
   padding: 0 14px;
   border: 1px solid var(--color-accent);
   border-radius: var(--radius-sm);
-  background: var(--color-accent);
-  color: var(--color-surface);
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   font: inherit;
   font-size: var(--fs-base);
   font-weight: 500;
   white-space: nowrap;
+  color: var(--color-surface);
+  background: var(--color-accent);
   cursor: pointer;
 }
 
 .button:hover:not(:disabled) {
-  background: var(--color-accent-hover);
   border-color: var(--color-accent-hover);
+  background: var(--color-accent-hover);
 }
 
 .button:disabled {
@@ -32,25 +32,25 @@
 }
 
 .secondary {
-  background: var(--color-surface);
   border-color: var(--color-border-strong);
   color: var(--color-text);
+  background: var(--color-surface);
 }
 
 .secondary:hover:not(:disabled) {
-  background: var(--color-soft);
   border-color: var(--color-border-strong);
+  background: var(--color-soft);
 }
 
 .ghost {
   border-color: transparent;
-  background: transparent;
-  color: var(--color-text-2);
   font-weight: 400;
+  color: var(--color-text-2);
+  background: transparent;
 }
 
 .ghost:hover:not(:disabled) {
-  background: var(--color-soft);
   border-color: transparent;
   color: var(--color-text);
+  background: var(--color-soft);
 }

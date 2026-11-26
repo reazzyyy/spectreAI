@@ -1,11 +1,11 @@
 .field {
   display: flex;
-  align-items: center;
-  gap: 8px;
   min-height: 38px;
   padding: 0 12px;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
+  align-items: center;
+  gap: 8px;
   color: var(--color-muted);
   background: var(--color-surface);
 }
@@ -16,11 +16,11 @@
 }
 
 .field input {
-  flex: 1;
   min-width: 0;
   border: 0;
-  outline: none;
+  flex: 1;
   font: inherit;
   color: var(--color-text);
   background: none;
+  outline: none;
 }

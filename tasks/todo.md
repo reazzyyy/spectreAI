@@ -74,7 +74,7 @@
 - [x] S7 block Org Admin self-add and peer-admin content role (D-037)
 - [x] S10 production rate limit fail-closed (D-040)
 - [x] S8 document deletion lifecycle and no-confirmer guard (D-038, D-039). Full confirmer flow stays Phase 10
-- [x] S0: `typecheck` and `db validate` jobs (D-041). `build` waits for a deterministic Next build. `lint` waits until Stylelint is clean
+- [x] S0: `typecheck`, `db validate`, and web `lint:all` (D-041). `build` waits for a deterministic Next build
 - [ ] Phase 6 FTS on DocumentVersion. FILE-009 and Gate B stay open; vector waits for Gate B
 - [ ] Remaining Phase 2 debt (`tasks/phase2-debt.md`) — confirmer flow, email provider, idle session
 - [ ] FILE-010 antivirus product integration

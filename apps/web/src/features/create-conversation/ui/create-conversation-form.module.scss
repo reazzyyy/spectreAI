@@ -1,13 +1,13 @@
 .form {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
   align-items: flex-end;
+  gap: 12px;
 }
 
 .fieldGrow {
-  flex: 1 1 12rem;
   min-width: 10rem;
+  flex: 1 1 12rem;
 }
 
 .visibility {
@@ -15,8 +15,8 @@
 }
 
 .error {
-  flex: 1 1 100%;
   margin: 0;
-  color: var(--color-danger, #b42318);
+  flex: 1 1 100%;
   font-size: var(--fs-sm);
+  color: var(--color-danger, #b42318);
 }

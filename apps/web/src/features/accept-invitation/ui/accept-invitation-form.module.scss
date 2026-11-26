@@ -6,25 +6,25 @@
 
 .intro {
   margin: 0 0 8px;
-  color: var(--color-text-2);
   font-size: 13px;
   line-height: 1.8;
+  color: var(--color-text-2);
 }
 
 .error {
   margin: 0;
   padding: 10px 12px;
   border-radius: var(--radius-sm);
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
   font-size: var(--fs-sm);
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
 }
 
 .submit {
-  justify-content: space-between;
   width: 100%;
   min-height: 44px;
   margin-top: 4px;
+  justify-content: space-between;
 }
 
 .result {
@@ -36,15 +36,15 @@
 
 .result p {
   margin: 0;
-  color: var(--color-text-2);
   font-size: 13px;
   line-height: 1.8;
+  color: var(--color-text-2);
 }
 
 .backLink {
-  color: var(--color-accent);
   font-size: 12px;
   text-decoration: none;
+  color: var(--color-accent);
 }
 
 .backLink:hover {

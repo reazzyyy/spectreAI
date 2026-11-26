@@ -5,14 +5,14 @@
 }
 
 .label {
-  color: var(--color-text-2);
   font-size: var(--fs-sm);
   font-weight: 500;
+  color: var(--color-text-2);
 }
 
 .optional {
-  color: var(--color-muted);
   font-weight: 400;
+  color: var(--color-muted);
 }
 
 .control {
@@ -21,10 +21,10 @@
   padding: 0 12px;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  color: var(--color-text);
   font: inherit;
   font-size: var(--fs-base);
+  color: var(--color-text);
+  background: var(--color-surface);
 }
 
 .textarea {
@@ -51,20 +51,20 @@
 
 .segmented {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
   overflow: hidden;
 }
 
 .segment {
   min-height: 40px;
   border: 0;
-  background: var(--color-surface);
-  color: var(--color-text-2);
   font: inherit;
   font-size: var(--fs-base);
+  color: var(--color-text-2);
+  background: var(--color-surface);
   cursor: pointer;
 }
 
@@ -73,9 +73,9 @@
 }
 
 .segmentActive {
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
   font-weight: 500;
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
 }
 
 .segment:disabled {
@@ -85,22 +85,22 @@
 
 .help {
   margin: 0;
-  color: var(--color-muted);
   font-size: var(--fs-sm);
   line-height: 1.6;
+  color: var(--color-muted);
 }
 
 .error {
   margin: 0;
   padding: 10px 12px;
   border-radius: var(--radius-sm);
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
   font-size: var(--fs-sm);
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
 }
 
 .fieldError {
   margin: 0;
-  color: var(--color-danger);
   font-size: var(--fs-sm);
+  color: var(--color-danger);
 }

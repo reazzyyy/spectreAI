@@ -56,17 +56,17 @@
 
 .more {
   display: flex;
-  justify-content: center;
   padding: 20px 0;
+  justify-content: center;
 }
 
 .row {
   display: grid;
   min-height: 64px;
+  border-bottom: 1px solid var(--color-border);
   grid-template-columns: minmax(0, 1fr) 130px 140px;
   align-items: center;
   gap: 16px;
-  border-bottom: 1px solid var(--color-border);
 }
 
 .row:hover {
@@ -98,16 +98,16 @@
 .main small {
   overflow: hidden;
   font-size: var(--fs-sm);
-  color: var(--color-muted);
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--color-muted);
 }
 
 .kind,
 .when {
   font-size: var(--fs-sm);
-  color: var(--color-text-2);
   white-space: nowrap;
+  color: var(--color-text-2);
 }
 
 .skeleton {

@@ -6,16 +6,16 @@
 
 .intro {
   margin: 0 0 8px;
-  color: var(--color-text-2);
   font-size: 13px;
   line-height: 1.8;
+  color: var(--color-text-2);
 }
 
 .passwordWrap {
   display: flex;
-  align-items: center;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
+  align-items: center;
   background: var(--color-surface);
 }
 
@@ -25,15 +25,15 @@
 }
 
 .passwordInput {
-  flex: 1;
   min-width: 0;
   min-height: 44px;
   padding: 0 12px;
   border: 0;
-  background: none;
+  flex: 1;
   font: inherit;
   font-size: 14px;
   color: var(--color-text);
+  background: none;
 }
 
 .passwordInput:focus {
@@ -45,13 +45,13 @@
 }
 
 .toggle {
-  flex: none;
   padding-inline: 12px;
   border: 0;
-  background: none;
-  color: var(--color-accent);
+  flex: none;
   font: inherit;
   font-size: 11px;
+  color: var(--color-accent);
+  background: none;
   cursor: pointer;
 }
 
@@ -63,20 +63,20 @@
 .fieldLabel {
   display: block;
   margin-bottom: 6px;
-  color: var(--color-text-2);
   font-size: var(--fs-sm);
   font-weight: 500;
+  color: var(--color-text-2);
 }
 
 .forgot {
-  align-self: flex-end;
   margin-top: -5px;
   padding: 0;
   border: 0;
-  background: none;
-  color: var(--color-muted);
+  align-self: flex-end;
   font: inherit;
   font-size: 12px;
+  color: var(--color-muted);
+  background: none;
   cursor: not-allowed;
 }
 
@@ -84,31 +84,31 @@
   margin: 0;
   padding: 10px 12px;
   border-radius: var(--radius-sm);
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
   font-size: var(--fs-sm);
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
 }
 
 .submit {
-  justify-content: space-between;
   width: 100%;
   min-height: 44px;
   margin-top: 4px;
+  justify-content: space-between;
 }
 
 .note {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
   padding: 16px;
   border: 1px solid var(--color-border);
   border-radius: 7px;
+  flex-direction: column;
+  gap: 8px;
   background: var(--color-canvas);
 }
 
 .note p {
   margin: 0;
-  color: var(--color-muted);
   font-size: 11px;
   line-height: 1.7;
+  color: var(--color-muted);
 }

@@ -12,22 +12,22 @@
 
 .list {
   display: flex;
-  flex-direction: column;
   margin: 0 0 16px;
   padding: 0;
+  flex-direction: column;
   gap: 8px;
   list-style: none;
 }
 
 .item {
   display: flex;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
   gap: 10px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
 }
 
 .title {
@@ -36,8 +36,8 @@
 }
 
 .meta {
-  color: var(--color-muted);
   font-size: var(--fs-sm);
+  color: var(--color-muted);
 }
 
 .empty {
@@ -53,8 +53,8 @@
 }
 
 .field {
-  flex: 1 1 220px;
   min-width: 0;
+  flex: 1 1 220px;
 }
 
 .label {
@@ -68,14 +68,14 @@
   padding: 10px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
+  font: inherit;
   color: inherit;
   background: var(--color-bg, #fff);
-  font: inherit;
 }
 
 .status {
-  color: var(--color-muted);
   font-size: var(--fs-sm);
+  color: var(--color-muted);
 }
 
 .error {
