@@ -15,4 +15,4 @@
 
 План правок D-035–D-042 в коде, включая jobs CI `typecheck`, `db validate` и web `lint:all`. `next build` в CI не включён. Приглашения, аудит и постановка job всё ещё на migrator. Апгрейд Next — один изолированный PR.
 
-Следующий продуктовый шаг после этих срезов — полнотекст по `DocumentVersion`. Вектор не начинать до Gate B.
+6A-0 в коде: stored `search_tsv` и GIN. Дальше отдельные PR по `docs/35`: publish (`searchEligible`), search API, UI, русский golden-набор. Вектор не начинать до Gate B.

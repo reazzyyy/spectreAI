@@ -461,6 +461,9 @@ model AiJob {
 }
 
 /// Extracted text in PostgreSQL (D-025). No document body in logs.
+/// SQL-only `search_tsv` is a stored Russian tsvector of the first 200000
+/// characters (`20261126230000_phase6a_fts_search_tsv`). Prisma does not map it.
+/// Do not drop the column from a schema diff. Search stays off until publish.
 model DocumentExtraction {
   id             String       @id @default(uuid()) @db.Uuid
   organizationId String       @map("organization_id") @db.Uuid

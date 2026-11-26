@@ -14,7 +14,8 @@ Prisma 7 schema, migrations, and runtime client factory (**D-009**, Workspace, d
 - Matter→Client and Workspace→Client FKs are composite on `(organizationId, clientId)`.
 - Document metadata (Phase 3 thin); binary in private storage by `storageKey`.
 - Chat (Phase 5A–5B): Conversation, Message, AiGeneration, OutboxEvent scaffold, ContextSnapshot conversation_only + MessageSource. Partial unique index: one assistant message per generation.
-- DocumentVersion (Phase 6A): immutable file version 1 on upload; extraction binds `documentVersionId`. `searchEligible` stays false until a later FTS slice (**D-033**, **D-034**).
+- DocumentVersion (Phase 6A): immutable file version 1 on upload; extraction binds `documentVersionId`. `searchEligible` stays false until a later publish job (**D-033**, **D-034**).
+- `document_extractions.search_tsv` is a SQL-only stored `tsvector` (`russian`, first 200000 characters) with a GIN index. It is not a Prisma field. The column does not make a document searchable.
 - No grant or MFA/SSO models yet. JOB-012 / CTX-* remain OPEN in the journal.
 
 ## Public API
@@ -36,7 +37,7 @@ Tenant-boundary policies (`organization_id` = GUC) + `FORCE ROW LEVEL SECURITY` 
 `context_snapshots` / `context_snapshot_items` / `message_sources` (via conversation/message ACL),  
 `outbox_events` (org GUC),  
 `deletion_journal` (SELECT/INSERT for the current org; runtime cannot UPDATE or DELETE; purge writes `purged_at` as the migrator),  
-`ai_jobs`, `document_extractions`, `audit_events` (SELECT/INSERT for the current org only; `system_event` rows are hidden from every tenant; no UPDATE/DELETE), `organization_invitations`,  
+`ai_jobs`, `document_extractions` (including `search_tsv`; same row policy, no separate column grant), `audit_events` (SELECT/INSERT for the current org only; `system_event` rows are hidden from every tenant; no UPDATE/DELETE), `organization_invitations`,  
 `users` (self or membership in the current org), `sessions` (own user in the current org), `organizations` (own org id).
 
 Runtime role `spectre_app` (no BYPASSRLS). It has no INSERT/UPDATE/DELETE on `users`, `sessions`, or `organizations`, and cannot SELECT `password_hash` or `token_hash`. It cannot execute `auth_lookup_login`. Auth role `spectre_auth` has no table privileges on those tables; login goes through the definer functions. Local CI still needs at least 20 executed RLS tests. It cannot UPDATE or DELETE `audit_events`. New tables no longer receive UPDATE/DELETE from default privileges; a migration must grant those explicitly. **Incomplete W-020:** grant policies and full `docs/07` matrix still later — AS-IS must not claim full RLS. NestJS authz is not replaced by RLS.
