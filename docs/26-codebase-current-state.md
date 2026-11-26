@@ -27,11 +27,11 @@
 | Workspace как сущность | Prisma + `WorkspaceAccess` + HTTP; content-visible list — single SQL; cursor pagination (**D-026**) |
 | PostgreSQL RLS (W-020) | Org GUC на tenant tables; **documents** + **conversations/messages/ai_generations** — workspace + PRIVATE/WORKSPACE ACL; **users/sessions/organizations** — FORCE RLS для `spectre_app`. Вход и сессия — роль `spectre_auth` и `SECURITY DEFINER` (**D-036**). Приглашения, аудит и постановка job всё ещё через migrator. Grant policies нет (**W-020 не полный**) |
 | Chat (5A–5B) | Models+RLS+ACL; HTTP chat; Outbox + Synthetic worker; ContextSnapshot/Item + MessageSource (conversation_only); **thin chat UI** on project Чаты tab; **нет** DocumentVersion docs in context |
-| Загрузка документов | Two-phase `uploading`→blob→`uploaded`; disk temp multipart; DOCX CD walk + PDF `/Encrypt` reject; enqueue extract |
+| Загрузка документов | Two-phase `uploading`→blob→`uploaded`; disk temp multipart; DOCX CD walk + PDF `/Encrypt` reject; enqueue extract. Hard delete только `uploading`. Подтверждённое удаление прячет документ сразу (`deletion_pending`, без `storageKey` в чтении) и пишет `deletion_journal`; физическая очистка — `purge:deletions` после 24 ч (**D-038**). Без второго user id удаление не выполняется (**D-039**). Матрица confirmer и удаление Workspace — Phase 10 |
 | AIJob + ai-jobs worker | Prisma `AIJob` / `DocumentExtraction`; BullMQ `ai-jobs`; one dispatcher (`worker:ai`); extract outbox + BullMQ retry (max 3); scan/`NO_TEXT_LAYER` → failed without retry (**D-031**) |
 | Rate limit / audit | Redis fixed window `INCR`+`EXPIRE` (login/upload/ai/invite). Local/CI без Redis — fail-open. `APP_ENV=production` не стартует без `REDIS_URL`; ошибка Redis на защищённом бакете — `503 RATE_LIMIT_UNAVAILABLE` (**D-040**). Thin `audit_events` (login/logout/upload/download, без content) |
 | Admin content-grant | **Не реализован** |
-| FILE-010 AV / delete confirmer | AV не реализован (FILE-010 OPEN). O-012 закрыт **D-039**; guard и флоу подтверждающего в коде нет |
+| FILE-010 AV / delete confirmer | AV не реализован (FILE-010 OPEN). O-012 закрыт **D-039**: нет независимого confirmer — удаление документа и Workspace не выполняется. Полный флоу confirmer не реализован |
 
 ## 2. Структура монорепо
 

@@ -3,6 +3,7 @@
  * Content read ≠ member management. Org Admin never gets content via these helpers (grant is later).
  * Wrong org / no access → null so HTTP can map to identical NOT_FOUND.
  */
+import { independentConfirmer } from "./document.js";
 
 export type WorkspaceVisibility = "PERSONAL" | "TEAM";
 export type WorkspaceStatus = "ACTIVE" | "ARCHIVED" | "PENDING_DELETION" | "DELETING" | "DELETED";
@@ -416,5 +417,20 @@ export class WorkspaceAccess {
       return false;
     }
     return this.store.unlinkMatter(workspaceId, matterId);
+  }
+
+  /**
+   * Workspace deletion is not performed in this slice.
+   * A missing or same-person confirmer is an explicit refusal (D-039).
+   * Who may confirm, and the delete itself, stay in Phase 10.
+   */
+  requestDeletion(
+    actor: WorkspaceActor,
+    confirmerUserId: string | null,
+  ): "confirmation_required" | "not_performed" {
+    if (!independentConfirmer(actor.userId, confirmerUserId)) {
+      return "confirmation_required";
+    }
+    return "not_performed";
   }
 }

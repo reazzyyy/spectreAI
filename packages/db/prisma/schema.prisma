@@ -177,6 +177,7 @@ model Organization {
   aiGenerations        AiGeneration[]
   outboxEvents         OutboxEvent[]
   contextSnapshots     ContextSnapshot[]
+  deletionJournal      DeletionJournal[]
   contextSnapshotItems ContextSnapshotItem[]
   messageSources       MessageSource[]
 
@@ -479,6 +480,25 @@ model DocumentExtraction {
 
   @@index([organizationId, documentId])
   @@map("document_extractions")
+}
+
+/// Ids and times only (D-020). The row stays after the document is purged.
+/// No file name, storage key, or extracted text.
+model DeletionJournal {
+  id                String       @id @default(uuid()) @db.Uuid
+  organizationId    String       @map("organization_id") @db.Uuid
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  objectType        String       @map("object_type")
+  objectId          String       @map("object_id") @db.Uuid
+  requestedByUserId String       @map("requested_by_user_id") @db.Uuid
+  confirmerUserId   String       @map("confirmer_user_id") @db.Uuid
+  requestedAt       DateTime     @map("requested_at")
+  purgeAfter        DateTime     @map("purge_after")
+  purgedAt          DateTime?    @map("purged_at")
+
+  @@unique([organizationId, objectType, objectId])
+  @@index([purgedAt, purgeAfter])
+  @@map("deletion_journal")
 }
 
 /// Thin audit without document/prompt content (D-021 direction; Gate H later).

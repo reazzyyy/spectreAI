@@ -35,6 +35,7 @@ Tenant-boundary policies (`organization_id` = GUC) + `FORCE ROW LEVEL SECURITY` 
 `messages` / `ai_generations` (via parent conversation EXISTS under same RLS),  
 `context_snapshots` / `context_snapshot_items` / `message_sources` (via conversation/message ACL),  
 `outbox_events` (org GUC),  
+`deletion_journal` (SELECT/INSERT for the current org; runtime cannot UPDATE or DELETE; purge writes `purged_at` as the migrator),  
 `ai_jobs`, `document_extractions`, `audit_events` (SELECT/INSERT for the current org only; `system_event` rows are hidden from every tenant; no UPDATE/DELETE), `organization_invitations`,  
 `users` (self or membership in the current org), `sessions` (own user in the current org), `organizations` (own org id).
 

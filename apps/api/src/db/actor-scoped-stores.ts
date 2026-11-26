@@ -207,6 +207,12 @@ export function createActorScopedDocumentStore(
       if (!actor) return false;
       return prisma.withActor(actor, (tx) => createPrismaDocumentStore(tx).deleteById(id));
     },
+    async markDeletionPending(id, confirmation) {
+      if (!actor) return null;
+      return prisma.withActor(actor, (tx) =>
+        createPrismaDocumentStore(tx).markDeletionPending(id, confirmation),
+      );
+    },
   };
 }
 
