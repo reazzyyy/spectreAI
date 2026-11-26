@@ -2,9 +2,9 @@
 
 **Статус:** CONFIRMED как снимок scaffold на дату ниже; не заменяет продуктовые спецификации и не утверждает MVP.  
 **Дата снимка кода:** 2026-11-25 (quality S1–S16; chat UI; DocumentVersion v1; P0-01…P0-06)  
-**Сверка статусов решений:** 2026-11-17 (W-001–W-020, W-014a, **D-024**, **D-025–D-034**)  
+**Сверка статусов решений:** 2026-11-26 (W-001–W-020, W-014a, **D-024**, **D-025–D-042**). D-035–D-042 подтверждены; код S0/S5/S7/S8/S10 на эту дату не менялся.  
 **Источник истины по решениям:** `docs/decisions-log.md`  
-**План:** `tasks/roadmap.md` / `tasks/plan.md`. Долги Фазы 2: `tasks/phase2-debt.md` (O-012, email, Chromatic…).
+**План:** `tasks/roadmap.md` / `tasks/plan.md`. Долги Фазы 2: `tasks/phase2-debt.md` (confirmer по D-039 ещё не в коде, email, Chromatic…).
 
 Этот документ описывает **только то, что реально есть в репозитории**. Спецификации в `docs/00–25` могут описывать целевое MVP шире; если код ещё не реализован — ниже явно указано «не реализовано».
 
@@ -29,9 +29,9 @@
 | Chat (5A–5B) | Models+RLS+ACL; HTTP chat; Outbox + Synthetic worker; ContextSnapshot/Item + MessageSource (conversation_only); **thin chat UI** on project Чаты tab; **нет** DocumentVersion docs in context |
 | Загрузка документов | Two-phase `uploading`→blob→`uploaded`; disk temp multipart; DOCX CD walk + PDF `/Encrypt` reject; enqueue extract |
 | AIJob + ai-jobs worker | Prisma `AIJob` / `DocumentExtraction`; BullMQ `ai-jobs`; one dispatcher (`worker:ai`); extract outbox + BullMQ retry (max 3); scan/`NO_TEXT_LAYER` → failed without retry (**D-031**) |
-| Rate limit / audit | Redis sliding window (login/upload/ai/invite); thin `audit_events` (login/logout/upload/download, без content) |
+| Rate limit / audit | Redis fixed window (login/upload/ai/invite); без Redis лимитер выключен. Fail-closed в production (**D-040**) ещё не в коде. Thin `audit_events` (login/logout/upload/download, без content) |
 | Admin content-grant | **Не реализован** |
-| FILE-010 AV / O-012 delete confirmer | **Не реализованы** (OPEN) |
+| FILE-010 AV / delete confirmer | AV не реализован (FILE-010 OPEN). O-012 закрыт **D-039**; guard и флоу подтверждающего в коде нет |
 
 ## 2. Структура монорепо
 
@@ -218,7 +218,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 Тело Workspace: `{ id, organizationId, ownerUserId, name, description, visibility, status, clientId }` (`visibility`: `PERSONAL` \| `TEAM`; `status`: `ACTIVE` \| …).  
 Тело Member: `{ id, organizationId, workspaceId, userId, role, status }` (`role`: `EDITOR` \| `VIEWER`; `status`: `ACTIVE` \| `REVOKED`).  
 Тело Document: `{ id, organizationId, workspaceId, title, status, originalFileName, mimeType, byteSize, checksumSha256, uploadedByUserId, createdAt, updatedAt }`. После успешного upload+enqueue типично `processing`; `ready` / `processing_failed` после worker. `storageKey` **не** отдаётся.  
-`organizationId` / `ownerUserId` только из сессии. Hard `DELETE` Client/Matter/Workspace/Document **нет** (**O-012** OPEN).  
+`organizationId` / `ownerUserId` только из сессии. Hard `DELETE` Client/Matter/Workspace/Document **нет**. Удаление без второго confirmer запрещено решением **D-039**; в коде guard ещё не заложен.  
 Локальный storage: `DOCUMENT_STORAGE_ROOT` — scaffold (**O-003**). Worker: `worker:ai` (Synthetic chat only; `worker:extract` и `worker:chat` — тот же dispatcher). Outbox publisher drains `chat.generate` and `document.extract`. Sweeper: `sweep:uploading`.  
 Extract caps scaffold (**D-030**): 300 pages / 2M chars / 120s / maxAttempts 3. AV (**FILE-010**) не включён.
 
@@ -320,7 +320,7 @@ Workflow: `.github/workflows/ci.yml`.
 - OCR success path (**O-004**); production object storage (**O-003**).
 - OpenAI adapter (запрещён до O-002; целевой провайдер D-015).
 - Полный audit/WORM на год, метрики production, деплой в РФ (D-014 — требование, реализации нет).
-- Удаление по D-019/D-020 в коде; workspace hard delete (**O-012**).
+- Удаление по D-019/D-020 в коде; workspace hard delete и guard «нет confirmer → отказ» (**D-039** подтверждён, не реализован).
 
 ## 9. Онбординг разработчика (минимальный путь)
 

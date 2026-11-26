@@ -68,8 +68,13 @@
 
 ## Next
 
-- [ ] S0: CI lint, typecheck and build jobs. Do not start while stylelint and the Next security nudge make `main` red
-- [ ] S5, S7, S8, S10 — only after an owner decision
+- [x] D-035–D-042 recorded. O-012 closed by D-039. Code of S0/S5/S7/S8/S10 is not started
+- [ ] D-042 explicit `APP_ENV`; dev token only when enabled
+- [ ] S5 auth role without owner credentials on the request path (D-036)
+- [ ] S7 block Org Admin self-add and peer-admin content role (D-037)
+- [ ] S10 production rate limit fail-closed (D-040)
+- [ ] S8 document deletion lifecycle and no-confirmer guard (D-038, D-039). Full confirmer flow stays Phase 10
+- [ ] S0: `typecheck` and `db validate` jobs first. `build` after a separate Next upgrade. `lint` after Stylelint is clean (D-041)
 - [ ] Phase 6 FTS on DocumentVersion. FILE-009 and Gate B stay open; vector waits for Gate B
-- [ ] Remaining Phase 2 debt (`tasks/phase2-debt.md`) — O-012, email provider, idle session
+- [ ] Remaining Phase 2 debt (`tasks/phase2-debt.md`) — confirmer flow, email provider, idle session
 - [ ] FILE-010 antivirus product integration

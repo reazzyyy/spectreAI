@@ -11,7 +11,7 @@
 |---|---|---|
 | W-020+ | Grant RLS; broaden beyond documents/chat | **Documents** + **chat** (conversations/messages/ai_generations) RLS landed 2026-11-12; grant still open |
 | ACL-07 | Полная матрица `docs/07` для Client/Matter | Сейчас org-membership isolation scaffold |
-| W-010 / O-012 | Удаление TEAM Workspace + dual confirmation | Confirmer model **OPEN** — не кодировать |
+| W-010 / D-039 | Удаление TEAM Workspace + dual confirmation | O-012 закрыт: нет confirmer → отказ. Код и Phase 10 флоу ещё нет |
 | W-009 | Ownership transfer PERSONAL/TEAM | Нет HTTP/UI |
 | ~~O-013~~ | EDITOR vs чужой контент (delete) | **Закрыт D-029** — кодировать delete только по правилу |
 | W-008 UX | Org Admin manage members **без** content read | API частично; UI не подчёркивает разделение |
@@ -30,7 +30,7 @@
 
 | ID | Долг | Примечание |
 |---|---|---|
-| WS-11 | Delete / archive Workspace UI+API | Статусы enum есть; flow ждёт O-012 |
+| WS-11 | Delete / archive Workspace UI+API | Статусы enum есть; flow ждёт реализацию D-039 |
 | MEM-05/06 | VIEWER/EDITOR UX nuances | Thin |
 | CRM-07 | Hard delete Client/Matter | Out of slice; D-019 later |
 | `created_by` | Поле на Client/Matter (`docs/06`) | Нужно для D-029 на Client/Matter; Document уже имеет `uploadedByUserId` |

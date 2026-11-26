@@ -1,6 +1,6 @@
 # ТЗ: доработки качества SpectreAI (для Cursor)
 
-**Статус:** живой план доработок. S1–S16 влиты в `main` (#58–#67, #70–#72). S0 и срезы с меткой DECIDE не начаты. Этот файл не меняет статусы решений в `docs/decisions-log.md`.  
+**Статус:** живой план доработок. S1–S17 влиты в `main` (#58–#67, #70–#73). Решения D-035–D-042 подтверждены 2026-11-26 в `docs/decisions-log.md` и `docs/CURSOR-INSTRUCTIONS-QUALITY-REMEDIATION.md`. Код S0/S5/S7/S8/S10 ещё не начат.  
 **Источник:** аудит качества 2026-11-19 (прогон `build`/`lint`/`test` на чистой БД + ревью backend/data/frontend/process).  
 **Опора:** `docs/decisions-log.md` (D-008–D-034, W-001–W-020), AS-IS `docs/26-codebase-current-state.md`, `.cursor/rules/07-code-documentation.mdc`.  
 **Правило работы:** каждая секция ниже = отдельный короткий PR в `main` (`.cursor/rules/06-git-commits.mdc`). Не смешивать refactor и feat. Коммит — `<type>: <кратко>`.
@@ -251,17 +251,19 @@
 
 ---
 
-## Открытые решения (запросить владельца ДО кодирования)
+## Открытые решения
 
-| ID | Вопрос | Блокирует |
+Закрыты 2026-11-26. Код ещё не написан.
+
+| ID | Решение | Срез |
 |---|---|---|
-| D-012-семантика | Реальный текст (D3) идёт через in-process Synthetic (P0-06, #57). Согласовать формулировку «только синтетика» vs «in-process, без сети»; зафиксировать D-035. | формулировка D-035 |
-| O-012 | Кто подтверждающий удаления Workspace/документа, если requester — единственный Owner/Admin. | S8 |
-| S5-подход | Auth на migrator: SECURITY DEFINER / отдельная auth-роль / полный runtime+RLS. | S5 |
-| S7-политика | Org Admin self-add EDITOR — баг или разрешено. | S7 |
-| S10-поведение | Fail-open rate limit допустим в production? | S10 |
-| env | Какие окружения считать production для `devToken`/`secure`-cookie (staging сейчас получает dev-токены). | S15-соседний |
-| CI | Включить branch protection с required checks (без этого S0 не enforced). | S0 (заметка владельцу) |
+| D-035 | D3/D4 только in-process, без сети | уже в коде P0-06; формулировка зафиксирована |
+| D-036 | Узкая auth-роль + `SECURITY DEFINER`; migrator не на запросном пути | S5 |
+| D-037 | Self-add и peer-admin content role запрещены | S7 |
+| D-038 / D-039 | Hard delete только `uploading`; нет confirmer — отказ. O-012 закрыт | S8; полный флоу — Phase 10 |
+| D-040 | Production без Redis не стартует; сбой Redis не fail-open | S10 |
+| D-041 | Гейты по этапам; Next и Stylelint — отдельные PR; branch protection включает владелец | S0 |
+| D-042 | `APP_ENV=production`; dev-токен только по явному флагу | отдельный chore |
 
 ---
 
