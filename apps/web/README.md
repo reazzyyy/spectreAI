@@ -15,6 +15,7 @@ Import direction: `app → widgets → features → entities → shared`.
 ```bash
 pnpm --filter @spectre/web dev
 pnpm --filter @spectre/web build
+pnpm --filter @spectre/web typecheck
 pnpm --filter @spectre/web test
 pnpm --filter @spectre/web test:e2e
 pnpm --filter @spectre/web lint
