@@ -2,7 +2,7 @@
 
 **Статус:** CONFIRMED как снимок scaffold на дату ниже; не заменяет продуктовые спецификации и не утверждает MVP.  
 **Дата снимка кода:** 2026-11-25 (quality S1–S16; chat UI; DocumentVersion v1; P0-01…P0-06)  
-**Сверка статусов решений:** 2026-11-26 (W-001–W-020, W-014a, **D-024**, **D-025–D-042**). D-042 включён в API (`APP_ENV`). Код S0/S5/S7/S8/S10 на эту дату не менялся. Bootstrap и проверка runtime-роли по-прежнему смотрят на `NODE_ENV`.  
+**Сверка статусов решений:** 2026-11-26 (W-001–W-020, W-014a, **D-024**, **D-025–D-042**). D-042 (`APP_ENV`) и D-036 (вход через `spectre_auth`) включены. Код S0/S7/S8/S10 на эту дату не менялся. Bootstrap и проверка runtime-роли по-прежнему смотрят на `NODE_ENV`. Приглашения, аудит и постановка job всё ещё на migrator.  
 **Источник истины по решениям:** `docs/decisions-log.md`  
 **План:** `tasks/roadmap.md` / `tasks/plan.md`. Долги Фазы 2: `tasks/phase2-debt.md` (confirmer по D-039 ещё не в коде, email, Chromatic…).
 
@@ -25,7 +25,7 @@
 | Invitations (W-012 / D-028) | Prisma + HTTP create/list/resend/revoke/accept; TTL `INVITE_TTL_HOURS` default 72h; email stub. `devToken` в ответе только для dev/test или `INVITE_DEV_TOKEN_ENABLED=1`, и никогда при `APP_ENV` production/staging/preview (**D-042**) |
 | MFA / SSO (O-008) | **Не реализовано** |
 | Workspace как сущность | Prisma + `WorkspaceAccess` + HTTP; content-visible list — single SQL; cursor pagination (**D-026**) |
-| PostgreSQL RLS (W-020) | Org GUC на tenant tables; **documents** + **conversations/messages/ai_generations** — workspace + PRIVATE/WORKSPACE ACL; **users/sessions/organizations** — FORCE RLS для `spectre_app` (self/org, без DML и без `password_hash`/`token_hash`); auth по-прежнему на migrator (**S5**); grant policies нет (**W-020 не полный**) |
+| PostgreSQL RLS (W-020) | Org GUC на tenant tables; **documents** + **conversations/messages/ai_generations** — workspace + PRIVATE/WORKSPACE ACL; **users/sessions/organizations** — FORCE RLS для `spectre_app`. Вход и сессия — роль `spectre_auth` и `SECURITY DEFINER` (**D-036**). Приглашения, аудит и постановка job всё ещё через migrator. Grant policies нет (**W-020 не полный**) |
 | Chat (5A–5B) | Models+RLS+ACL; HTTP chat; Outbox + Synthetic worker; ContextSnapshot/Item + MessageSource (conversation_only); **thin chat UI** on project Чаты tab; **нет** DocumentVersion docs in context |
 | Загрузка документов | Two-phase `uploading`→blob→`uploaded`; disk temp multipart; DOCX CD walk + PDF `/Encrypt` reject; enqueue extract |
 | AIJob + ai-jobs worker | Prisma `AIJob` / `DocumentExtraction`; BullMQ `ai-jobs`; one dispatcher (`worker:ai`); extract outbox + BullMQ retry (max 3); scan/`NO_TEXT_LAYER` → failed without retry (**D-031**) |
@@ -159,7 +159,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 - `Matter.workspaceId` legacy nullable без FK; связи Matter↔Workspace — `WorkspaceMatter`.
 - Миграции: … **`20261112200000_phase5a2_outbox`**; **`20261112230000_phase5b_context_snapshots`**; **`20261119000000_chat_one_assistant_per_generation`** (partial unique, no row deletes).
 - RLS: org GUC; **documents** + **chat** workspace/PRIVATE ACL; snapshots/items/sources inherit conversation/message ACL; **outbox_events** org-scoped. **`20261120120000_auth_table_rls`** и **`20261120123000_auth_table_column_privileges`:** FORCE RLS на `users` / `sessions` / `organizations` для runtime (self или членство своей org; своя сессия в этой org; своя org). У `spectre_app` сняты INSERT/UPDATE/DELETE. SELECT на `users`/`sessions` — только явный список колонок, без `password_hash` и `token_hash` (колоночный REVOKE поверх табличного GRANT в PostgreSQL не сужает право). **`20261120220000_audit_events_append_only`:** у runtime нет UPDATE/DELETE на `audit_events`; политика не отдаёт `system_event` и чужую org. Default privileges больше не выдают UPDATE/DELETE на будущие таблицы. **`20261120230000_repair_document_version_backfill`:** повторный backfill version 1 / `current_version_id` с `SET LOCAL row_security = off` (идемпотентно, `search_eligible` остаётся false). Историческая Phase 6A миграция не переписывается.
-- Auth bootstrap / login / invites / e2e seed — migrator (локальный superuser обходит FORCE RLS; снятие — **S5**). Tenant API — runtime + GUC; workers extract/chat — migrator + ACL re-check (chat). Runtime URL больше не подменяется `DATABASE_URL`. Перевод воркеров с migrator — отдельный срез.
+- Auth bootstrap, invites, audit и постановка job — migrator (локальный superuser обходит FORCE RLS). Login и разбор сессии — `DATABASE_URL_AUTH` / `spectre_auth` (**D-036**). Tenant API — runtime + GUC; workers extract/chat — migrator + ACL re-check (chat). Runtime URL больше не подменяется `DATABASE_URL`. Перевод воркеров и приглашений с migrator — отдельный срез.
 - Chat UI / DocumentVersion-in-context / grant — **нет**. JOB-012 / CTX-* journal rows remain OPEN.
 - `created_by` на Client/Matter — ещё нет; Document имеет `uploadedByUserId` (**D-029** готов для будущего delete).
 
@@ -280,7 +280,7 @@ Extract caps scaffold (**D-030**): 300 pages / 2M chars / 120s / maxAttempts 3. 
 - Postgres: образ `pgvector/pgvector:pg16`, user/password/db `spectre`, порт `5432`.
 - Redis: `redis:7-alpine`, порт `6379`.
 
-`.env.example`: `APP_ENV` (**D-042**; пусто = development), `DATABASE_URL` (migrator), `DATABASE_URL_RUNTIME` (`spectre_app`), `REDIS_URL`, `PORT`, `API_ORIGIN`, `WEB_ORIGIN` (CSRF), optional `INVITE_DEV_TOKEN_ENABLED`, optional `BOOTSTRAP_*` (dev-only W-012), optional `DOCUMENT_STORAGE_ROOT`. Файл `.env` не коммитится. Каталог `.data/` в `.gitignore`. Пароли compose/runtime/bootstrap — не для shared/production. Opaque DB sessions (без отдельного signing secret).
+`.env.example`: `APP_ENV` (**D-042**; пусто = development), `DATABASE_URL` (migrator), `DATABASE_URL_RUNTIME` (`spectre_app`), `DATABASE_URL_AUTH` (`spectre_auth`, **D-036**), `REDIS_URL`, `PORT`, `API_ORIGIN`, `WEB_ORIGIN` (CSRF), optional `INVITE_DEV_TOKEN_ENABLED`, optional `BOOTSTRAP_*` (dev-only W-012), optional `DOCUMENT_STORAGE_ROOT`. Файл `.env` не коммитится. Каталог `.data/` в `.gitignore`. Пароли compose/runtime/bootstrap — не для shared/production. Opaque DB sessions (без отдельного signing secret).
 
 ## 7. Тесты (что покрыто)
 
@@ -292,7 +292,7 @@ Extract caps scaffold (**D-030**): 300 pages / 2M chars / 120s / maxAttempts 3. 
 | `apps/api` unit | file magic/limits (PDF/DOCX/TXT); bootstrap; queue name |
 | `apps/api` bootstrap unit | guards + idempotent Org/Owner create; refuse foreign owner on same org |
 | `apps/api` queue unit | имя `ai-jobs`, разбор Redis URL |
-| `@spectre/db` | `prisma validate` + RLS harness под runtime role. Локально без БД тесты пропускаются. В CI (`CI=true`) пропуск запрещён, и прогон падает, если выполнилось меньше 16 RLS-тестов |
+| `@spectre/db` | `prisma validate` + RLS harness под runtime role. Локально без БД тесты пропускаются. В CI (`CI=true`) пропуск запрещён, и прогон падает, если выполнилось меньше 20 RLS-тестов |
 
 E2e требуют поднятый Postgres (`docker compose`) и применённые миграции (`pnpm --filter @spectre/db migrate:deploy`).
 
@@ -305,7 +305,7 @@ Workflow: `.github/workflows/ci.yml`.
 | `pull_request` (любой) | job `test`: install → migrate → `pnpm test`; job `web-e2e`: migrate → bootstrap (`BOOTSTRAP_OUT_FILE`) → API login preflight (Origin; tear down :3000) → Playwright Chromium smoke |
 | `push` в `main` | то же |
 
-Сервис: `pgvector/pgvector:pg16` (`spectre` migrator) и `redis:7`. Env также задаёт `DATABASE_URL_RUNTIME` для `spectre_app` (роль создаётся миграцией) и `REDIS_URL`. При `CI=true` пакет базы не пропускает RLS-тесты и требует не меньше 16 выполненных. Lint / typecheck / build / Chromatic publish как отдельные gates **ещё не** подключены.
+Сервис: `pgvector/pgvector:pg16` (`spectre` migrator) и `redis:7`. Env также задаёт `DATABASE_URL_RUNTIME` для `spectre_app` (роль создаётся миграцией) и `REDIS_URL`. При `CI=true` пакет базы не пропускает RLS-тесты и требует не меньше 20 выполненных. Lint / typecheck / build / Chromatic publish как отдельные gates **ещё не** подключены.
 
 ## 8. Явно не реализовано (ожидаемо по спецификациям, отсутствует в коде)
 

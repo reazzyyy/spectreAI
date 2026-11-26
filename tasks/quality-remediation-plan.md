@@ -1,6 +1,6 @@
 # ТЗ: доработки качества SpectreAI (для Cursor)
 
-**Статус:** живой план доработок. S1–S17 влиты в `main` (#58–#67, #70–#73). Решения D-035–D-042 подтверждены 2026-11-26 в `docs/decisions-log.md` и `docs/CURSOR-INSTRUCTIONS-QUALITY-REMEDIATION.md`. Код S0/S5/S7/S8/S10 ещё не начат.  
+**Статус:** живой план доработок. S1–S17 влиты в `main` (#58–#67, #70–#73). Решения D-035–D-042 подтверждены 2026-11-26. D-042 и S5 (вход) в коде. Код S0/S7/S8/S10 ещё не начат. Приглашения, аудит и постановка job всё ещё на migrator.  
 **Источник:** аудит качества 2026-11-19 (прогон `build`/`lint`/`test` на чистой БД + ревью backend/data/frontend/process).  
 **Опора:** `docs/decisions-log.md` (D-008–D-034, W-001–W-020), AS-IS `docs/26-codebase-current-state.md`, `.cursor/rules/07-code-documentation.mdc`.  
 **Правило работы:** каждая секция ниже = отдельный короткий PR в `main` (`.cursor/rules/06-git-commits.mdc`). Не смешивать refactor и feat. Коммит — `<type>: <кратко>`.
@@ -253,12 +253,12 @@
 
 ## Открытые решения
 
-Закрыты 2026-11-26. Код ещё не написан.
+Закрыты 2026-11-26. D-035, D-036 и D-042 уже в коде. S7, S8, S10 и S0 ещё нет.
 
 | ID | Решение | Срез |
 |---|---|---|
 | D-035 | D3/D4 только in-process, без сети | уже в коде P0-06; формулировка зафиксирована |
-| D-036 | Узкая auth-роль + `SECURITY DEFINER`; migrator не на запросном пути | S5 |
+| D-036 | Узкая auth-роль + `SECURITY DEFINER` для входа и сессии | S5 в коде; invites/audit/jobs ещё на migrator |
 | D-037 | Self-add и peer-admin content role запрещены | S7 |
 | D-038 / D-039 | Hard delete только `uploading`; нет confirmer — отказ. O-012 закрыт | S8; полный флоу — Phase 10 |
 | D-040 | Production без Redis не стартует; сбой Redis не fail-open | S10 |

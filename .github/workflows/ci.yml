@@ -46,9 +46,10 @@ jobs:
       DATABASE_URL: postgresql://spectre:spectre@localhost:5432/spectre
       # Runtime RLS role (created in workspace RLS migration). Local/CI password only.
       DATABASE_URL_RUNTIME: postgresql://spectre_app:spectre_app@localhost:5432/spectre
+      DATABASE_URL_AUTH: postgresql://spectre_auth:spectre_auth@localhost:5432/spectre
       REDIS_URL: redis://localhost:6379
       WEB_ORIGIN: http://localhost:3001
-      # @spectre/db refuses to skip RLS tests when this is set and fails if fewer than 16 ran.
+      # @spectre/db refuses to skip RLS tests when this is set and fails if fewer than 20 ran.
       CI: true
 
     steps:
@@ -107,6 +108,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://spectre:spectre@localhost:5432/spectre
       DATABASE_URL_RUNTIME: postgresql://spectre_app:spectre_app@localhost:5432/spectre
+      DATABASE_URL_AUTH: postgresql://spectre_auth:spectre_auth@localhost:5432/spectre
       REDIS_URL: redis://localhost:6379
       PORT: "3000"
       API_ORIGIN: http://localhost:3000
@@ -145,6 +147,7 @@ jobs:
           {
             echo "DATABASE_URL=postgresql://spectre:spectre@localhost:5432/spectre"
             echo "DATABASE_URL_RUNTIME=postgresql://spectre_app:spectre_app@localhost:5432/spectre"
+            echo "DATABASE_URL_AUTH=postgresql://spectre_auth:spectre_auth@localhost:5432/spectre"
             echo "REDIS_URL=redis://localhost:6379"
             echo "PORT=3000"
             echo "API_ORIGIN=http://localhost:3000"

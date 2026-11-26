@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
-import { assertRuntimeDatabaseRole } from "@spectre/db";
+import { assertAuthDatabaseRole, assertRuntimeDatabaseRole } from "@spectre/db";
 import { AppModule } from "./app.module.js";
 import { applyHttpMiddleware } from "./http/apply-http-middleware.js";
 import { assertWebOriginConfiguredForProduction } from "./http/csrf.js";
@@ -8,6 +8,7 @@ import { assertWebOriginConfiguredForProduction } from "./http/csrf.js";
 async function bootstrap(): Promise<void> {
   assertWebOriginConfiguredForProduction();
   await assertRuntimeDatabaseRole();
+  await assertAuthDatabaseRole();
   const app = await NestFactory.create(AppModule);
   applyHttpMiddleware(app);
   app.setGlobalPrefix("api/v1");
