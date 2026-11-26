@@ -94,6 +94,9 @@ function memoryWorkspaceStore(
     async findActiveMember(workspaceId, userId) {
       return mem.get(`${workspaceId}:${userId}`) ?? null;
     },
+    async findOrgMembership() {
+      return null;
+    },
     async listActiveMembers(workspaceId) {
       return [...mem.values()].filter(
         (row) => row.workspaceId === workspaceId && row.status === "ACTIVE",

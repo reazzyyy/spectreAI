@@ -9,6 +9,7 @@ import {
   ClientAccess,
   MatterAccess,
   WorkspaceAccess,
+  WorkspaceMemberTargetError,
   type WorkspaceActor,
   type WorkspaceListPage,
   type WorkspaceMatterLink,
@@ -105,11 +106,19 @@ export class WorkspacesService {
     workspaceId: string,
     input: ParsedMemberUpsert,
   ): Promise<WorkspaceMemberRecord> {
-    const member = await this.workspaces.upsertMember(
-      toWorkspaceActor(actor),
-      workspaceId,
-      input,
-    );
+    let member: WorkspaceMemberRecord | null;
+    try {
+      member = await this.workspaces.upsertMember(
+        toWorkspaceActor(actor),
+        workspaceId,
+        input,
+      );
+    } catch (error) {
+      if (error instanceof WorkspaceMemberTargetError) {
+        throw new UnprocessableEntityException();
+      }
+      throw error;
+    }
     if (!member) {
       throw new NotFoundException();
     }

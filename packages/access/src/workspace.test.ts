@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   WorkspaceAccess,
+  WorkspaceMemberTargetError,
   type WorkspaceActor,
   type WorkspaceMemberRecord,
   type WorkspaceRecord,
@@ -67,9 +68,18 @@ function actor(
 function memoryWorkspaceStore(
   workspaces: WorkspaceRecord[],
   members: WorkspaceMemberRecord[] = [],
+  orgMembers: Array<{
+    organizationId: string;
+    userId: string;
+    role: WorkspaceActor["orgRole"];
+    status: "active" | "revoked";
+  }> = [],
 ): WorkspaceStore {
   const ws = new Map(workspaces.map((row) => [row.id, { ...row }]));
   const mem = new Map(members.map((row) => [`${row.workspaceId}:${row.userId}`, { ...row }]));
+  const orgMem = new Map(
+    orgMembers.map((row) => [`${row.organizationId}:${row.userId}`, row]),
+  );
 
   return {
     async findById(id) {
@@ -123,6 +133,11 @@ function memoryWorkspaceStore(
       const row = mem.get(`${workspaceId}:${userId}`);
       if (!row || row.status !== "ACTIVE") return null;
       return row;
+    },
+    async findOrgMembership(organizationId, userId) {
+      const row = orgMem.get(`${organizationId}:${userId}`);
+      if (!row) return null;
+      return { role: row.role, status: row.status };
     },
     async listActiveMembers(workspaceId) {
       return [...mem.values()].filter(
@@ -290,9 +305,11 @@ describe("WorkspaceAccess member management", () => {
     ).resolves.toBeNull();
   });
 
-  it("Org Admin can upsert/revoke members; EDITOR cannot escalate via upsert", async () => {
+  it("Org Admin can upsert/revoke an ordinary member; EDITOR cannot escalate via upsert", async () => {
     const access = new WorkspaceAccess(
-      memoryWorkspaceStore([teamA], [...seedMembers]),
+      memoryWorkspaceStore([teamA], [...seedMembers], [
+        { organizationId: ORG_A, userId: USER_STRANGER, role: "member", status: "active" },
+      ]),
     );
 
     const added = await access.upsertMember(
@@ -319,6 +336,37 @@ describe("WorkspaceAccess member management", () => {
       USER_STRANGER,
     );
     expect(revoked?.status).toBe("REVOKED");
+  });
+
+  it("refuses self-add and another org admin, and rejects outsiders", async () => {
+    const access = new WorkspaceAccess(
+      memoryWorkspaceStore([teamA], [], [
+        { organizationId: ORG_A, userId: USER_ORG_ADMIN, role: "admin", status: "active" },
+        { organizationId: ORG_A, userId: USER_EDITOR, role: "member", status: "active" },
+        { organizationId: ORG_A, userId: USER_VIEWER, role: "member", status: "revoked" },
+        { organizationId: ORG_B, userId: USER_STRANGER, role: "member", status: "active" },
+      ]),
+    );
+    const admin = actor(USER_ORG_ADMIN, ORG_A, "admin");
+
+    await expect(
+      access.upsertMember(admin, teamA.id, { userId: USER_ORG_ADMIN, role: "EDITOR" }),
+    ).resolves.toBeNull();
+    await expect(
+      access.upsertMember(actor(USER_OWNER, ORG_A, "owner"), teamA.id, {
+        userId: USER_ORG_ADMIN,
+        role: "VIEWER",
+      }),
+    ).resolves.toBeNull();
+    await expect(
+      access.upsertMember(admin, teamA.id, { userId: USER_EDITOR, role: "EDITOR" }),
+    ).resolves.toMatchObject({ userId: USER_EDITOR, role: "EDITOR" });
+    await expect(
+      access.upsertMember(admin, teamA.id, { userId: USER_VIEWER, role: "VIEWER" }),
+    ).rejects.toBeInstanceOf(WorkspaceMemberTargetError);
+    await expect(
+      access.upsertMember(admin, teamA.id, { userId: USER_STRANGER, role: "VIEWER" }),
+    ).rejects.toBeInstanceOf(WorkspaceMemberTargetError);
   });
 });
 

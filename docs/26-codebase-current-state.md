@@ -136,7 +136,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 Публичный API: Client/Matter org-isolation + **`WorkspaceAccess`** (S2) + **`DocumentAccess`** (Phase 3) + **`ConversationAccess`** (Phase 5A-1).
 
 - Client/Matter: чужой id → `null`; create штампует `organizationId` актёра.
-- Workspace: content (PERSONAL owner / TEAM owner+member) отдельно от member-management (Workspace Owner **или** Org Owner/Admin без content read, **W-008**).
+- Workspace: content (PERSONAL owner / TEAM owner+member) отдельно от member-management (Workspace Owner **или** Org Owner/Admin без content read, **W-008**). Контент-роль не выдаётся себе и другому org owner/admin; цель вне активных членов своей организации — `422` (**D-037**).
 - Create Workspace: PERSONAL (default) или TEAM (**W-002**).
 - Document: org isolation на store; Workspace content ACL применяет API (`canReadContent` / `canMutateContent`) до list/upload/download.
 - Conversation: PRIVATE → только `ownerUserId` при workspace content access; WORKSPACE → active content members; mutate OWNER/EDITOR; Org Admin without membership → null.
