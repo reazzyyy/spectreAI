@@ -11,19 +11,25 @@ describe("assertWebOriginConfiguredForProduction", () => {
   it("fails closed in production without WEB_ORIGIN", () => {
     expect(() =>
       assertWebOriginConfiguredForProduction({
-        NODE_ENV: "production",
+        APP_ENV: "production",
         WEB_ORIGIN: "",
       }),
     ).toThrow(/WEB_ORIGIN/);
     expect(() =>
-      assertWebOriginConfiguredForProduction({ NODE_ENV: "production" }),
+      assertWebOriginConfiguredForProduction({ APP_ENV: "production" }),
     ).toThrow(/WEB_ORIGIN/);
+  });
+
+  it("does not treat NODE_ENV=production as the production flag", () => {
+    expect(() =>
+      assertWebOriginConfiguredForProduction({ NODE_ENV: "production" }),
+    ).not.toThrow();
   });
 
   it("accepts a non-empty WEB_ORIGIN in production", () => {
     expect(() =>
       assertWebOriginConfiguredForProduction({
-        NODE_ENV: "production",
+        APP_ENV: "production",
         WEB_ORIGIN: "https://app.example",
       }),
     ).not.toThrow();

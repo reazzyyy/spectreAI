@@ -2,7 +2,7 @@
 
 **Статус:** CONFIRMED как снимок scaffold на дату ниже; не заменяет продуктовые спецификации и не утверждает MVP.  
 **Дата снимка кода:** 2026-11-25 (quality S1–S16; chat UI; DocumentVersion v1; P0-01…P0-06)  
-**Сверка статусов решений:** 2026-11-26 (W-001–W-020, W-014a, **D-024**, **D-025–D-042**). D-035–D-042 подтверждены; код S0/S5/S7/S8/S10 на эту дату не менялся.  
+**Сверка статусов решений:** 2026-11-26 (W-001–W-020, W-014a, **D-024**, **D-025–D-042**). D-042 включён в API (`APP_ENV`). Код S0/S5/S7/S8/S10 на эту дату не менялся. Bootstrap и проверка runtime-роли по-прежнему смотрят на `NODE_ENV`.  
 **Источник истины по решениям:** `docs/decisions-log.md`  
 **План:** `tasks/roadmap.md` / `tasks/plan.md`. Долги Фазы 2: `tasks/phase2-debt.md` (confirmer по D-039 ещё не в коде, email, Chromatic…).
 
@@ -22,7 +22,7 @@
 | Сессии / User / Membership | Scaffold: email+password login, HttpOnly cookie, `ACTOR_CONTEXT` из Session |
 | CSRF (W-014 / W-014a) | Origin allowlist (`WEB_ORIGIN`) + double-submit (`spectre_csrf` + `X-CSRF-Token`); login выдаёт CSRF cookie |
 | Bootstrap первой Org (W-012) | CLI `bootstrap:dev` (dev-only, идемпотентный) |
-| Invitations (W-012 / D-028) | Prisma + HTTP create/list/resend/revoke/accept; TTL `INVITE_TTL_HOURS` default 72h; email stub/devToken |
+| Invitations (W-012 / D-028) | Prisma + HTTP create/list/resend/revoke/accept; TTL `INVITE_TTL_HOURS` default 72h; email stub. `devToken` в ответе только для dev/test или `INVITE_DEV_TOKEN_ENABLED=1`, и никогда при `APP_ENV` production/staging/preview (**D-042**) |
 | MFA / SSO (O-008) | **Не реализовано** |
 | Workspace как сущность | Prisma + `WorkspaceAccess` + HTTP; content-visible list — single SQL; cursor pagination (**D-026**) |
 | PostgreSQL RLS (W-020) | Org GUC на tenant tables; **documents** + **conversations/messages/ai_generations** — workspace + PRIVATE/WORKSPACE ACL; **users/sessions/organizations** — FORCE RLS для `spectre_app` (self/org, без DML и без `password_hash`/`token_hash`); auth по-прежнему на migrator (**S5**); grant policies нет (**W-020 не полный**) |
@@ -222,7 +222,7 @@ Next.js App Router + **FSD (D-023)**: `app` / `widgets` / `features` / `entities
 Локальный storage: `DOCUMENT_STORAGE_ROOT` — scaffold (**O-003**). Worker: `worker:ai` (Synthetic chat only; `worker:extract` и `worker:chat` — тот же dispatcher). Outbox publisher drains `chat.generate` and `document.extract`. Sweeper: `sweep:uploading`.  
 Extract caps scaffold (**D-030**): 300 pages / 2M chars / 120s / maxAttempts 3. AV (**FILE-010**) не включён.
 
-**CSRF (W-014a):** mutating методы (кроме `POST /auth/login`) при наличии session/CSRF cookie требуют заголовок `X-CSRF-Token` = cookie `spectre_csrf`. Если `Origin`/`Referer` присутствует — должен входить в `WEB_ORIGIN`. Отсутствие обоих заголовков допускается для non-browser tooling (e2e). Ошибка: `403 CSRF_REJECTED`. При `NODE_ENV=production` пустой `WEB_ORIGIN` → процесс не стартует.
+**CSRF (W-014a):** mutating методы (кроме `POST /auth/login`) при наличии session/CSRF cookie требуют заголовок `X-CSRF-Token` = cookie `spectre_csrf`. Если `Origin`/`Referer` присутствует — должен входить в `WEB_ORIGIN`. Отсутствие обоих заголовков допускается для non-browser tooling (e2e). Ошибка: `403 CSRF_REJECTED`. При `APP_ENV=production` пустой `WEB_ORIGIN` → процесс не стартует. Cookie `Secure` у сессии и CSRF тоже только при `APP_ENV=production` (**D-042**). `NODE_ENV` это не включает.
 
 Тело `POST /auth/login`:
 
@@ -280,7 +280,7 @@ Extract caps scaffold (**D-030**): 300 pages / 2M chars / 120s / maxAttempts 3. 
 - Postgres: образ `pgvector/pgvector:pg16`, user/password/db `spectre`, порт `5432`.
 - Redis: `redis:7-alpine`, порт `6379`.
 
-`.env.example`: `DATABASE_URL` (migrator), `DATABASE_URL_RUNTIME` (`spectre_app`), `REDIS_URL`, `PORT`, `API_ORIGIN`, `WEB_ORIGIN` (CSRF), optional `BOOTSTRAP_*` (dev-only W-012), optional `DOCUMENT_STORAGE_ROOT`. Файл `.env` не коммитится. Каталог `.data/` в `.gitignore`. Пароли compose/runtime/bootstrap — не для shared/production. Opaque DB sessions (без отдельного signing secret).
+`.env.example`: `APP_ENV` (**D-042**; пусто = development), `DATABASE_URL` (migrator), `DATABASE_URL_RUNTIME` (`spectre_app`), `REDIS_URL`, `PORT`, `API_ORIGIN`, `WEB_ORIGIN` (CSRF), optional `INVITE_DEV_TOKEN_ENABLED`, optional `BOOTSTRAP_*` (dev-only W-012), optional `DOCUMENT_STORAGE_ROOT`. Файл `.env` не коммитится. Каталог `.data/` в `.gitignore`. Пароли compose/runtime/bootstrap — не для shared/production. Opaque DB sessions (без отдельного signing secret).
 
 ## 7. Тесты (что покрыто)
 

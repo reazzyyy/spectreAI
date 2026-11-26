@@ -35,7 +35,7 @@ Idempotent for the same org name + owner email (re-runs refresh the owner passwo
 
 - Owner-only: `GET/POST /organizations/:orgId/invitations`, resend, revoke.
 - `POST /invitations/accept` — new user supplies `password`; existing user must be logged in as the invite email.
-- Roles: `admin` | `member` only (not `owner`). Raw token stored as SHA-256; `devToken` returned outside production only.
+- Roles: `admin` | `member` only (not `owner`). Raw token stored as SHA-256. `devToken` is returned in a dev/test environment, or when `INVITE_DEV_TOKEN_ENABLED=1` on any other name except `production`, `staging`, and `preview` (**D-042**). `NODE_ENV` does not control it.
 - TTL: `INVITE_TTL_HOURS` (**D-028**, default 72h). Email provider stub — out of this slice (devToken stands in).
 
 E2e seeds organizations, clients, matters, users + memberships, a TEAM Workspace fixture, logs in via cookie, and asserts cross-org Client/Matter/Workspace → `404`, foreign `clientId`/`matterId` → `422`, PERSONAL|TEAM create, bad visibility → `422`.
