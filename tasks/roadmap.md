@@ -1,9 +1,9 @@
 # Глобальный план реализации
 
 **Статус:** живой рабочий план. Его можно менять и дополнять. Это не подтверждённое продуктовое решение и не описание уже написанного кода.  
-**Дата редакции:** 2026-11-25  
+**Дата редакции:** 2026-11-26  
 **Опора:** `docs/decisions-log.md` (D-001–D-034, W-001–W-020, O-001–O-012, H-001–H-005), `docs/05-mvp-acceptance.md`, AS-IS `docs/26-codebase-current-state.md`.  
-**Детальный срез:** `tasks/plan.md` / `tasks/todo.md`. 5A–5B, тонкий chat UI и DocumentVersion v1 уже в `main`. Следующий продукт после качества — поиск (FTS), он не начат: FILE-009, Gate B и O-002 открыты. Аудит надёжности 2026-11-17 — `docs/2026-11-17-spectreai-integrated-algorithm-and-contract-audit.md` (**AUDIT**); инструкция к нему — `docs/2026-11-17-cursor-p0-reliability-implementation-instructions.md` (**PROPOSED**). Оба описывают архив, не сегодняшний код.
+**Детальный срез:** `tasks/plan.md` / `tasks/todo.md`. 5A–5B, тонкий chat UI и DocumentVersion v1 уже в `main`. Поиск начат срезом 6A-0 (`search_tsv` + GIN, `docs/35`); API и publish ещё нет. FILE-009, Gate B и O-002 открыты. Аудит надёжности 2026-11-17 — `docs/2026-11-17-spectreai-integrated-algorithm-and-contract-audit.md` (**AUDIT**); инструкция к нему — `docs/2026-11-17-cursor-p0-reliability-implementation-instructions.md` (**PROPOSED**). Оба описывают архив, не сегодняшний код.
 
 Если журнал решений и этот план расходятся, приоритет у журнала. Новое CONFIRMED сначала попадает в `docs/decisions-log.md`, затем сюда сдвигается соответствующее ворота.
 
@@ -146,7 +146,7 @@
 
 **Цель.** Полнотекстовый поиск PostgreSQL возвращает только фрагменты, которые актёр может читать в момент запроса. Отзыв членства виден в следующем поиске.
 
-**Спецификация (PROPOSED):** `docs/33-phase6-rag-implementation-specification.md`. Срез DocumentVersion v1 в `main` (#51): версия создаётся при загрузке, `searchEligible` остаётся false (**D-033** / **D-034**). FTS, чанки и вектор не начаты. Gate B и FILE-009 открыты.
+**Спецификация (PROPOSED):** `docs/33-phase6-rag-implementation-specification.md`, срез реализации `docs/35`. DocumentVersion v1 в `main` (#51). `search_tsv` и GIN есть; `searchEligible` остаётся false (**D-033** / **D-034**). Search API, publish, чанки и вектор не начаты. Gate B и FILE-009 открыты.
 
 **Ворота B.** Векторный слой `pgvector` включается после выбора модели embeddings. Если модель внешняя — только вместе с закрытием **O-002**. **FILE-009** chunking остаётся OPEN до benchmark + явного выбора. До этого в AS-IS честно: FTS может появиться в 6A, вектор ещё нет, хотя **D-018** требует оба к полному MVP.
 

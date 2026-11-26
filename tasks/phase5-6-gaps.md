@@ -21,7 +21,7 @@
 | ID | Пробел | Срез | Статус |
 |---|---|---|---|
 | P6-03 | Structure parser (heading/clause/paragraph/offsets) | 6A | open |
-| P6-04 | Русскоязычный FTS + exact identifier path | 6A | open |
+| P6-04 | Русскоязычный FTS + exact identifier path. `search_tsv` + GIN есть; API, publish и exact path нет | 6A | partial |
 | P6-05 | EmbeddingProvider + выбранная модель/dimensions | Gate B → 6B | blocked (Gate B) |
 | P6-06 | pgvector migration + HNSW benchmark | Gate B → 6B | blocked (Gate B) |
 | P6-07 | RRF / reranking / context builder / citation validator | 6B / optional | open |

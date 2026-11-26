@@ -68,6 +68,11 @@
 
 ## Next
 
+- [x] 6A-0: `search_tsv` + GIN on `document_extractions` (`docs/35`). No search API and no `searchEligible` flip
+- [ ] 6A-1: `document.search_publish` job sets `searchEligible` idempotently; extract still does not
+- [ ] 6A-2: `GET /workspaces/:id/search` with ACL in SQL and a cursor
+- [ ] 6A-3: search field in documents and the project
+- [ ] 6A-4: Russian golden set and the synonym limitation in AS-IS
 - [x] D-035–D-042 recorded. O-012 closed by D-039. S5, S7, S8, S10, and the safe S0 jobs are in code
 - [x] D-042 explicit `APP_ENV`; dev token hidden on production, staging, and preview
 - [x] S5 login and session resolve use spectre_auth (D-036). Invites, audit, and job enqueue still use the migrator
@@ -75,6 +80,5 @@
 - [x] S10 production rate limit fail-closed (D-040)
 - [x] S8 document deletion lifecycle and no-confirmer guard (D-038, D-039). Full confirmer flow stays Phase 10
 - [x] S0: `typecheck`, `db validate`, and web `lint:all` (D-041). `build` waits for a deterministic Next build
-- [ ] Phase 6 FTS on DocumentVersion. FILE-009 and Gate B stay open; vector waits for Gate B
 - [ ] Remaining Phase 2 debt (`tasks/phase2-debt.md`) — confirmer flow, email provider, idle session
 - [ ] FILE-010 antivirus product integration
