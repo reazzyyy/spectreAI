@@ -742,6 +742,78 @@ describe("API scaffold", () => {
         .send({ userId: USER_A, role: "EDITOR" });
       expect(ownerAsMember.status).toBe(404);
 
+      const unknownMember = await agent
+        .post(`/api/v1/workspaces/${TEAM_WORKSPACE_A}/members`)
+        .send({ userId: "00000000-0000-4000-8000-0000000000ee", role: "EDITOR" });
+      expect(unknownMember.status).toBe(422);
+      expect(unknownMember.body.error.code).toBe("VALIDATION_ERROR");
+
+      const foreignMember = await agent
+        .post(`/api/v1/workspaces/${TEAM_WORKSPACE_A}/members`)
+        .send({ userId: USER_ORG_B, role: "VIEWER" });
+      expect(foreignMember.status).toBe(422);
+      expect(foreignMember.body.error.code).toBe("VALIDATION_ERROR");
+
+      const adminId = randomUUID();
+      const revokedId = randomUUID();
+      const adminEmail = `org-admin-${adminId}@example.com`;
+      const adminPassword = "org-admin-password-12";
+      const adminPrisma = createPrismaClient({ purpose: "migrator" });
+      try {
+        const passwordHash = await hashPassword(adminPassword);
+        await adminPrisma.user.createMany({
+          data: [
+            { id: adminId, email: adminEmail, passwordHash, status: "active" },
+            {
+              id: revokedId,
+              email: `revoked-${revokedId}@example.com`,
+              passwordHash,
+              status: "active",
+            },
+          ],
+        });
+        await adminPrisma.organizationMembership.createMany({
+          data: [
+            { organizationId: ORG_A, userId: adminId, role: "admin", status: "active" },
+            { organizationId: ORG_A, userId: revokedId, role: "member", status: "revoked" },
+          ],
+        });
+
+        const peerAdmin = await agent
+          .post(`/api/v1/workspaces/${TEAM_WORKSPACE_A}/members`)
+          .send({ userId: adminId, role: "EDITOR" });
+        expect(peerAdmin.status).toBe(404);
+
+        const revokedTarget = await agent
+          .post(`/api/v1/workspaces/${TEAM_WORKSPACE_A}/members`)
+          .send({ userId: revokedId, role: "VIEWER" });
+        expect(revokedTarget.status).toBe(422);
+
+        const adminAgent = request.agent(app.getHttpServer());
+        const adminLogin = await adminAgent.post("/api/v1/auth/login").send({
+          email: adminEmail,
+          password: adminPassword,
+          organizationId: ORG_A,
+        });
+        expect(adminLogin.status).toBe(200);
+        const adminCsrf = extractCookieValue(adminLogin.headers["set-cookie"], CSRF_COOKIE_NAME);
+        adminAgent.set(CSRF_HEADER_NAME, adminCsrf!);
+        const selfAdd = await adminAgent
+          .post(`/api/v1/workspaces/${TEAM_WORKSPACE_A}/members`)
+          .send({ userId: adminId, role: "EDITOR" });
+        expect(selfAdd.status).toBe(404);
+      } finally {
+        await adminPrisma.session.deleteMany({ where: { userId: { in: [adminId, revokedId] } } });
+        await adminPrisma.workspaceMember.deleteMany({
+          where: { userId: { in: [adminId, revokedId] } },
+        });
+        await adminPrisma.organizationMembership.deleteMany({
+          where: { userId: { in: [adminId, revokedId] } },
+        });
+        await adminPrisma.user.deleteMany({ where: { id: { in: [adminId, revokedId] } } });
+        await adminPrisma.$disconnect();
+      }
+
       const personal = await agent.post("/api/v1/workspaces").send({ name: "No members" });
       expect(personal.status).toBe(201);
       const personalMember = await agent

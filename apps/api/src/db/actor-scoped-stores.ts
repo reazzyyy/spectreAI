@@ -112,6 +112,12 @@ export function createActorScopedWorkspaceStore(
       if (!actor) return null;
       return prisma.withActor(actor, (tx) => createPrismaWorkspaceStore(tx).update(id, input));
     },
+    async findOrgMembership(organizationId, userId) {
+      if (!actor) return null;
+      return prisma.withActor(actor, (tx) =>
+        createPrismaWorkspaceStore(tx).findOrgMembership(organizationId, userId),
+      );
+    },
     async findActiveMember(workspaceId, userId) {
       if (!actor) return null;
       return prisma.withActor(actor, (tx) =>

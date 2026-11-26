@@ -191,6 +191,17 @@ export function createPrismaWorkspaceStore(prisma: Db): WorkspaceStore {
       }
     },
 
+    async findOrgMembership(organizationId, userId) {
+      const row = await prisma.organizationMembership.findUnique({
+        where: { organizationId_userId: { organizationId, userId } },
+        select: { role: true, status: true },
+      });
+      if (!row) {
+        return null;
+      }
+      return { role: row.role, status: row.status };
+    },
+
     async findActiveMember(workspaceId, userId) {
       const row = await prisma.workspaceMember.findUnique({
         where: { workspaceId_userId: { workspaceId, userId } },

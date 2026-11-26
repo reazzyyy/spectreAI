@@ -18,7 +18,7 @@ Foreign or missing records → `null` (HTTP maps to identical `NOT_FOUND`).
 - Actor comes from the **server** (`WorkspaceActor`: userId, organizationId, orgRole).
 - **Content:** PERSONAL → owner only; TEAM → owner or active EDITOR/VIEWER member.
 - **Org Admin does not read content** via these helpers (admin grant is a later slice).
-- **Member management:** Workspace Owner **or** Org Owner/Admin (`W-008`) — without implying content read.
+- **Member management:** Workspace Owner **or** Org Owner/Admin (`W-008`) — without implying content read. A content role cannot be given to the actor, another org owner/admin, or anyone who is not an active member of the same organization (**D-037**). The last case throws `WorkspaceMemberTargetError` (HTTP 422).
 - **Create:** PERSONAL (default) or TEAM (**W-002**).
 - Cannot attach membership to Workspace owner; cannot manage members on PERSONAL.
 - VIEWER cannot mutate content; EDITOR/OWNER can (`canMutateContent`).

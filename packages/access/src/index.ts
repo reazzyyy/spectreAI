@@ -35,6 +35,8 @@ export {
 
 export {
   WorkspaceAccess,
+  WorkspaceMemberTargetError,
+  type OrgMembershipSnapshot,
   type WorkspaceActor,
   type WorkspaceRecord,
   type WorkspaceMemberRecord,

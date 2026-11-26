@@ -64,6 +64,20 @@ export interface WorkspaceMemberUpsertInput {
   role: WorkspaceMemberRole;
 }
 
+/** Active or revoked organization membership used to gate content-role grants (D-037). */
+export interface OrgMembershipSnapshot {
+  role: OrganizationActorRole;
+  status: "active" | "revoked";
+}
+
+/** Target is missing, revoked, or not a member of the actor's organization. HTTP maps this to 422. */
+export class WorkspaceMemberTargetError extends Error {
+  constructor() {
+    super("MEMBER_TARGET_NOT_IN_ORG");
+    this.name = "WorkspaceMemberTargetError";
+  }
+}
+
 /**
  * Persistence for Workspace + members. Callers must not trust client-supplied org/user ids;
  * {@link WorkspaceAccess} stamps and checks the actor.
@@ -96,6 +110,11 @@ export interface WorkspaceStore {
   create(organizationId: string, ownerUserId: string, input: WorkspaceCreateInput): Promise<WorkspaceRecord>;
   update(id: string, input: WorkspaceUpdateInput): Promise<WorkspaceRecord | null>;
   findActiveMember(workspaceId: string, userId: string): Promise<WorkspaceMemberRecord | null>;
+  /** Membership in one organization, including revoked. Null when the user is not in that org. */
+  findOrgMembership(
+    organizationId: string,
+    userId: string,
+  ): Promise<OrgMembershipSnapshot | null>;
   listActiveMembers(workspaceId: string): Promise<WorkspaceMemberRecord[]>;
   upsertMember(
     organizationId: string,
@@ -302,11 +321,22 @@ export class WorkspaceAccess {
       return null;
     }
 
-    if (input.userId === workspace.ownerUserId) {
+    if (input.userId === workspace.ownerUserId || input.userId === actor.userId) {
       return null;
     }
 
     if (input.userId.trim() === "") {
+      return null;
+    }
+
+    const membership = await this.store.findOrgMembership(
+      actor.organizationId,
+      input.userId,
+    );
+    if (!membership || membership.status !== "active") {
+      throw new WorkspaceMemberTargetError();
+    }
+    if (membership.role === "owner" || membership.role === "admin") {
       return null;
     }
 
