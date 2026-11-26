@@ -1,7 +1,7 @@
 .saved {
   margin: 0 0 12px;
-  color: var(--color-muted);
   font-size: var(--fs-sm);
+  color: var(--color-muted);
 }
 
 .field {
@@ -19,7 +19,7 @@
   padding: 10px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
+  font: inherit;
   color: inherit;
   background: var(--color-bg, #fff);
-  font: inherit;
 }

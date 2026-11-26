@@ -302,10 +302,10 @@ Workflow: `.github/workflows/ci.yml`.
 
 | Триггер | Поведение |
 |---|---|
-| `pull_request` (любой) | job `test`: install → migrate → `pnpm test`; job `web-e2e`: migrate → bootstrap (`BOOTSTRAP_OUT_FILE`) → API login preflight (Origin; tear down :3000) → Playwright Chromium smoke; job `typecheck`: web `tsc --noEmit` и api `tsc --noEmit`; job `db-validate`: `prisma validate` |
+| `pull_request` (любой) | job `test`: install → migrate → `pnpm test`; job `web-e2e`: migrate → bootstrap (`BOOTSTRAP_OUT_FILE`) → API login preflight (Origin; tear down :3000) → Playwright Chromium smoke; job `typecheck`: web `tsc --noEmit` и api `tsc --noEmit`; job `db-validate`: `prisma validate`; job `lint`: web `lint:all` (ESLint, Steiger, Stylelint) |
 | `push` в `main` | то же |
 
-Сервис: `pgvector/pgvector:pg16` (`spectre` migrator) и `redis:7`. Env также задаёт `DATABASE_URL_RUNTIME` для `spectre_app` (роль создаётся миграцией) и `REDIS_URL`. При `CI=true` пакет базы не пропускает RLS-тесты и требует не меньше 20 выполненных. Отдельные jobs `typecheck` и `db-validate` уже есть (**D-041**). `next build`, `lint:all` и Chromatic publish как gates **ещё не** подключены: сборка Next не детерминирована с первого запуска, Stylelint не чистый. Required checks в branch protection — действие владельца.
+Сервис: `pgvector/pgvector:pg16` (`spectre` migrator) и `redis:7`. Env также задаёт `DATABASE_URL_RUNTIME` для `spectre_app` (роль создаётся миграцией) и `REDIS_URL`. При `CI=true` пакет базы не пропускает RLS-тесты и требует не меньше 20 выполненных. Отдельные jobs `typecheck`, `db-validate` и `lint` (`lint:all`) уже есть (**D-041**). `next build` и Chromatic publish как gates **ещё не** подключены. Required checks в branch protection — действие владельца.
 
 ## 8. Явно не реализовано (ожидаемо по спецификациям, отсутствует в коде)
 

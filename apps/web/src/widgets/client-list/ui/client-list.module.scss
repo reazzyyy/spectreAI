@@ -10,22 +10,22 @@
 
 .list {
   display: flex;
-  flex-direction: column;
   margin: 0;
   padding: 0;
   border-top: 1px solid var(--color-border);
+  flex-direction: column;
   list-style: none;
 }
 
 .item {
   display: flex;
+  min-height: 64px;
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--color-border);
   flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  min-height: 64px;
-  padding: 14px 4px;
   gap: 10px 16px;
-  border-bottom: 1px solid var(--color-border);
   background: transparent;
 }
 
@@ -36,9 +36,9 @@
 }
 
 .itemName a {
-  color: inherit;
   text-decoration: underline;
   text-underline-offset: 3px;
+  color: inherit;
 }
 
 .meta {

@@ -12,8 +12,8 @@
 
 .root:hover:not(:disabled),
 .active {
-  background: var(--color-soft);
   color: var(--color-text);
+  background: var(--color-soft);
 }
 
 .root:disabled {

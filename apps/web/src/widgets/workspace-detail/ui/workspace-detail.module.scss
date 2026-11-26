@@ -34,8 +34,8 @@
 .center {
   display: grid;
   min-height: calc(100vh - var(--topbar-height) - 80px);
-  place-items: center;
   padding: 40px;
+  place-items: center;
 }
 
 .pageHead {
@@ -49,10 +49,10 @@
 }
 
 .pageLead {
-  margin: 8px 0 0;
   max-width: 40rem;
-  color: var(--color-text-2);
+  margin: 8px 0 0;
   font-size: var(--fs-sm);
+  color: var(--color-text-2);
 }
 
 .description {

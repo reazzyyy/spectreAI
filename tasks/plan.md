@@ -13,6 +13,6 @@
 
 ## Дальше, отдельные PR
 
-План правок D-035–D-042 в коде, включая jobs CI `typecheck` и `db validate`. `next build` и `lint:all` в CI не включены. Приглашения, аудит и постановка job всё ещё на migrator. Апгрейд Next — один изолированный PR.
+План правок D-035–D-042 в коде, включая jobs CI `typecheck`, `db validate` и web `lint:all`. `next build` в CI не включён. Приглашения, аудит и постановка job всё ещё на migrator. Апгрейд Next — один изолированный PR.
 
 Следующий продуктовый шаг после этих срезов — полнотекст по `DocumentVersion`. Вектор не начинать до Gate B.

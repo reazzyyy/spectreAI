@@ -12,8 +12,8 @@
 }
 
 .main {
-  flex: 1 1 280px;
   min-width: 0;
+  flex: 1 1 280px;
 }
 
 .title {
@@ -26,8 +26,8 @@
 
 .description {
   margin: 4px 0 0;
-  color: var(--color-muted);
   font-size: var(--fs-base);
+  color: var(--color-muted);
 }
 
 .actions {

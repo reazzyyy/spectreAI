@@ -1,22 +1,22 @@
 .muted {
   margin: 4px 0 0;
-  color: var(--color-muted);
   font-size: var(--fs-base);
+  color: var(--color-muted);
 }
 
 .boundary {
   display: flex;
   margin: 24px 0 30px;
-  gap: 12px;
   padding: 18px;
   border-radius: 8px;
+  gap: 12px;
   color: var(--color-accent);
   background: var(--color-accent-soft);
 }
 
 .boundaryBody {
-  flex: 1;
   min-width: 0;
+  flex: 1;
 }
 
 .boundaryBody strong {
@@ -34,10 +34,10 @@
 .success {
   display: flex;
   margin-bottom: 20px;
-  align-items: center;
-  gap: 8px;
   padding: 12px 14px;
   border-radius: 6px;
+  align-items: center;
+  gap: 8px;
   font-size: 12px;
   color: var(--color-success);
   background: var(--color-success-soft);
@@ -85,17 +85,17 @@
 .person {
   display: flex;
   min-height: 76px;
+  padding-block: 16px;
+  border-bottom: 1px solid var(--color-border);
   flex-wrap: wrap;
   align-items: center;
   gap: 14px;
-  padding-block: 16px;
-  border-bottom: 1px solid var(--color-border);
 }
 
 .personMeta {
   display: flex;
-  flex: 1;
   min-width: 0;
+  flex: 1;
   flex-direction: column;
   gap: 4px;
 }
@@ -109,8 +109,8 @@
 .personMeta small,
 .you {
   font-size: 11px;
-  color: var(--color-muted);
   overflow-wrap: anywhere;
+  color: var(--color-muted);
 }
 
 .roleBadge {
@@ -156,11 +156,11 @@
 
 .inviteRow {
   display: grid;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--color-border);
   grid-template-columns: minmax(0, 1fr) 135px 220px;
   align-items: center;
   gap: 16px;
-  padding: 18px 0;
-  border-bottom: 1px solid var(--color-border);
 }
 
 .inviteMain {
@@ -201,21 +201,21 @@
 
 .status {
   margin: 12px 0;
-  color: var(--color-muted);
   font-size: var(--fs-sm);
+  color: var(--color-muted);
 }
 
 .error {
   margin: 12px 0;
-  color: var(--color-danger);
   font-size: var(--fs-sm);
+  color: var(--color-danger);
 }
 
 .dialogField {
   display: flex;
+  margin-bottom: 14px;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 14px;
 }
 
 .dialogField label {
