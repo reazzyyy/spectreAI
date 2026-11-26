@@ -263,7 +263,7 @@
 | D-038 / D-039 | Hard delete только `uploading`; нет confirmer — отказ. O-012 закрыт | S8; полный флоу — Phase 10 |
 | D-040 | Production без Redis не стартует; сбой Redis не fail-open | S10 |
 | D-041 | Гейты по этапам; Next и Stylelint — отдельные PR; branch protection включает владелец | S0 |
-| D-042 | `APP_ENV=production`; dev-токен только по явному флагу | отдельный chore |
+| D-042 | `APP_ENV=production`; dev-токен не отдаётся на production/staging/preview | в коде API |
 
 ---
 

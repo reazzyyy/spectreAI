@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import type { CookieOptions, Request } from "express";
+import { isProductionApp, secureCookieEnabled } from "../config/app-env.js";
 
 /** Readable by JS for double-submit; not a session proof (W-014). */
 export const CSRF_COOKIE_NAME = "spectre_csrf";
@@ -19,22 +20,25 @@ export function isLoginPath(path: string): boolean {
   return normalized === "/api/v1/auth/login" || normalized.endsWith("/auth/login");
 }
 
-export function csrfCookieOptions(maxAgeMs: number): CookieOptions {
+export function csrfCookieOptions(
+  maxAgeMs: number,
+  env: NodeJS.ProcessEnv = process.env,
+): CookieOptions {
   return {
     httpOnly: false,
     sameSite: "lax",
     path: "/",
-    secure: process.env.NODE_ENV === "production",
+    secure: secureCookieEnabled(env),
     maxAge: maxAgeMs,
   };
 }
 
-export function clearCsrfCookieOptions(): CookieOptions {
+export function clearCsrfCookieOptions(env: NodeJS.ProcessEnv = process.env): CookieOptions {
   return {
     httpOnly: false,
     sameSite: "lax",
     path: "/",
-    secure: process.env.NODE_ENV === "production",
+    secure: secureCookieEnabled(env),
     maxAge: 0,
   };
 }
@@ -64,13 +68,13 @@ export function loadAllowedOrigins(
 export function assertWebOriginConfiguredForProduction(
   env: NodeJS.ProcessEnv = process.env,
 ): void {
-  if (env.NODE_ENV !== "production") {
+  if (!isProductionApp(env)) {
     return;
   }
   // Use "" when unset on the passed env — do not fall back to process.env via default arg.
   if (loadAllowedOrigins(env.WEB_ORIGIN ?? "").size === 0) {
     throw new Error(
-      "WEB_ORIGIN must be set to a non-empty comma-separated allowlist when NODE_ENV=production (W-014a)",
+      "WEB_ORIGIN must be set to a non-empty comma-separated allowlist when APP_ENV=production (W-014a)",
     );
   }
 }
