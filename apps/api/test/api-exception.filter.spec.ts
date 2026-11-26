@@ -81,6 +81,26 @@ describe("API error codes", () => {
     ).toMatchObject({ status: 400, code: "QUOTE_MISMATCH" });
   });
 
+  it("keeps RATE_LIMIT_UNAVAILABLE on 503 and hides other server errors", () => {
+    expect(
+      capture(
+        new HttpException(
+          { code: "RATE_LIMIT_UNAVAILABLE", message: "redis://secret" },
+          HttpStatus.SERVICE_UNAVAILABLE,
+        ),
+      ),
+    ).toEqual({
+      status: 503,
+      code: "RATE_LIMIT_UNAVAILABLE",
+      message: "Rate limit is unavailable",
+    });
+    expect(capture(new HttpException("boom", HttpStatus.SERVICE_UNAVAILABLE))).toMatchObject({
+      status: 503,
+      code: "INTERNAL_ERROR",
+      message: "Unexpected error",
+    });
+  });
+
   it("ignores a code that is not a stable token", () => {
     expect(
       capture(

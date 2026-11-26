@@ -1,12 +1,23 @@
 import { HttpException, HttpStatus } from "@nestjs/common";
 import { Redis } from "ioredis";
+import { isProductionApp } from "../config/app-env.js";
 import { redisConnectionFromUrl } from "../queue/redis-connection.js";
 
 /**
- * Redis sliding-window rate limiter (W-019 technical caps; not product tariffs / O-007).
- * Fail-open if Redis is unavailable so CI/local without Redis still passes;
- * production should monitor Redis and treat fail-open as an incident.
+ * Redis fixed-window limiter (`INCR` + `EXPIRE`, W-019 technical caps; not tariffs / O-007).
+ * Local and CI without Redis stay fail-open (D-040). `APP_ENV=production` refuses to
+ * start without `REDIS_URL` and rejects a protected bucket when Redis errors
+ * (`503 RATE_LIMIT_UNAVAILABLE`). That rejection is the incident signal: the log
+ * line is the bucket name only, never the caller key.
  */
+
+/** Boot failure when production has no Redis URL. `name` is what `main` logs. */
+export class RedisUrlRequiredError extends Error {
+  constructor() {
+    super("REDIS_URL is required when APP_ENV=production (D-040)");
+    this.name = "REDIS_URL_REQUIRED";
+  }
+}
 
 export type RateLimitBucket =
   | "auth_login"
@@ -62,12 +73,39 @@ function getRedis(): Redis | null {
   }
 }
 
+/**
+ * Production must name a Redis URL before listen. A missing URL is not the
+ * same as a later connection error: the process does not start.
+ * `NODE_ENV` is not this flag (D-042).
+ */
+export function assertRedisConfiguredForProduction(
+  env: NodeJS.ProcessEnv = process.env,
+): void {
+  if (!isProductionApp(env)) {
+    return;
+  }
+  if (!env.REDIS_URL?.trim()) {
+    throw new RedisUrlRequiredError();
+  }
+}
+
+function refuseClosed(bucket: RateLimitBucket): never {
+  console.error(`RATE_LIMIT_UNAVAILABLE bucket=${bucket}`);
+  throw new HttpException(
+    { code: "RATE_LIMIT_UNAVAILABLE", message: "Rate limit is unavailable" },
+    HttpStatus.SERVICE_UNAVAILABLE,
+  );
+}
+
 export async function assertRateLimit(
   bucket: RateLimitBucket,
   key: string,
 ): Promise<void> {
   const client = getRedis();
   if (!client) {
+    if (isProductionApp()) {
+      refuseClosed(bucket);
+    }
     return;
   }
 
@@ -96,8 +134,10 @@ export async function assertRateLimit(
     if (error instanceof HttpException) {
       throw error;
     }
+    if (isProductionApp()) {
+      refuseClosed(bucket);
+    }
     redisDisabled = true;
-    // fail-open on Redis errors
   }
 }
 

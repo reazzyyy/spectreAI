@@ -13,6 +13,6 @@
 
 ## Дальше, отдельные PR
 
-D-042, вход D-036 и запрет self-add D-037 в коде. Дальше: S10 (D-040), S8 (D-038 и guard D-039). Приглашения, аудит и постановка job всё ещё на migrator. S0: сначала jobs `typecheck` и `db validate`; `build` после отдельного PR с детерминированным Next; `lint` после чистки Stylelint. Апгрейд Next — один изолированный PR.
+D-042, вход D-036, запрет self-add D-037 и fail-closed rate limit D-040 в коде. Дальше: S8 (D-038 и guard D-039). Приглашения, аудит и постановка job всё ещё на migrator. S0: сначала jobs `typecheck` и `db validate`; `build` после отдельного PR с детерминированным Next; `lint` после чистки Stylelint. Апгрейд Next — один изолированный PR.
 
 Следующий продуктовый шаг после этих срезов — полнотекст по `DocumentVersion`. Вектор не начинать до Gate B.
